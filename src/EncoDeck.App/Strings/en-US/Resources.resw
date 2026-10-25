@@ -531,7 +531,7 @@
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>Download the non-Store edition</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>LHDC unavailable in Store edition</value></data>
   <data name="Lhdc_HelpDownload.Text" xml:space="preserve"><value>1. Pair your earbuds in Windows, then select Download LHDC component. Downloading does not install drivers. Once the download finishes, choose the audio device above. This selection is separate from the Home page; only one device can be managed at a time.</value></data>
-  <data name="Lhdc_HelpQuality.Text" xml:space="preserve"><value>3. Play some audio and check that it sounds right before changing the settings. If audio stutters, lower the bitrate first. Adaptive bitrate adjusts to the connection, using your selected value as the upper limit. After each change, select Enable LHDC / apply settings again. Select Refresh to check the current status; the earbuds’ Hi-Res switch does not confirm that Windows is using LHDC.</value></data>
+  <data name="Lhdc_HelpQuality.Text" xml:space="preserve"><value>3. Play some audio and check that it sounds right before changing the settings. Bitrates above 400 kbps need the Earbud Hi-Res switch to be on; once it is on, the driver renegotiates the earbuds' capabilities and the bitrate list follows a moment later. Before turning it off, apply settings of at most 48 kHz and 400 kbps. If audio stutters, lower the bitrate first. Adaptive bitrate adjusts to the connection, using your selected value as the upper limit. After each change, select Enable LHDC / apply settings again. Select Refresh to check the current status; the negotiated bitrate limit is what the driver agreed on with the earbuds, not a hardware ceiling, and the earbuds' Hi-Res switch does not confirm that Windows is using LHDC.</value></data>
   <data name="Lhdc_HelpApply.Text" xml:space="preserve"><value>2. Try 48 kHz, 24 bit and 400 kbps first. Select Enable LHDC / apply settings and approve the Windows administrator prompt. Installation checks whether your earbuds support LHDC V5. Sound will briefly stop during the switch; wait for it to finish. If asked to restart, restart your PC, then select Refresh.</value></data>
   <data name="Lhdc_HelpRequirements.Text" xml:space="preserve"><value>You need the non-Store x64 edition of EncoDeck, Windows 11 22H2 (22621) or later, and earbuds that support LHDC V5. Windows may block the test-signed drivers from loading. EncoDeck does not automatically change test mode, Secure Boot or memory integrity settings.</value></data>
   <data name="Lhdc_Help.Header" xml:space="preserve"><value>How to use LHDC</value></data>
@@ -539,6 +539,19 @@
   <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>Disclaimer: LHDC is an experimental feature based on the third-party open-source project LHDC-Win. Playback, reconnection and recovery still need hardware testing; compatibility with every device or system is not guaranteed. You may encounter lost audio, stuttering or a need to restore audio manually. Use it only if you understand and accept the risks of driver installation and system setting changes. To the extent permitted by applicable law, EncoDeck and its developers are not liable for resulting losses.</value></data>
   <data name="DeviceConnect.Content" xml:space="preserve"><value>Connect in Windows</value></data>
   <data name="Lhdc_Guide.Content" xml:space="preserve"><value>Full guide: driver setup and recovery</value></data>
+  <data name="Lhdc_HiRes.Text" xml:space="preserve"><value>Earbud Hi-Res</value></data>
+  <data name="Lhdc_HiResHint.Text" xml:space="preserve"><value>The earbuds use this switch to decide which sample rates and bitrates they advertise to Windows. While it is off the ceiling is 48 kHz and 400 kbps.</value></data>
+  <data name="Lhdc_HiResOn" xml:space="preserve"><value>On. Once the driver negotiates the capabilities again, the available sample rates and bitrates follow the earbuds' own limits.</value></data>
+  <data name="Lhdc_HiResOff" xml:space="preserve"><value>Off. Turn it on to select higher sample rates and bitrates; switching interrupts audio briefly.</value></data>
+  <data name="Lhdc_HiResUnknown" xml:space="preserve"><value>Connect the earbuds to read their Hi-Res state.</value></data>
+  <data name="Lhdc_HiResUnsupported" xml:space="preserve"><value>These earbuds have no Hi-Res switch, so only the standard LHDC V5 formats are available.</value></data>
+  <data name="Lhdc_HiResBusy" xml:space="preserve"><value>Switching the earbuds' Hi-Res state…</value></data>
+  <data name="Lhdc_HiResPending" xml:space="preserve"><value>The earbuds confirmed the switch, but the driver has not negotiated the capabilities again yet. Select Refresh in a moment.</value></data>
+  <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>Before turning Hi-Res off, apply LHDC settings of at most 48 kHz and 400 kbps.</value></data>
+  <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>Highest bitrate the driver negotiated {0} kbps</value></data>
+  <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>Hi-Res is on, but the driver still holds the old capabilities</value></data>
+  <data name="Lhdc_Negotiating" xml:space="preserve"><value>Asking the driver to negotiate the earbuds' capabilities again…</value></data>
+  <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>Device not found</value></data>
   <data name="Xiaomi_Level_0" xml:space="preserve"><value>Level 1</value></data>
   <data name="Xiaomi_Level_1" xml:space="preserve"><value>Level 2</value></data>
   <data name="Xiaomi_Level_2" xml:space="preserve"><value>Level 3</value></data>

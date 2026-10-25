@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Text.Json.Nodes;
 using EncoDeck.App.Services;
 using EncoDeck.Platform.Lhdc;
 using EncoDeck.Platform.Updates;
@@ -12,7 +13,28 @@ public sealed partial class LhdcSettings : UserControl
 {
     private sealed record Choice(int Value, string Label);
     private CancellationTokenSource? _download;
-    private bool _busy, _syncing;
+    private bool _busy, _syncing, _updating;
+
+    // What the user asked for, kept across the capability refreshes that rebuild the lists.
+    private int _rate = 48000, _bits = 24, _preferredCanonical = 400;
+
+    // The capabilities the LHDC service negotiated with the earbud, as it published them.
+    private string _capabilities = "";
+    private int _mediaMtu, _maxKbps;
+    private int[] _allowedRates = [];
+    private int[] _allowedDepths = [];
+    private Dictionary<int, int[]> _bitratesByRate = [];
+
+    // The earbud's own Hi-Res switch, read over the control channel.
+    private bool _hiResUnsupported;
+    private bool? _hiResEnabled;
+
+    // True while the earbud advertises more than the negotiated capabilities describe.
+    private bool _capabilitiesStale;
+    // The driver is only asked to renegotiate once per device, so a driver that cannot
+    // renegotiate does not restart its session over and over.
+    private bool _negotiated;
+    private LhdcHiResService? _hiRes;
 
     public LhdcSettings()
     {
@@ -29,15 +51,14 @@ public sealed partial class LhdcSettings : UserControl
             Apply.Content = Loc.Get("Lhdc_Apply");
             Restore.Content = Loc.Get("Lhdc_Restore");
             Refresh.Content = Loc.Get("Lhdc_Refresh");
-            Rate.ItemsSource = new[] { new Choice(44100, "44.1 kHz"), new Choice(48000, "48 kHz"), new Choice(96000, "96 kHz"), new Choice(192000, "192 kHz") };
-            Rate.SelectedIndex = 1;
-            Depth.ItemsSource = new[] { new Choice(16, "16 bit"), new Choice(24, "24 bit") };
-            Depth.SelectedIndex = 1;
-            Bitrate.ItemsSource = new[] { 64, 160, 192, 256, 320, 400, 500, 900, 1000 }.Select(k => new Choice(k, $"{k} kbps")).ToArray();
-            Bitrate.SelectedIndex = 5;
+            RebuildChoices();
             Status.Text = Loc.Get(LhdcCompanion.StatusKey);
             Sync();
-            if (LhdcCompanion.IsReady) await Operate(RefreshDevices);
+            if (LhdcCompanion.IsReady)
+            {
+                _hiRes = new LhdcHiResService(LhdcCompanion.Backend);
+                await Operate(RefreshDevices);
+            }
         };
         Unloaded += (_, _) => _download?.Cancel();
     }
@@ -50,6 +71,8 @@ public sealed partial class LhdcSettings : UserControl
         if (PackageIdentity.IsPackaged) Download.Content = Loc.Get("Lhdc_StoreDisabled");
         StandaloneLink.Visibility = PackageIdentity.IsPackaged ? Visibility.Visible : Visibility.Collapsed;
         Devices.IsEnabled = Rate.IsEnabled = Depth.IsEnabled = Bitrate.IsEnabled = Adaptive.IsEnabled = Refresh.IsEnabled = !_busy;
+        // The switch only reflects a state the earbud confirmed; an unknown state stays disabled.
+        HiRes.IsEnabled = !_busy && _hiResEnabled.HasValue;
         Apply.IsEnabled = Restore.IsEnabled = !_busy && Devices.SelectedItem is LhdcDevice;
     }
 
@@ -79,42 +102,319 @@ public sealed partial class LhdcSettings : UserControl
         await ReadStatus();
     }
 
-    private async Task ReadStatus()
+    private async Task ReadStatus(bool waitForDevice = false)
     {
         Observed.Text = "";
-        if (Devices.SelectedItem is not LhdcDevice device) { Observed.Text = Loc.Get("Lhdc_SelectDevice"); return; }
+        HiResRow.Visibility = Visibility.Collapsed;
+        _capabilities = "";
+        _mediaMtu = 0;
+        _maxKbps = 0;
+        _allowedRates = [];
+        _allowedDepths = [];
+        _bitratesByRate = [];
+        _hiResEnabled = null;
+        _hiResUnsupported = false;
+        if (Devices.SelectedItem is not LhdcDevice device)
+        {
+            Observed.Text = Loc.Get("Lhdc_SelectDevice");
+            RebuildChoices();
+            UpdateHiRes();
+            return;
+        }
         var backend = LhdcCompanion.Backend;
+        var target = await backend.QueryAsync(device.Instance, "target");
+        bool found = target["found"]?.GetValue<bool>() == true;
+        bool connected = target["connected"]?.GetValue<bool>() == true;
+        bool heyMelody = target["hey_melody"]?.GetValue<bool>() == true;
         var inventory = await backend.QueryAsync(device.Instance, "inspect");
         var audio = await backend.QueryAsync(device.Instance, "audio-status");
-        var target = inventory["devices"]!.AsArray().FirstOrDefault(d => string.Equals(d?["instance_id"]?.GetValue<string>(), device.Instance, StringComparison.OrdinalIgnoreCase));
-        string service = target?["service"]?.GetValue<string>() ?? "";
+        var entry = inventory["devices"]!.AsArray().FirstOrDefault(d => string.Equals(d?["instance_id"]?.GetValue<string>(), device.Instance, StringComparison.OrdinalIgnoreCase));
+        string service = entry?["service"]?.GetValue<string>() ?? "";
         string mode = service == "BthA2dp" ? Loc.Get("Lhdc_WindowsMode")
             : service == "lhdc-transport" && audio["running"]?.GetValue<bool>() == true ? "LHDC V5" : Loc.Get("Lhdc_UnknownMode");
         int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
-        Observed.Text = Loc.Format("Lhdc_Observed", mode) + (active > 0 ? $" · {active} kbps" : "");
+        await ReadCapabilitiesAsync(device, audio);
+
+        if (heyMelody)
+        {
+            HiResRow.Visibility = Visibility.Visible;
+            if (connected && _hiRes is not null)
+            {
+                try
+                {
+                    var state = await _hiRes.ReadAsync(device, waitForDevice);
+                    if (state is null)
+                    {
+                        // The earbud did not answer on its control channel; the state stays unknown.
+                        _hiResEnabled = null;
+                        _hiResUnsupported = false;
+                    }
+                    else
+                    {
+                        _hiResEnabled = state.Enabled;
+                        _hiResUnsupported = !state.Supported;
+                    }
+                }
+                catch (Exception)
+                {
+                    _hiResEnabled = null;
+                    _hiResUnsupported = false;
+                }
+            }
+        }
+        // An earbud with Hi-Res on advertises more than the negotiated capability set describes.
+        _capabilitiesStale = _hiResEnabled == true && _maxKbps <= 400;
+        if (_capabilitiesStale && !_negotiated)
+        {
+            // The driver cached the capabilities from before the switch was turned on: let it
+            // negotiate again so the lists show what the earbud can really do.
+            _negotiated = true;
+            Status.Text = Loc.Get("Lhdc_Negotiating");
+            if (await RefreshCapabilitiesAsync(device, request: true))
+                await ReadCapabilitiesAsync(device, await backend.QueryAsync(device.Instance, "audio-status"));
+        }
+        RebuildChoices();
+        UpdateHiRes();
+        string observed = Loc.Format("Lhdc_Observed", mode) + (active > 0 ? $" · {active} kbps" : "");
+        if (_maxKbps > 0) observed += " · " + Loc.Format("Lhdc_NegotiatedLimit", _maxKbps);
+        Observed.Text = observed;
+        if (_capabilitiesStale) Observed.Text += " · " + Loc.Get("Lhdc_NegotiatedStale");
+        if (!found) Observed.Text += " · " + Loc.Get("Lhdc_DeviceMissing");
+    }
+
+    /// <summary>
+    /// Reads what the driver negotiated with the earbud. The service publishes the capability set
+    /// it negotiated, so the lists are built from exactly what the encoder will be allowed to use.
+    /// </summary>
+    private async Task ReadCapabilitiesAsync(LhdcDevice device, JsonObject audio)
+    {
+        var backend = LhdcCompanion.Backend;
+        _capabilities = audio["peer_capabilities"]?.GetValue<string>() ?? "";
+        _mediaMtu = audio["media_mtu"]?.GetValue<int>() ?? 0;
+        _maxKbps = 0;
+        _allowedRates = [];
+        _allowedDepths = [];
+        _bitratesByRate = [];
+        if (_capabilities.Length == 0) return;
+        // The media MTU narrows the result: the encoder cannot split a frame, so a single frame
+        // that does not fit into the negotiated payload is not offered at all. Without a known
+        // MTU only the earbud's own ceiling applies.
+        var options = await backend.ProfileOptionsAsync(device.Instance, _capabilities, _mediaMtu);
+        var rates = options["rates"]?.AsArray();
+        _allowedRates = rates?.Select(r => r!["sample_rate"]!.GetValue<int>()).ToArray() ?? [];
+        _allowedDepths = options["bits"]?.AsArray().Select(b => b!.GetValue<int>()).ToArray() ?? [];
+        _bitratesByRate = rates?.ToDictionary(
+            r => r!["sample_rate"]!.GetValue<int>(),
+            r => r!["bitrates"]?.AsArray().Select(b => b!.GetValue<int>()).ToArray() ?? []) ?? [];
+        _maxKbps = options["max_kbps"]?.GetValue<int>() ?? 0;
+    }
+
+    private void UpdateHiRes()
+    {
+        _updating = true;
+        try { HiRes.IsOn = _hiResEnabled == true; }
+        finally { _updating = false; }
+        HiResHint.Text = _hiResEnabled switch
+        {
+            true => Loc.Get("Lhdc_HiResOn"),
+            false => Loc.Get("Lhdc_HiResOff"),
+            _ => _hiResUnsupported ? Loc.Get("Lhdc_HiResUnsupported") : Loc.Get("Lhdc_HiResUnknown"),
+        };
+    }
+
+    /// <summary>
+    /// Rebuilds the format lists from what the earbud advertises. The lists are the earbud's own
+    /// capability table, so a bitrate the earbud will not accept is never offered.
+    /// </summary>
+    private void RebuildChoices()
+    {
+        _updating = true;
+        try
+        {
+            int[] rates = _allowedRates.Length > 0 ? _allowedRates : FallbackRates();
+            if (!rates.Contains(_rate)) _rate = rates.Contains(48000) ? 48000 : rates[0];
+            var rateItems = rates.Select(r => new Choice(r, $"{r / 1000.0:0.#} kHz")).ToArray();
+            Rate.ItemsSource = rateItems;
+            Rate.SelectedItem = rateItems.FirstOrDefault(c => c.Value == _rate);
+
+            int[] depths = _allowedDepths.Length > 0 ? _allowedDepths : [16, 24];
+            if (!depths.Contains(_bits)) _bits = depths.Contains(24) ? 24 : depths[0];
+            var depthItems = depths.Select(d => new Choice(d, $"{d} bit")).ToArray();
+            Depth.ItemsSource = depthItems;
+            Depth.SelectedItem = depthItems.FirstOrDefault(c => c.Value == _bits);
+
+            int[] bitrates = AllowedBitrates(_rate);
+            int selected = SelectBitrate(_rate, bitrates, _preferredCanonical);
+            var bitrateItems = bitrates.Select(k => new Choice(k, $"{k} kbps")).ToArray();
+            Bitrate.ItemsSource = bitrateItems;
+            Bitrate.SelectedItem = bitrateItems.FirstOrDefault(c => c.Value == selected);
+        }
+        finally { _updating = false; }
+    }
+
+    /// <summary>
+    /// The rates to offer when the driver has not negotiated anything yet. Without a negotiated
+    /// capability set only the earbud's Hi-Res state is known, so the choice stays inside what
+    /// LHDC V5 guarantees unless the earbud has its Hi-Res switch on.
+    /// </summary>
+    private int[] FallbackRates() => _hiResEnabled == true ? [44100, 48000, 96000, 192000] : [44100, 48000];
+
+    /// <summary>
+    /// The bitrates to offer for a sample rate. With a negotiated capability set this is the
+    /// earbud's own table; without one it is the LHDC V5 range, widened when the earbud has its
+    /// Hi-Res switch on. 44.1 kHz tops out at 900 kbps because its frames no longer fit the
+    /// media payload at 1000 kbps.
+    /// </summary>
+    private int[] AllowedBitrates(int rate)
+    {
+        if (_bitratesByRate.TryGetValue(rate, out var allowed) && allowed.Length > 0) return allowed;
+        int[] canonical = _hiResEnabled == true
+            ? rate == 44100 ? [64, 160, 192, 256, 320, 400, 500, 900] : [64, 160, 192, 256, 320, 400, 500, 900, 1000]
+            : [64, 160, 192, 256, 320, 400];
+        return canonical.Select(k => LhdcBitrates.ToActual(rate, k)).ToArray();
+    }
+
+    /// <summary>
+    /// Picks the bitrate that matches the canonical choice. 44.1 kHz spells 240 and 480 where the
+    /// other rates use 256 and 500, so both forms are compared on their canonical value.
+    /// </summary>
+    private static int SelectBitrate(int rate, int[] allowed, int canonical)
+    {
+        if (allowed.Length == 0) return 400;
+        foreach (int kbps in allowed)
+            if (LhdcBitrates.ToCanonical(rate, kbps) == canonical) return kbps;
+        int? lower = null;
+        foreach (int kbps in allowed)
+        {
+            int value = LhdcBitrates.ToCanonical(rate, kbps);
+            if (value > canonical) continue;
+            if (lower is null || value > LhdcBitrates.ToCanonical(rate, lower.Value)) lower = kbps;
+        }
+        if (lower is not null) return lower.Value;
+        // The allowed list is never empty here, so this always finds a value.
+        return allowed.MinBy(k => LhdcBitrates.ToCanonical(rate, k));
     }
 
     private async void OnDeviceChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_syncing) await Operate(ReadStatus);
+        if (!_syncing)
+        {
+            _negotiated = false;
+            await Operate(() => ReadStatus());
+        }
         Sync();
     }
     private async void OnRefresh(object sender, RoutedEventArgs e) => await Operate(RefreshDevices);
     private async void OnApply(object sender, RoutedEventArgs e) => await ChangeMode(true);
     private async void OnRestore(object sender, RoutedEventArgs e) => await ChangeMode(false);
 
+    private void OnRateChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updating) return;
+        if (Rate.SelectedItem is not Choice choice) return;
+        int canonical = LhdcBitrates.ToCanonical(_rate, (Bitrate.SelectedItem as Choice)?.Value ?? 400);
+        _rate = choice.Value;
+        _preferredCanonical = canonical;
+        RebuildChoices();
+    }
+
+    private void OnBitrateChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updating) return;
+        if (Bitrate.SelectedItem is Choice choice) _preferredCanonical = LhdcBitrates.ToCanonical(_rate, choice.Value);
+    }
+
+    /// <summary>
+    /// Turns the earbud's Hi-Res switch on or off. The switch decides what the earbud advertises
+    /// to Windows, so nothing above 400 kbps can be applied while it is off.
+    /// </summary>
+    private async void OnHiResToggled(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+        bool desired = HiRes.IsOn == true;
+        // The switch only moves once the earbud confirmed the new state.
+        _updating = true;
+        try { HiRes.IsOn = _hiResEnabled == true; }
+        finally { _updating = false; }
+        if (Devices.SelectedItem is not LhdcDevice device || _hiRes is null) return;
+        await Operate(async () =>
+        {
+            var installed = LhdcBackend.InstalledProfile();
+            if (!desired && installed is not null && (installed.SampleRate > 48000 || installed.Kbps > 400))
+                throw new InvalidOperationException(Loc.Get("Lhdc_HiResLowerFirst"));
+            Status.Text = Loc.Get("Lhdc_HiResBusy");
+            var state = await _hiRes.SetAsync(device, desired);
+            _hiResEnabled = state.Enabled;
+            _hiResUnsupported = !state.Supported;
+            UpdateHiRes();
+            // The driver caches what the earbud advertised, so it has to negotiate again.
+            bool renegotiated = await RefreshCapabilitiesAsync(device, request: state.ViaEncoDeck);
+            await ReadStatus(waitForDevice: true);
+            Status.Text = !renegotiated ? Loc.Get("Lhdc_HiResPending")
+                : desired ? Loc.Get("Lhdc_HiResOn") : Loc.Get("Lhdc_HiResOff");
+        });
+    }
+
+    /// <summary>
+    /// Asks the driver to negotiate the earbud's capabilities again and waits for the new set.
+    /// The driver caches what the earbud advertised, so a changed Hi-Res switch only shows up
+    /// after the next negotiation. Returns false when the driver did not publish a new set.
+    /// </summary>
+    private async Task<bool> RefreshCapabilitiesAsync(LhdcDevice device, bool request)
+    {
+        var backend = LhdcCompanion.Backend;
+        if (request)
+        {
+            // A failure here is reported to the user instead of being hidden behind a timeout.
+            LhdcBackend.RequestCapabilityRefresh();
+            _negotiated = true;
+        }
+        string previous = _capabilities;
+        // The driver renegotiates when its session restarts, which the switch itself triggers; a
+        // running stream can take a moment to give the session up.
+        DateTime deadline = DateTime.UtcNow.AddSeconds(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(500);
+            var audio = await backend.QueryAsync(device.Instance, "audio-status");
+            string caps = audio["peer_capabilities"]?.GetValue<string>() ?? "";
+            if (caps.Length > 0 && caps != previous) return true;
+        }
+        return false;
+    }
+
     private async Task ChangeMode(bool lhdc) => await Operate(async () =>
     {
         if (Devices.SelectedItem is not LhdcDevice device) return;
         int rate = (Rate.SelectedItem as Choice)?.Value ?? 48000;
         int kbps = (Bitrate.SelectedItem as Choice)?.Value ?? 400;
-        if (rate == 44100) kbps = kbps switch { 256 => 240, 500 => 480, _ => kbps };
         var profile = new LhdcProfile(rate, (Depth.SelectedItem as Choice)?.Value ?? 24, kbps, Adaptive.IsChecked == true);
         Status.Text = Loc.Get("Lhdc_Applying");
         var backend = LhdcCompanion.Backend;
         // Local format validation first; the deployment probes the selected earbud's actual capabilities.
-        if (lhdc) await backend.QueryAsync(device.Instance, "profile-check", $"{profile.SampleRate}", $"{profile.Bits}", $"{profile.Kbps}");
+        if (lhdc)
+        {
+            if (_capabilities.Length > 0 && !_capabilitiesStale)
+            {
+                try { await backend.ConfigureAsync(device.Instance, _capabilities, profile); }
+                catch (IOException)
+                {
+                    // The cached capabilities may be older than the earbud's current state: read them again.
+                    var audio = await backend.QueryAsync(device.Instance, "audio-status");
+                    string fresh = audio["peer_capabilities"]?.GetValue<string>() ?? "";
+                    if (fresh.Length == 0 || fresh == _capabilities) throw;
+                    await backend.ConfigureAsync(device.Instance, fresh, profile);
+                }
+            }
+            else
+            {
+                // The driver has not negotiated the earbud's capabilities (yet). The deployment
+                // probes the earbud itself, so only the encoder's own table is checked here.
+                await backend.QueryAsync(device.Instance, "profile-check", $"{profile.SampleRate}", $"{profile.Bits}", $"{profile.Kbps}");
+            }
+        }
         await backend.ApplyAsync(device.Instance, lhdc, profile);
+        _capabilitiesStale = false;
         Status.Text = Loc.Get("Lhdc_Applied");
         await ReadStatus();
     });

@@ -14,11 +14,21 @@
    </StackPanel>
    <StackPanel x:Name="Editor" Spacing="10" Visibility="Collapsed">
     <ComboBox x:Name="Devices" HorizontalAlignment="Stretch" DisplayMemberPath="Label" SelectionChanged="OnDeviceChanged" />
+    <!-- Ear-side switch: it decides which sample rates and bitrates the earbud advertises to
+         Windows, so it has to be on before anything above 400 kbps can be applied. -->
+    <Grid x:Name="HiResRow" ColumnSpacing="12" Visibility="Collapsed">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <StackPanel Spacing="2">
+      <TextBlock x:Uid="Lhdc_HiRes" Style="{StaticResource BodyStrongTextBlockStyle}" />
+      <TextBlock x:Name="HiResHint" x:Uid="Lhdc_HiResHint" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />
+     </StackPanel>
+     <ToggleSwitch x:Name="HiRes" Grid.Column="1" Style="{StaticResource TrailingSwitchStyle}" VerticalAlignment="Center" Toggled="OnHiResToggled" />
+    </Grid>
     <Grid ColumnSpacing="10">
      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-     <ComboBox x:Name="Rate" DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
+     <ComboBox x:Name="Rate" DisplayMemberPath="Label" HorizontalAlignment="Stretch" SelectionChanged="OnRateChanged" />
      <ComboBox x:Name="Depth" Grid.Column="1" DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
-     <ComboBox x:Name="Bitrate" Grid.Column="2" DisplayMemberPath="Label" HorizontalAlignment="Stretch" />
+     <ComboBox x:Name="Bitrate" Grid.Column="2" DisplayMemberPath="Label" HorizontalAlignment="Stretch" SelectionChanged="OnBitrateChanged" />
     </Grid>
     <CheckBox x:Name="Adaptive" />
     <TextBlock x:Name="Observed" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />

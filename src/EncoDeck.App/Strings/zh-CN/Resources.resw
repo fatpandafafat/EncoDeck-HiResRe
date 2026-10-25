@@ -531,7 +531,7 @@
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>下载非商店版本</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>商店版暂不支持 LHDC</value></data>
   <data name="Lhdc_HelpDownload.Text" xml:space="preserve"><value>1. 在 Windows 中配对耳机，点击“下载 LHDC 组件”。下载不会安装驱动。完成后，在上方选择要使用的音频设备；这里的选择独立于首页，一次只能管理一台。</value></data>
-  <data name="Lhdc_HelpQuality.Text" xml:space="preserve"><value>3. 播放音频，确认声音正常后再调整参数。如果声音卡顿，先降低码率。勾选“自适应码率”后，码率会随连接状况变化，最高不超过所选值。每次修改参数后都要重新点击“启用 LHDC / 应用参数”。点击“刷新”可查看当前状态；耳机的 Hi-Res 开关不能确认 Windows 是否正在使用 LHDC。</value></data>
+  <data name="Lhdc_HelpQuality.Text" xml:space="preserve"><value>3. 播放音频，确认声音正常后再调整参数。码率超过 400 kbps 需要先打开“耳机 Hi-Res”开关；开关打开后驱动会重新与耳机协商能力，稍等片刻码率列表就会更新。关闭该开关前请先应用不高于 48 kHz / 400 kbps 的参数。如果声音卡顿，先降低码率。勾选“自适应码率”后，码率会随连接状况变化，最高不超过所选值。每次修改参数后都要重新点击“启用 LHDC / 应用参数”。点击“刷新”可查看当前状态；“驱动当前协商到的最高码率”是驱动与耳机协商的结果，不是耳机硬件的上限；耳机的 Hi-Res 开关也不能确认 Windows 是否正在使用 LHDC。</value></data>
   <data name="Lhdc_HelpApply.Text" xml:space="preserve"><value>2. 先试用 48 kHz、24 bit、400 kbps，点击“启用 LHDC / 应用参数”，并在 Windows 提示时允许管理员操作。安装时会检查耳机是否支持 LHDC V5。切换期间声音会暂时中断，请等待完成。若提示重启，请重启电脑后再点击“刷新”。</value></data>
   <data name="Lhdc_HelpRequirements.Text" xml:space="preserve"><value>需要非商店 x64 版 EncoDeck、Windows 11 22H2（22621）或更新版本，以及支持 LHDC V5 的耳机。驱动使用测试签名，可能被系统阻止加载。EncoDeck 不会自动更改测试模式、安全启动（Secure Boot）或内存完整性设置。</value></data>
   <data name="Lhdc_Help.Header" xml:space="preserve"><value>LHDC 使用说明</value></data>
@@ -539,6 +539,19 @@
   <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>免责声明：LHDC 为基于第三方开源项目 LHDC-Win 的实验性功能，实际播放、重连和恢复仍待实机验证，不保证适用于所有设备或系统。使用中可能出现无声、卡顿或需要手动恢复音频的情况。请在了解驱动安装及系统设置变更风险后自行决定是否使用，并自行承担相关风险；EncoDeck 及其开发者在适用法律允许的范围内不对由此造成的损失承担责任。</value></data>
   <data name="DeviceConnect.Content" xml:space="preserve"><value>在 Windows 中连接</value></data>
   <data name="Lhdc_Guide.Content" xml:space="preserve"><value>查看详细教程（驱动加载与恢复）</value></data>
+  <data name="Lhdc_HiRes.Text" xml:space="preserve"><value>耳机 Hi-Res</value></data>
+  <data name="Lhdc_HiResHint.Text" xml:space="preserve"><value>耳机通过这个开关决定向 Windows 声明哪些采样率和码率。关闭时最高只有 48 kHz、400 kbps。</value></data>
+  <data name="Lhdc_HiResOn" xml:space="preserve"><value>已开启。驱动重新协商能力后，可选采样率与码率会按耳机的实际能力提高。</value></data>
+  <data name="Lhdc_HiResOff" xml:space="preserve"><value>已关闭。开启后才能选择更高的采样率和码率，切换会短暂中断音频。</value></data>
+  <data name="Lhdc_HiResUnknown" xml:space="preserve"><value>连接耳机后读取其 Hi-Res 状态。</value></data>
+  <data name="Lhdc_HiResUnsupported" xml:space="preserve"><value>该耳机没有 Hi-Res 开关，只能按 LHDC V5 标准参数使用。</value></data>
+  <data name="Lhdc_HiResBusy" xml:space="preserve"><value>正在切换耳机 Hi-Res…</value></data>
+  <data name="Lhdc_HiResPending" xml:space="preserve"><value>耳机开关已确认，但驱动还没有重新协商能力。请稍后点击“刷新”。</value></data>
+  <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>关闭 Hi-Res 前，请先应用不高于 48 kHz / 400 kbps 的 LHDC 参数。</value></data>
+  <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>驱动当前协商到的最高码率 {0} kbps</value></data>
+  <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>耳机 Hi-Res 已开启，但驱动缓存的还是旧能力</value></data>
+  <data name="Lhdc_Negotiating" xml:space="preserve"><value>正在让驱动重新协商耳机能力…</value></data>
+  <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>未找到该设备</value></data>
   <data name="Xiaomi_Level_0" xml:space="preserve"><value>档位 1</value></data>
   <data name="Xiaomi_Level_1" xml:space="preserve"><value>档位 2</value></data>
   <data name="Xiaomi_Level_2" xml:space="preserve"><value>档位 3</value></data>

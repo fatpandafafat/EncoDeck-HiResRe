@@ -41,6 +41,8 @@ public sealed partial class OppoDeviceController : IDeviceController
     private int? _firmware;
     private int _unknownFrames;
     private readonly TaskCompletionSource _closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly CancellationTokenSource _keepAliveStop = new();
+    private Task? _keepAliveTask;
 
     public OppoDeviceController(
         OppoSession session,
@@ -70,6 +72,9 @@ public sealed partial class OppoDeviceController : IDeviceController
 
     /// <summary>When set, <see cref="DisposeAsync"/> also disposes the session (and its channel).</summary>
     internal bool OwnsSession { get; init; }
+
+    /// <summary>When set, the battery is queried this often (see <see cref="Transport.IDuplexByteChannel.KeepAliveInterval"/>).</summary>
+    internal TimeSpan? KeepAliveInterval { get; init; }
 
     public Task Closed => _closed.Task;
 
@@ -110,7 +115,57 @@ public sealed partial class OppoDeviceController : IDeviceController
 
         // HeyMelody advertises its translation support here; a PC has none.
         await RequestIfAllowedAsync(new OppoRequest(OppoCommand.SetHostCapabilities, [0x00], SequenceMode.FixedSet), cancellationToken).ConfigureAwait(false);
+        if (KeepAliveInterval is { } interval)
+            _keepAliveTask ??= Task.Run(() => KeepAliveAsync(interval, _keepAliveStop.Token), CancellationToken.None);
         return true;
+    }
+
+    /// <summary>Queries the battery periodically, so a silent control earbud is noticed while idle.</summary>
+    private async Task KeepAliveAsync(TimeSpan interval, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(interval, _time);
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false) && _session.IsOpen)
+            {
+                if (_store.Current.PendingCommands.Count > 0) continue;
+                await QueryAsync(new OppoRequest(OppoCommand.QueryBattery, [], SequenceMode.FixedSet), cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "OPPO keep-alive stopped");
+        }
+    }
+
+    /// <summary>
+    /// Sends a query and applies the answer; an unanswered query is sent once more. The GATT channel
+    /// takes that second write to a silent earbud as a lost control role and closes, so the
+    /// supervisor reconnects through the other earbud.
+    /// </summary>
+    private async Task<RequestResult?> QueryAsync(OppoRequest request, CancellationToken cancellationToken)
+    {
+        RequestResult? result = null;
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            result = await RequestIfAllowedAsync(request, cancellationToken).ConfigureAwait(false);
+            if (result?.Response is { } frame) ApplyResponse(frame, StateSource.QueryResponse);
+            if (result?.Status != RequestStatus.Timeout) break;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Re-reads the wear state before a command is refused for it: a missed event (e.g. from a GATT
+    /// earbud that lost the control role) leaves the cached state stale. Returns a transport failure.
+    /// </summary>
+    private async Task<RequestStatus?> RefreshWearAsync(CancellationToken cancellationToken)
+    {
+        var result = await QueryAsync(new OppoRequest(OppoCommand.QueryWearState, []), cancellationToken).ConfigureAwait(false);
+        return result?.Status is RequestStatus.TransportError or RequestStatus.Closed ? result.Status : null;
     }
 
     /// <summary>Re-reads all state the UI shows.</summary>
@@ -132,6 +187,8 @@ public sealed partial class OppoDeviceController : IDeviceController
             requests.Add(new OppoRequest(OppoCommand.QueryVid, [0xFF, 0xFF]));
         }
         requests.Add(new OppoRequest(OppoCommand.QueryBattery, [], SequenceMode.FixedSet));
+        // The codec can change while connected (e.g. Hi-Res/LHDC toggled), so refreshes read it too.
+        if (!initial) requests.Add(new OppoRequest(OppoCommand.QueryCodec, []));
         if (initial)
         {
             requests.Add(new OppoRequest(OppoCommand.QueryColor, []));
@@ -182,8 +239,8 @@ public sealed partial class OppoDeviceController : IDeviceController
             if (Model.GameSoundTypes.Count > 0) requests.Add(new OppoRequest(OppoCommand.QueryGameSound, []));
             // The official request has an empty payload.
             if (Model.CustomEqualizer is not null) requests.Add(new OppoRequest(OppoCommand.QueryEqualizerList, []));
-            requests.Add(new OppoRequest(OppoCommand.QueryPromptVolume, []));
-            requests.Add(new OppoRequest(OppoCommand.QueryBassEngine, []));
+            if (IsAvailable(DeviceCapability.PromptVolume)) requests.Add(new OppoRequest(OppoCommand.QueryPromptVolume, []));
+            if (IsAvailable(DeviceCapability.BassEngine)) requests.Add(new OppoRequest(OppoCommand.QueryBassEngine, []));
             if (Model.FeatureSwitches.Any(f => f.Toggle == DeviceToggle.DualDeviceConnection))
             {
                 requests.Add(new OppoRequest(OppoCommand.QueryConnectedDevices, []));
@@ -251,6 +308,11 @@ public sealed partial class OppoDeviceController : IDeviceController
             case OppoCommand.QueryFirmware:
                 ApplyFirmware(frame);
                 break;
+            case OppoCommand.QueryCodec:
+                // Unknown or no Classic codec (e.g. LE Audio) clears a value left from an earlier link.
+                Observed<AudioCodec>? codec = OppoParsers.TryParseCodec(frame, out var parsedCodec) ? Observed.From(parsedCodec, _time.GetUtcNow(), source) : null;
+                _store.TryUpdate(_identity.DeviceId, s => s with { Codec = codec });
+                break;
             default:
                 ApplyFeatureResponse(frame, source);
                 break;
@@ -261,7 +323,11 @@ public sealed partial class OppoDeviceController : IDeviceController
     {
         if (!IsAvailable(DeviceCapability.NoiseCancellation)) return CommandResult.Unsupported("Noise control is not available on this model.");
         // Official pre-check: noise control needs at least one earbud in an ear.
-        if (_store.Current.Wear?.Value is { LeftInEar: false, RightInEar: false }) return new CommandResult(CommandStatus.Rejected, WearRequiredDetail);
+        if (_store.Current.Wear?.Value is { LeftInEar: false, RightInEar: false })
+        {
+            if (await RefreshWearAsync(cancellationToken).ConfigureAwait(false) is { } failure) return ToCommandResult(failure, "Noise control");
+            if (_store.Current.Wear?.Value is { LeftInEar: false, RightInEar: false }) return new CommandResult(CommandStatus.Rejected, WearRequiredDetail);
+        }
 
         int setIndex;
         if (target.LevelId is null && Model.NoiseModeParents.TryGetValue(target.Mode, out var parent) && !IsAllowed(parent.Support) && parent.DefaultLevelId is { } fallback)
@@ -303,6 +369,10 @@ public sealed partial class OppoDeviceController : IDeviceController
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Oppo exposes no per-band write command, so band editing stays unavailable.</summary>
+    public Task<CommandResult> SetEqualizerBandsAsync(IReadOnlyList<int> bands, CancellationToken cancellationToken) =>
+        Task.FromResult(CommandResult.Unsupported("Editable equalizer bands."));
+
     public async Task<CommandResult> SetEqualizerPresetAsync(string presetId, CancellationToken cancellationToken)
     {
         if (!IsAvailable(DeviceCapability.Equalizer)) return CommandResult.Unsupported("Device EQ is not available on this model.");
@@ -329,8 +399,14 @@ public sealed partial class OppoDeviceController : IDeviceController
 
     public async Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken)
     {
+        if (toggle == DeviceToggle.DualDeviceConnection && enabled && _store.Current.IsLeAudioBonded)
+            return new(CommandStatus.Rejected, "le-audio-multipoint");
         var feature = Model.FeatureSwitches.FirstOrDefault(f => f.Toggle == toggle);
         if (feature is null || !IsAllowed(feature.Support)) return CommandResult.Unsupported($"{toggle} is not available on this model.");
+        // The model flag alone does not prove that this firmware implements smart volume.
+        // Require a device-reported status before offering a write, as the UI does.
+        if (toggle == DeviceToggle.AutoVolume && !_store.Current.Toggles.ContainsKey(toggle))
+            return CommandResult.Unsupported("Smart volume has not been reported by the earbuds.");
 
         var request = new OppoRequest(OppoCommand.SetFeature, [feature.FeatureId, enabled ? (byte)1 : (byte)0], SequenceMode.FixedSet);
         return await ExecuteConfirmedAsync(
@@ -843,6 +919,18 @@ public sealed partial class OppoDeviceController : IDeviceController
     {
         _session.UnsolicitedFrame -= OnUnsolicitedFrame;
         _session.Closed -= OnSessionClosed;
+        await _keepAliveStop.CancelAsync().ConfigureAwait(false);
+        if (_keepAliveTask is { } keepAlive)
+        {
+            try
+            {
+                await keepAlive.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+            }
+            catch (TimeoutException)
+            {
+            }
+        }
+        _keepAliveStop.Dispose();
         if (OwnsSession) await _session.DisposeAsync().ConfigureAwait(false);
     }
 }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.IO;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.State;
@@ -17,10 +18,8 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
 
     private static readonly TimeSpan FitTestTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan FindAutoStop = TimeSpan.FromSeconds(50);
-    private static readonly TimeSpan SourceListWait = TimeSpan.FromSeconds(2);
 
     private TaskCompletionSource<FitTestResult>? _fitTest;
-    private TaskCompletionSource? _sourceListUpdated;
     private CancellationTokenSource? _findAutoStop;
 
     // ---- responses -----------------------------------------------------------------------------
@@ -73,13 +72,13 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
     private void ApplySourceDevices(OppoFrame frame)
     {
         if (!OppoFeatureParsers.TryParseSourceDevices(frame, out var devices)) return;
-        // n = 0 leaves the previous list untouched (official behaviour).
-        if (devices.Count > 0 || _store.Current.SourceDevices is null)
+        // Empty notifications can be transient; an explicit query is authoritative, including zero devices.
+        bool query = frame.Command == OppoCommand.ResponseOf(OppoCommand.QueryConnectedDevices);
+        if (query || devices.Count > 0 || _store.Current.SourceDevices is null)
         {
             var now = _time.GetUtcNow();
-            _store.TryUpdate(_identity.DeviceId, s => s with { SourceDevices = Observed.From(devices, now, StateSource.DeviceNotification) });
+            _store.TryUpdate(_identity.DeviceId, s => s with { SourceDevices = Observed.From(devices, now, query ? StateSource.QueryResponse : StateSource.DeviceNotification) });
         }
-        _sourceListUpdated?.TrySetResult();
         _logger.LogDebug("Source-device list: {Count} entr(ies) (names/addresses not logged)", devices.Count);
     }
 
@@ -100,6 +99,12 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
 
     private async Task<CommandResult> SpatialCoreAsync(SpatialAudioMode mode, CancellationToken cancellationToken)
     {
+        if (Model.SpatialHiResMutex && mode != SpatialAudioMode.Off
+            && Model.FeatureSwitches.Any(f => f.Toggle == DeviceToggle.HiRes))
+        {
+            var prerequisite = await SetToggleAsync(DeviceToggle.HiRes, false, cancellationToken).ConfigureAwait(false);
+            if (!prerequisite.IsSuccess) return prerequisite;
+        }
         CommandResult result;
         if (Model.HasSpatialAudioV2)
         {
@@ -117,10 +122,34 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
             result = await SetToggleAsync(DeviceToggle.SpatialAudio, mode != SpatialAudioMode.Off, cancellationToken).ConfigureAwait(false);
         }
 
-        // Official mutex: spatial audio and Hi-Res cannot both be on; turning spatial on turns Hi-Res off.
-        if (result.IsSuccess && Model.SpatialHiResMutex && mode != SpatialAudioMode.Off && _store.Current.Toggles.TryGetValue(DeviceToggle.HiRes, out var hiRes) && hiRes.Value)
+        return result;
+    }
+
+    public async Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        var result = await ExecuteConfirmedAsync(
+            "le-br-switch",
+            s => s,
+            new OppoRequest(OppoCommand.SetLeBrSwitch, [(byte)(enabled ? 1 : 0)], SequenceMode.FixedSet),
+            async ct =>
+            {
+                var readBack = await _session.RequestAsync(new OppoRequest(OppoCommand.QueryLeBrSwitch, []), CommandTimeout, ct).ConfigureAwait(false);
+                if (readBack.Response is not { } frame) return (false, readBack.Status);
+                if (!OppoFeatureParsers.TryParseLeAudioSwitch(frame, out var state)) return (false, RequestStatus.Success);
+                ApplyFeatureResponse(frame, StateSource.CommandConfirmation);
+                return (state.Enabled == enabled, RequestStatus.Success);
+            },
+            cancellationToken).ConfigureAwait(false);
+        try
         {
-            await SetToggleAsync(DeviceToggle.HiRes, false, cancellationToken).ConfigureAwait(false);
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "enco-leaudio.log"),
+                $"{DateTime.Now:O} 0x0433 [{enabled}] -> {result.Status}{Environment.NewLine}");
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
         }
         return result;
     }
@@ -260,10 +289,11 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
     public async Task<CommandResult> RunFitTestAsync(CancellationToken cancellationToken = default)
     {
         if (!IsAvailable(DeviceCapability.FitTest)) return CommandResult.Unsupported("Fit test is not available on this model.");
-        var wear = _store.Current.Wear?.Value;
-        if (wear is not null && (wear.LeftInEar != true || wear.RightInEar != true))
+        static bool NotWorn(WearStatus? wear) => wear is not null && (wear.LeftInEar != true || wear.RightInEar != true);
+        if (NotWorn(_store.Current.Wear?.Value))
         {
-            return new CommandResult(CommandStatus.Rejected, WearRequiredDetail);
+            if (await RefreshWearAsync(cancellationToken).ConfigureAwait(false) is { } failure) return ToCommandResult(failure, "Fit test");
+            if (NotWorn(_store.Current.Wear?.Value)) return new CommandResult(CommandStatus.Rejected, WearRequiredDetail);
         }
 
         _fitTest = new TaskCompletionSource<FitTestResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -297,8 +327,11 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
     public async Task<CommandResult> MultiConnectAsync(MultiConnectOperation operation, byte[] address, CancellationToken cancellationToken = default)
     {
         if (!IsAvailable(DeviceCapability.DualDeviceConnection)) return CommandResult.Unsupported("Dual connection is not available on this model.");
+        if (!Model.SupportsMultiConnectOperations) return CommandResult.Unsupported("Remote device management is not advertised by this firmware.");
         if (address.Length != 6) return CommandResult.Unsupported("Invalid device address.");
+        if (!Enum.IsDefined(operation)) return CommandResult.Unsupported("Invalid device operation.");
         var device = _store.Current.SourceDevices?.Value.FirstOrDefault(d => d.Address.AsSpan().SequenceEqual(address));
+        if (device is null) return CommandResult.Unsupported("Device is not in the current paired-device list.");
         if (operation == MultiConnectOperation.Disconnect && device?.IsThisDevice == true)
         {
             return CommandResult.Unsupported("Disconnect this PC from Windows Bluetooth settings.");
@@ -308,26 +341,35 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
             return new CommandResult(CommandStatus.Rejected, "remove-connected");
         }
 
-        _sourceListUpdated = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var result = await SendAckedAsync(new OppoRequest(OppoCommand.OperateMultiConnect, [(byte)operation, .. address], SequenceMode.FixedSet), cancellationToken).ConfigureAwait(false);
-        if (!result.IsSuccess) return result;
-
-        // The official client waits for event 06; re-read the list if it does not come (EncoDeck fallback).
-        try
-        {
-            await _sourceListUpdated.Task.WaitAsync(SourceListWait, _time, cancellationToken).ConfigureAwait(false);
-        }
-        catch (TimeoutException)
-        {
-            var list = await RequestIfAllowedAsync(new OppoRequest(OppoCommand.QueryConnectedDevices, []), cancellationToken).ConfigureAwait(false);
-            if (list?.Response is { } frame) ApplySourceDevices(frame);
-        }
-        return result;
+        // An ACK or an unrelated list notification does not prove the operation completed.
+        // Confirm the targeted device, allowing the shared pipeline to retry while it settles.
+        return await ExecuteConfirmedAsync(
+            "multi-connect",
+            s => s,
+            new OppoRequest(OppoCommand.OperateMultiConnect, [(byte)operation, .. address], SequenceMode.FixedSet),
+            async ct =>
+            {
+                var read = await _session.RequestAsync(new OppoRequest(OppoCommand.QueryConnectedDevices, []), CommandTimeout, ct).ConfigureAwait(false);
+                if (read.Response is not { } frame) return (false, read.Status);
+                if (!OppoFeatureParsers.TryParseSourceDevices(frame, out var devices)) return (false, RequestStatus.Success);
+                ApplySourceDevices(frame);
+                var actual = devices.FirstOrDefault(d => d.Address.AsSpan().SequenceEqual(address));
+                return (operation switch
+                {
+                    MultiConnectOperation.Connect => actual?.IsConnected == true,
+                    MultiConnectOperation.Disconnect => actual is { State: 0 or 3 },
+                    MultiConnectOperation.Remove => actual is null,
+                    _ => false,
+                }, RequestStatus.Success);
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<CommandResult> SetPreferredDeviceAsync(byte[]? address, CancellationToken cancellationToken = default)
     {
         if (!IsAvailable(DeviceCapability.DualDeviceConnection)) return CommandResult.Unsupported("Dual connection is not available on this model.");
+        if (!Model.SupportsMultiConnectOperations) return CommandResult.Unsupported("Remote device management is not advertised by this firmware.");
+        if (address is not null && address.Length != 6) return CommandResult.Unsupported("Invalid device address.");
         byte[] payload = address is { Length: 6 } ? [0x04, 0x01, .. address] : [0x04, 0x00];
         return await ExecuteConfirmedAsync(
             "preferred-device",

@@ -34,6 +34,11 @@ public class BuiltInProfilesTests
     [InlineData("EDIFIER W820NB", "edifier", false)]
     [InlineData("WH-1000XM5", "sony", false)]
     [InlineData("AKG N400NC", "akg", false)]
+    [InlineData("Galaxy Buds2 Pro", "samsung", false)]
+    [InlineData("Pixel Buds Pro 2", "google", false)]
+    [InlineData("Bose QC45", "bose", false)]
+    [InlineData("Nothing Ear (a)", "nothing", false)]
+    [InlineData("CMF Buds 2", "nothing", false)]
     public void Names_resolve_to_their_brand(string name, string brand, bool generic)
     {
         var profile = Match(name);
@@ -43,7 +48,8 @@ public class BuiltInProfilesTests
     }
 
     [Theory]
-    [InlineData("Galaxy Buds2 Pro")]
+    [InlineData("Galaxy Buds FE")]
+    [InlineData("Bose QC Ultra Earbuds (2nd Gen)")]
     [InlineData("AirPods Pro")]
     public void Other_brands_are_not_claimed(string name) => Assert.Null(Match(name));
 }

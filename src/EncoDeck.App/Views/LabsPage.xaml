@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="EncoDeck.App.Views.LabsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:controls="using:EncoDeck.App.Controls"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <!-- Not the max-width element itself: a ScrollViewer centres its child by the child's desired width, which shifts it off-screen once the viewport is wider than the max width. -->
+        <Grid>
+        <StackPanel MaxWidth="{StaticResource PageMaxWidth}" Padding="32,8,32,32" Spacing="16">
+            <TextBlock x:Uid="Labs_Summary" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
+                       Text="Experimental audio features. They change Windows Bluetooth or audio settings and are not guaranteed to work on every device." />
+            <controls:LeAudioSettings />
+            <controls:LhdcSettings />
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

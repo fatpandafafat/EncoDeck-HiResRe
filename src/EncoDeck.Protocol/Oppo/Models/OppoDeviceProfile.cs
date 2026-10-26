@@ -66,6 +66,7 @@ public sealed class OppoDeviceProfile(OppoModelDefinition definition) : IControl
         return new OppoDeviceController(session, this, context.Identity, context.Store, context.AllowExperimental, context.Loggers.CreateLogger<OppoDeviceController>(), context.Time)
         {
             OwnsSession = true,
+            KeepAliveInterval = channel.KeepAliveInterval,
         };
     }
 

@@ -5,7 +5,9 @@ using EncoDeck.Core.Devices;
 using EncoDeck.Core.Privacy;
 using EncoDeck.Core.Profiles;
 using EncoDeck.Protocol.Brands.Moondrop;
+using EncoDeck.Protocol.Brands.Edifier;
 using EncoDeck.Protocol.Brands.Sennheiser;
+using EncoDeck.Protocol.Brands.Sony;
 using EncoDeck.Protocol.Oppo;
 using EncoDeck.Protocol.Transport;
 using Microsoft.Extensions.Logging;
@@ -49,6 +51,10 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                         if (LeAudioLink.IsPairingChanging(device.BluetoothAddress))
                             throw new InvalidOperationException("The earbuds' pairing is being changed.");
                         bool bonded = await LeAudioLink.IsBondedAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+                        if (!bonded && LeAudioLink.IsPreferred(device.BluetoothAddress))
+                            throw new InvalidOperationException("LE Audio 配对未完成，请重新进入配对模式后再试一次。");
+                        if (!bonded && await LeAudioLink.HasSecondaryBondAsync(device.BluetoothAddress, cancellationToken, device.Name).ConfigureAwait(false))
+                            throw new InvalidOperationException("LE Audio 配对不完整：主耳 LE 绑定缺失，请重新切换到 LE Audio。");
                         if (LeAudioLink.IsPairingChanging(device.BluetoothAddress))
                             throw new InvalidOperationException("The earbuds' pairing is being changed.");
                         return bonded;
@@ -82,6 +88,39 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
         foreach (var uuid in serviceUuids)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (EncoDeck.Protocol.Brands.GattStreamEndpoints.Find(uuid) is { } stream)
+            {
+                var result = await StreamGattByteChannel.OpenAsync(device.BluetoothAddress, device.Name, stream, _logger, cancellationToken).ConfigureAwait(false);
+                if (result.Status == ChannelOpenStatus.Opened) return result;
+                gattFailure = result;
+                _logger.LogInformation("{Endpoint} connect failed: {Detail}", stream.Name, result.Detail);
+                continue;
+            }
+            if (EdifierConstants.IsGattService(uuid))
+            {
+                var result = await EdifierGattByteChannel.OpenAsync(device.BluetoothAddress, uuid, cancellationToken).ConfigureAwait(false);
+                if (result.Status == ChannelOpenStatus.Opened) return result;
+                gattFailure = result;
+                _logger.LogInformation("EDIFIER GATT connect failed: {Detail}", result.Detail);
+                continue;
+            }
+            if (uuid == SonyAkgProfiles.BleServiceUuid)
+            {
+                // Both RFCOMM services failed with the classic link up: try the same MDR GATT channel the
+                // LE Audio path uses (mos9527/SonyHeadphonesClient PR #43 controls WH-1000XM6 this way).
+                var result = await SonyGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+                if (result.Status == ChannelOpenStatus.Opened) return result;
+                gattFailure = result;
+                _logger.LogInformation("Sony MDR GATT connect failed: {Detail}", result.Detail);
+                continue;
+            }
+            if (SonyAkgProfiles.IsControlService(uuid)
+                && await TryOpenSonyControlAsync(device, cancellationToken).ConfigureAwait(false) is { } sonyControl)
+            {
+                // Either the LE Audio GATT transport opened (no classic RFCOMM exists in that mode),
+                // or this link state cannot offer a control endpoint at all.
+                return sonyControl;
+            }
             if (uuid == SennheiserProfile.GattServiceId)
             {
                 var result = await GaiaGattByteChannel.OpenSennheiserAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
@@ -92,18 +131,27 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
             }
             if (uuid == MoondropConstants.GattServiceId)
             {
-                var result = await GaiaGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+                // The GAIA v1 service is shared by MOONDROP and vivo; label the channel after the matched brand.
+                string brand = profiles.Match(identity) switch
+                {
+                    MoondropProfile => "MOONDROP",
+                    EncoDeck.Protocol.Brands.Vivo.VivoDeviceProfile => "vivo",
+                    _ => "Generic",
+                };
+                var result = await GaiaGattByteChannel.OpenAsync(device.BluetoothAddress, brand, cancellationToken).ConfigureAwait(false);
                 if (result.Status == ChannelOpenStatus.Opened) return result;
                 gattFailure = result;
-                _logger.LogInformation("GAIA GATT connect failed: {Detail}", result.Detail);
+                _logger.LogInformation("{Brand} GAIA GATT connect failed: {Detail}", brand, result.Detail);
                 continue;
             }
             RfcommDeviceServicesResult services;
             try
             {
-                // Cached first: avoids a radio round-trip when Windows already has the SDP record.
-                services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), BluetoothCacheMode.Cached).AsTask(cancellationToken);
-                if (services.Services.Count == 0)
+                // Sony's control service can change after reconnecting / changing Bluetooth mode.
+                // Resolve its current SDP endpoint rather than repeatedly reopening a stale channel.
+                var cacheMode = SonyAkgProfiles.IsControlService(uuid) ? BluetoothCacheMode.Uncached : BluetoothCacheMode.Cached;
+                services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), cacheMode).AsTask(cancellationToken);
+                if (services.Services.Count == 0 && cacheMode == BluetoothCacheMode.Cached)
                 {
                     services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), BluetoothCacheMode.Uncached).AsTask(cancellationToken);
                 }
@@ -125,13 +173,31 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                 continue;
             }
 
-            foreach (var service in services.Services)
+            try
             {
-                var result = await TryConnectAsync(service, uuid, cancellationToken).ConfigureAwait(false);
-                service.Dispose();
-                if (result.Status == ChannelOpenStatus.Opened) return result;
-                connectFailure = result;
-                _logger.LogInformation("RFCOMM connect to {Service} failed: {Detail}", uuid, result.Detail);
+                // A service whose SDP record carries no protocol descriptor (RFCOMM:00000000:...)
+                // cannot be opened: Windows would block for the full connect timeout and fail.
+                var resolvable = services.Services.Where(s => ResolveRfcommChannel(s.ConnectionServiceName) > 0).ToList();
+                if (SonyAkgProfiles.IsControlService(uuid) && resolvable.Count == 0)
+                {
+                    var diagnosis = await DiagnoseUnavailableSonyControlAsync(device, cancellationToken).ConfigureAwait(false);
+                    if (diagnosis is not null) return diagnosis;
+                    continue;
+                }
+
+                // Fall back to the raw list only when nothing resolved (non-Sony services).
+                var candidates = resolvable.Count == 0 ? services.Services : resolvable;
+                foreach (var service in candidates)
+                {
+                    var result = await TryConnectAsync(service, uuid, cancellationToken).ConfigureAwait(false);
+                    if (result.Status == ChannelOpenStatus.Opened) return result;
+                    connectFailure = result;
+                    _logger.LogInformation("RFCOMM connect to {Service} failed: {Detail}", uuid, result.Detail);
+                }
+            }
+            finally
+            {
+                foreach (var service in services.Services) service.Dispose();
             }
         }
         // A control socket that exists but failed to connect is usually busy right after audio
@@ -139,7 +205,156 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
         return connectFailure ?? gattFailure ?? ChannelOpenResult.Failed(ChannelOpenStatus.ServiceNotFound, "No candidate control service could be opened.");
     }
 
-    private static async Task<ChannelOpenResult> TryConnectAsync(RfcommDeviceService service, Guid uuid, CancellationToken cancellationToken)
+    /// <summary>RFCOMM channel of the Sony MDR v2 control service on WH/WF-1000XM6 class hardware.</summary>
+    internal const int SonyMdrV2Channel = 9;
+
+    /// <summary>Reads the RFCOMM channel out of <c>RFCOMM:00000009:{uuid}</c>; 0 means unresolved.</summary>
+    internal static int ResolveRfcommChannel(string? serviceName)
+    {
+        if (string.IsNullOrEmpty(serviceName)) return 0;
+        const string marker = "RFCOMM:";
+        var at = serviceName.LastIndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (at < 0) return 0;
+        var start = at + marker.Length;
+        var end = serviceName.IndexOf(':', start);
+        if (end < 0) end = serviceName.Length;
+        if (end <= start) return 0;
+        var digits = serviceName.AsSpan(start, end - start);
+        return int.TryParse(digits, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var channel)
+               && channel is > 0 and <= 30
+            ? channel
+            : 0;
+    }
+
+    /// <summary>
+    /// Last-resort channel for models whose MDR v2 channel is verified independently of Windows' SDP,
+    /// used only when the classic link is up but Windows still reports an unresolved channel.
+    /// </summary>
+    internal static int? KnownSonyControlChannel(string? deviceName) =>
+        deviceName is not null && deviceName.Contains("1000XM6", StringComparison.OrdinalIgnoreCase)
+            ? SonyMdrV2Channel
+            : null;
+
+    private const string SonyLeAudioOnly = "The headset is linked over LE Audio and its control service cannot be opened in this mode.";
+
+    /// <summary>The headset is on LE Audio and no control transport opened; the UI explains how to switch it to Classic.</summary>
+    private static ChannelOpenResult SonyLeAudioOnlyFailure(string? reason) =>
+        ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, reason is { Length: > 0 } ? $"{SonyLeAudioOnly} LE Audio GATT: {reason}" : SonyLeAudioOnly)
+            with { ResourceKey = "Error_SonyLeAudioControl" };
+
+    /// <summary>
+    /// Opens the Sony control channel on whichever transport the headset currently offers. A headset
+    /// linked over LE Audio exposes no classic RFCOMM endpoint, but carries the same MDR v2 stream on
+    /// its LE Audio control service, so that transport is tried before reporting the mode mismatch.
+    /// Returns null when a classic RFCOMM attempt is still worth making.
+    /// </summary>
+    private async Task<ChannelOpenResult?> TryOpenSonyControlAsync(BluetoothDevice device, CancellationToken cancellationToken)
+    {
+        if (device.ConnectionStatus == BluetoothConnectionStatus.Connected) return null;
+
+        bool leConnected;
+        try
+        {
+            var le = await BluetoothLEDevice.FromBluetoothAddressAsync(device.BluetoothAddress).AsTask(cancellationToken).ConfigureAwait(false);
+            if (le is null) return null;
+            leConnected = le.ConnectionStatus == BluetoothConnectionStatus.Connected;
+            le.Dispose();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug("LE link probe for {Address} failed: 0x{HResult:X8}", device.BluetoothAddress, ex.HResult);
+            return null;
+        }
+        if (!leConnected) return null;
+
+        // A live LE link with no classic link is the LE Audio identity: the same MDR v2 stream is
+        // exposed on the headset's LE Audio control service, so use it instead of the RFCOMM socket.
+        var gatt = await SonyGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+        // A previous instance can still hold the GATT session for a few seconds after it exits,
+        // which surfaces as AccessDenied; retry briefly instead of waiting for the supervisor backoff.
+        for (var attempt = 0; attempt < 3 && gatt.Status == ChannelOpenStatus.AccessDenied; attempt++)
+        {
+            await Task.Delay(700, cancellationToken).ConfigureAwait(false);
+            gatt = await SonyGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+        }
+        if (gatt.Status == ChannelOpenStatus.Opened)
+        {
+            _logger.LogInformation("Sony control channel opened over LE Audio GATT (classic link down).");
+            return gatt;
+        }
+        _logger.LogInformation("Sony LE Audio GATT control channel unavailable: {Detail}", gatt.Detail);
+
+        // Windows flips the profile set while a reconnect settles; give it one short chance to
+        // bring the classic link up before declaring LE-Audio-only.
+        await Task.Delay(300, cancellationToken).ConfigureAwait(false);
+        if (device.ConnectionStatus == BluetoothConnectionStatus.Connected) return null;
+
+        _logger.LogWarning(
+            "Sony control service unavailable: the headset is linked over LE Audio (classic link {Status}); RFCOMM cannot exist until it reconnects as Classic Audio",
+            device.ConnectionStatus);
+        return SonyLeAudioOnlyFailure(gatt.Detail);
+    }
+
+    /// <summary>
+    /// Explains why the Sony control service cannot be reached, instead of reporting a bare
+    /// "service not found": a headset linked over LE Audio exposes no classic RFCOMM endpoint.
+    /// Returns null when the normal failure path should report instead.
+    /// </summary>
+    private async Task<ChannelOpenResult?> DiagnoseUnavailableSonyControlAsync(BluetoothDevice device, CancellationToken cancellationToken)
+    {
+        if (device.ConnectionStatus == BluetoothConnectionStatus.Connected)
+        {
+            // The classic link is up, so the channel exists; Windows' SDP cache is what is stale.
+            if (KnownSonyControlChannel(device.Name) is not { } knownChannel) return null;
+            _logger.LogInformation(
+                "Sony SDP reports no resolvable channel although the classic link is up; trying the known RFCOMM channel {Channel}",
+                knownChannel);
+            var direct = await BluetoothSocketByteChannel.OpenAsync(device.BluetoothAddress, (uint)knownChannel, cancellationToken).ConfigureAwait(false);
+            if (direct.Status == ChannelOpenStatus.Opened) return direct;
+            _logger.LogInformation("Known Sony RFCOMM channel {Channel} failed: {Detail}", knownChannel, direct.Detail);
+            // The RFCOMM endpoint is unusable even with the link up; the LE Audio control service
+            // carries the identical MDR v2 stream and is the remaining transport.
+            var gatt = await SonyGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
+            if (gatt.Status == ChannelOpenStatus.Opened)
+            {
+                _logger.LogInformation("Sony control channel opened over LE Audio GATT (classic SDP unresolved).");
+                return gatt;
+            }
+            _logger.LogInformation("Sony LE Audio GATT control channel unavailable: {Detail}", gatt.Detail);
+            return null;
+        }
+
+        bool leConnected = false;
+        try
+        {
+            var le = await BluetoothLEDevice.FromBluetoothAddressAsync(device.BluetoothAddress).AsTask(cancellationToken).ConfigureAwait(false);
+            if (le is not null)
+            {
+                leConnected = le.ConnectionStatus == BluetoothConnectionStatus.Connected;
+                le.Dispose();
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug("LE link probe for {Address} failed: 0x{HResult:X8}", device.BluetoothAddress, ex.HResult);
+        }
+
+        _logger.LogWarning(
+            "Sony control service unreachable: classic link {Classic}, LE link {Le}. The headset has to be linked over Classic Audio for the RFCOMM control channel to exist.",
+            device.ConnectionStatus,
+            leConnected ? "connected" : "down");
+        return leConnected
+            ? SonyLeAudioOnlyFailure(null)
+            : ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, "The headset has no Classic link, so its control channel does not exist.")
+                with { ResourceKey = "Error_SonyClassicLinkDown" };
+    }
+
+    internal static SocketProtectionLevel ProtectionLevelFor(Guid uuid) => SonyAkgProfiles.IsControlService(uuid)
+        // Sound Connect Rm.b uses createRfcommSocketToServiceRecord (secure RFCOMM).
+        ? SocketProtectionLevel.BluetoothEncryptionWithAuthentication
+        : SocketProtectionLevel.BluetoothEncryptionAllowNullAuthentication;
+
+    private async Task<ChannelOpenResult> TryConnectAsync(RfcommDeviceService service, Guid uuid, CancellationToken cancellationToken)
     {
         var socket = new StreamSocket();
         socket.Control.KeepAlive = false;
@@ -147,10 +362,12 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(ConnectTimeout);
+            var protection = ProtectionLevelFor(uuid);
+            _logger.LogInformation("RFCOMM connecting: {Service}, channel {Channel}, protection {Protection}", uuid, service.ConnectionServiceName, protection);
             await socket.ConnectAsync(
                     service.ConnectionHostName,
                     service.ConnectionServiceName,
-                    SocketProtectionLevel.BluetoothEncryptionAllowNullAuthentication)
+                    protection)
                 .AsTask(timeout.Token);
             var channel = new RfcommByteChannel(socket, $"RFCOMM {uuid:D}");
             return new ChannelOpenResult(ChannelOpenStatus.Opened, channel, uuid, null);

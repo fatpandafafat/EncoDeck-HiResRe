@@ -26,6 +26,24 @@ public enum DeviceToggle
     HiRes,
     IndicatorLight,
     PromptTone,
+    /// <summary>Device-side LDAC switch; not a Windows codec installation.</summary>
+    Ldac,
+    /// <summary>Device-side LC3 switch; independent of the Windows LE Audio transport.</summary>
+    Lc3,
+    /// <summary>Swap the left and right output channels on the device.</summary>
+    ChannelSwap,
+    /// <summary>Adjust playback volume as ambient noise changes (OPPO feature 28).</summary>
+    AutoVolume,
+    /// <summary>Earbud-side automatic answering of incoming calls (Xiaomi config 3).</summary>
+    AutoAnswerCalls,
+    /// <summary>Pause playback and let ambient sound in when the wearer starts talking (Sony Speak-to-Chat).</summary>
+    SpeakToChat,
+    /// <summary>Device-side upscaling of compressed audio (Sony DSEE).</summary>
+    Upscaling,
+    /// <summary>Touch panel / touch sensor operation on or off (off = touch locked; Sony, Samsung).</summary>
+    TouchControls,
+    /// <summary>Headset-side Bluetooth do-not-disturb while the 2.4 GHz link is in use.</summary>
+    DoNotDisturb,
 }
 
 /// <summary>Firmware / model information read from the device.</summary>
@@ -35,4 +53,4 @@ public sealed record FirmwareInfo(string? Version, string? ModelCode, IReadOnlyD
 }
 
 /// <summary>Device-side equalizer state. This is the EQ inside the earbuds, never a Windows audio effect.</summary>
-public sealed record EqualizerState(string? ActivePresetId, int? RawPresetValue);
+public sealed record EqualizerState(string? ActivePresetId, int? RawPresetValue, IReadOnlyList<int>? Bands = null);

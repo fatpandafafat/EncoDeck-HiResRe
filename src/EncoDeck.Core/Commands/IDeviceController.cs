@@ -24,6 +24,12 @@ public interface IDeviceController : IAdvancedDeviceCommands, IAsyncDisposable
 
     Task<CommandResult> SetEqualizerPresetAsync(string presetId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Overwrites the band values of the active preset with the given dB offsets (-6..+6), for brands
+    /// whose presets expose editable bands (Sony "manual" and custom presets).
+    /// </summary>
+    Task<CommandResult> SetEqualizerBandsAsync(IReadOnlyList<int> bands, CancellationToken cancellationToken);
+
     Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken);
 
     Task<CommandResult> RefreshAsync(CancellationToken cancellationToken);

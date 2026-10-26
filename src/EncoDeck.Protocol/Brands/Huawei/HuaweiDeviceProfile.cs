@@ -8,23 +8,47 @@ using EncoDeck.Protocol.Transport;
 
 namespace EncoDeck.Protocol.Brands.Huawei;
 
-/// <summary><see cref="IControllableProfile"/> for one HUAWEI model (or the generic HUAWEI fallback).</summary>
+/// <summary>
+/// <see cref="IControllableProfile"/> for one HUAWEI model (or the generic HUAWEI fallback). Feature
+/// switches and the EQ preset list are narrowed by what the earbuds report during the session.
+/// </summary>
 public sealed class HuaweiDeviceProfile : IControllableProfile
 {
-    private const string Evidence = "OppoPodsManager/OpenFreebuds per-model table; not verified on hardware by EncoDeck.";
+    private const string Evidence = "OppoPodsManager/OpenFreebuds/HuaweiPods per-model tables; not verified on hardware by EncoDeck.";
+
+    private readonly IReadOnlyCollection<DeviceToggle> _reportedToggles;
+    private readonly IReadOnlyList<byte>? _reportedEq;
 
     public HuaweiDeviceProfile(HuaweiModel model, bool spatialConfirmed = false)
+        : this(model, spatialConfirmed, [], null)
+    {
+    }
+
+    private HuaweiDeviceProfile(HuaweiModel model, bool spatialConfirmed, IReadOnlyCollection<DeviceToggle> reportedToggles, IReadOnlyList<byte>? reportedEq)
     {
         Model = model;
+        _reportedToggles = reportedToggles;
+        _reportedEq = reportedEq;
         NoiseControlOptions = BuildNoiseOptions(model);
-        EqualizerPresets = [.. model.EqPresets.Select(p => new EqualizerPreset(p.PresetId, p.DisplayName, p.ResourceKey, CapabilitySupport.Supported))];
+        // The earbuds list the built-in presets they offer (EQ TLV 3); presets they do not list stay hidden.
+        EqualizerPresets = [.. model.EqPresets
+            .Where(p => reportedEq is null || reportedEq.Contains(p.ProtocolId))
+            .Select(p => new EqualizerPreset(p.PresetId, p.DisplayName, p.ResourceKey, CapabilitySupport.Supported))];
         SpatialConfirmed = spatialConfirmed;
-        Capabilities = BuildCapabilities(model, spatialConfirmed);
+        Capabilities = BuildCapabilities(model, spatialConfirmed, EqualizerPresets.Count > 0);
     }
 
     public HuaweiModel Model { get; }
     public bool SpatialConfirmed { get; }
-    internal HuaweiDeviceProfile WithSpatial() => SpatialConfirmed ? this : new(Model, true);
+    internal HuaweiDeviceProfile WithSpatial() => SpatialConfirmed ? this : new(Model, true, _reportedToggles, _reportedEq);
+
+    /// <summary>Opens a feature switch the earbuds just reported a valid state for.</summary>
+    internal HuaweiDeviceProfile WithReportedToggle(DeviceToggle toggle) =>
+        _reportedToggles.Contains(toggle) ? this : new(Model, SpatialConfirmed, [.. _reportedToggles, toggle], _reportedEq);
+
+    /// <summary>Limits the EQ presets to the built-in ids the earbuds reported.</summary>
+    internal HuaweiDeviceProfile WithReportedEqualizer(IReadOnlyList<byte> ids) =>
+        _reportedEq is not null && _reportedEq.SequenceEqual(ids) ? this : new(Model, SpatialConfirmed, _reportedToggles, [.. ids]);
 
     public string Brand => "huawei";
 
@@ -43,6 +67,7 @@ public sealed class HuaweiDeviceProfile : IControllableProfile
         .. Model.WearDetection ? [DeviceToggle.InEarDetection] : Array.Empty<DeviceToggle>(),
         .. Model.LowLatency ? [DeviceToggle.GamingMode] : Array.Empty<DeviceToggle>(),
         .. Model.DualConnect ? [DeviceToggle.DualDeviceConnection] : Array.Empty<DeviceToggle>(),
+        .. _reportedToggles,
     ];
 
     public IDeviceCapabilities Capabilities { get; }
@@ -79,14 +104,18 @@ public sealed class HuaweiDeviceProfile : IControllableProfile
         {
             options.Add(new(NoiseControlMode.NoiseCancellation, null, "Noise cancelling", "NoiseMode_NoiseCancellation", CapabilitySupport.Supported));
         }
-        if (model.Transparency)
+        if (model.Transparency && model.TransparencyLevels.Count > 0)
+        {
+            options.AddRange(model.TransparencyLevels.Select(l => new NoiseControlOption(NoiseControlMode.Transparency, l.LevelId, l.DisplayName, l.ResourceKey, CapabilitySupport.Supported)));
+        }
+        else if (model.Transparency)
         {
             options.Add(new(NoiseControlMode.Transparency, null, "Transparency", "NoiseMode_Transparency", CapabilitySupport.Supported));
         }
         return [.. options];
     }
 
-    private static DeviceCapabilities BuildCapabilities(HuaweiModel model, bool spatialConfirmed)
+    private static DeviceCapabilities BuildCapabilities(HuaweiModel model, bool spatialConfirmed, bool hasEq)
     {
         static CapabilitySupport S(bool on) => on ? CapabilitySupport.Supported : CapabilitySupport.Unsupported;
         return DeviceCapabilities.CreateBuilder()
@@ -95,14 +124,14 @@ public sealed class HuaweiDeviceProfile : IControllableProfile
             .Set(DeviceCapability.NoiseCancellation, S(model.NoiseControlUsable), Evidence)
             .Set(DeviceCapability.NoiseCancellationLevel, S(model.NoiseControlUsable && model.AncLevels.Count > 1), Evidence)
             .Set(DeviceCapability.AdaptiveNoiseCancellation, CapabilitySupport.Unsupported, "Dynamic ANC is exposed as a noise-cancelling level.")
-            .Set(DeviceCapability.Equalizer, S(model.EqPresets.Count > 0), Evidence)
-            .Set(DeviceCapability.CustomEqualizer, CapabilitySupport.Unsupported, "HUAWEI custom EQ is not ported.")
+            .Set(DeviceCapability.Equalizer, S(hasEq), Evidence)
+            .Set(DeviceCapability.CustomEqualizer, CapabilitySupport.Unsupported, "HUAWEI custom EQ is not ported; a selected custom preset is shown as its raw id.")
             .Set(DeviceCapability.InEarDetection, S(model.WearDetection), Evidence)
             .Set(DeviceCapability.GamingMode, S(model.LowLatency), Evidence)
             .Set(DeviceCapability.DualDeviceConnection, S(model.DualConnect), Evidence)
-            .Set(DeviceCapability.SpatialAudio, S(spatialConfirmed), "Official audio plugin 16.0.9.330 MBB feature 24, enabled after live readback.")
+            .Set(DeviceCapability.SpatialAudio, S(spatialConfirmed), "MBB feature 24, enabled after live readback.")
             .Set(DeviceCapability.HeadTracking, S(spatialConfirmed), "Independent spatial audio mode 1, confirmed by device.")
-            .Set(DeviceCapability.FindMyEarbuds, CapabilitySupport.Unsupported, "MBB find-device TLVs are unverified upstream.")
+            .Set(DeviceCapability.FindMyEarbuds, CapabilitySupport.Unsupported, "Find-device commands are unverified upstream.")
             .Build();
     }
 }

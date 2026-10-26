@@ -24,7 +24,7 @@ public sealed record NoiseControlOption(
 }
 
 /// <summary>A device-side EQ preset.</summary>
-public sealed record EqualizerPreset(string Id, string DisplayName, string ResourceKey, CapabilitySupport Support);
+public sealed record EqualizerPreset(string Id, string DisplayName, string ResourceKey, CapabilitySupport Support, bool EditableBands = false);
 
 /// <summary>Physical form, used to pick the generic illustration when a model has no product image.</summary>
 public enum DeviceForm

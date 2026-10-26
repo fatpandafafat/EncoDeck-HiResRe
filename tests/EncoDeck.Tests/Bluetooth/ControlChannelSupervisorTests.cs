@@ -31,6 +31,15 @@ public class ControlChannelSupervisorTests
 
         public event EventHandler? TransportChanged;
 
+        public LeAudioLinkState LeAudioLinks { get; private set; } = LeAudioLinkState.Empty;
+        public event EventHandler? LinkDetailsChanged;
+
+        public void SetLinks(LeAudioLinkState links)
+        {
+            LeAudioLinks = links;
+            LinkDetailsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public void Set(bool connected)
         {
             IsConnected = connected;
@@ -111,6 +120,69 @@ public class ControlChannelSupervisorTests
         Assert.NotNull(supervisor.Controller);
         Assert.Equal(1, connector.Attempts);
         Assert.Equal(100, store.Current.Battery.Left!.Value.Level);
+    }
+
+    [Fact]
+    public async Task SingleEarDrop_UpdatesStateWithoutRestartingHealthyControl()
+    {
+        var link = new FakeLink(true);
+        link.SetLeAudio(true);
+        link.SetLinks(new(true, true, true, true));
+        var connector = new FakeConnector();
+        var (supervisor, store) = Create(link, connector);
+        await using var lifetime = supervisor;
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        var channel = connector.LastDevice!.Channel;
+        link.SetLinks(new(true, true, true, false));
+        await OppoDeviceControllerTests.WaitUntil(() => store.Current.LeAudioLinks.ConnectedEarbuds == 1);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.Equal(DeviceConnectionState.ControlReady, store.Current.Connection);
+        Assert.Equal(1, connector.Attempts);
+        Assert.False(channel.IsDisposed);
+        Assert.True(store.Current.LeAudioLinks.PrimaryConnected);
+        Assert.False(store.Current.LeAudioLinks.SecondaryConnected);
+    }
+
+    [Fact]
+    public async Task OtherEarReturns_ResumesExhaustedControlWithoutCyclingWholeLink()
+    {
+        var link = new FakeLink(true);
+        link.SetLeAudio(true);
+        link.SetLinks(new(true, false, true, true));
+        var connector = new FakeConnector { FailWith = ChannelOpenStatus.ConnectFailed };
+        var (supervisor, store) = Create(link, connector);
+        await using var lifetime = supervisor;
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.ControlUnavailable);
+        int attempts = connector.Attempts;
+        connector.FailWith = null;
+        link.SetLinks(new(true, true, true, true));
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        Assert.Equal(attempts + 1, connector.Attempts);
+        Assert.True(store.Current.LeAudioLinks.BothConnected);
+    }
+
+    [Fact]
+    public async Task OtherEarChangesDuringHandshake_DoesNotDiscardSuccessfulInitialization()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var profile = new StartupProfile(() => { entered.TrySetResult(); return release.Task; });
+        var link = new FakeLink(true);
+        link.SetLeAudio(true);
+        var connector = new FakeConnector();
+        var (supervisor, store) = Create(link, connector, profile);
+        await using var lifetime = supervisor;
+        supervisor.Start();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
+        link.SetLinks(new(true, true, true, true));
+        release.TrySetResult(true);
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.Equal(1, connector.Attempts);
+        Assert.False(connector.LastDevice!.Channel.IsDisposed);
+        Assert.True(store.Current.LeAudioLinks.BothConnected);
     }
 
     [Fact]

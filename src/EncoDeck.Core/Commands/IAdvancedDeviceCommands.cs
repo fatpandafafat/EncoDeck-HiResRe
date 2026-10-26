@@ -44,6 +44,13 @@ public interface IAdvancedDeviceCommands
 
     Task<CommandResult> MultiConnectAsync(MultiConnectOperation operation, byte[] address, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Sets the earbuds' LE/BR mode switch (<c>0x0433</c>). The official client sets it on when
+    /// switching to LE Audio and off when restoring Classic; the firmware syncs it to both earbuds
+    /// and persists it in NV.
+    /// </summary>
+    Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default);
+
     /// <summary>Sets the preferred source device; null means automatic selection.</summary>
     Task<CommandResult> SetPreferredDeviceAsync(byte[]? address, CancellationToken cancellationToken = default);
 
@@ -54,4 +61,11 @@ public interface IAdvancedDeviceCommands
     Task<CommandResult> AddCustomEqualizerAsync(CancellationToken cancellationToken = default);
 
     Task<CommandResult> DeleteCustomEqualizerAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes a device-reported <see cref="DeviceOption"/> and confirms it by readback. Brands without
+    /// such options keep this default.
+    /// </summary>
+    Task<CommandResult> SetOptionAsync(string id, int value, CancellationToken cancellationToken = default) =>
+        Task.FromResult(CommandResult.Unsupported($"Option {id} is not supported on this device."));
 }

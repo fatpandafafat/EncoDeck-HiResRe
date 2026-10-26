@@ -6,11 +6,12 @@ namespace EncoDeck.Protocol.Brands.Huawei;
 
 internal sealed partial class HuaweiDeviceController
 {
-    // FeatureMbbState.INDEPENDENT_SPATIAL_AUDIO.getSwitchMbb() in the official audio plugin.
-    private static readonly byte[] SpatialQuery = [1, 1, 24, 2, 0, 3, 0];
+    // Feature 24 (independent spatial audio): TLV 2 = mode, 3 = scene.
+    private static readonly byte[] SpatialQuery = [1, 1, HuaweiCommands.FeatureSpatialAudio, 2, 0, 3, 0];
     private readonly SemaphoreSlim _operations = new(1, 1);
 
-    internal static SpatialAudioMode? ParseSpatial(ReadOnlySpan<byte> payload)
+    /// <summary>Strict TLV parse of a feature report for <paramref name="feature"/>; result codes and other features yield null.</summary>
+    internal static Dictionary<byte, byte[]>? ParseFeature(ReadOnlySpan<byte> payload, byte feature)
     {
         var fields = new Dictionary<byte, byte[]>();
         while (!payload.IsEmpty)
@@ -20,8 +21,13 @@ internal sealed partial class HuaweiDeviceController
             if (!fields.TryAdd(payload[0], payload.Slice(2, length).ToArray())) return null;
             payload = payload[(length + 2)..];
         }
-        if (fields.ContainsKey(HuaweiCommands.ErrorTlv)
-            || !fields.TryGetValue(1, out var feature) || feature is not [24]
+        if (fields.ContainsKey(HuaweiCommands.ErrorTlv) || !fields.TryGetValue(1, out var id) || id.Length != 1 || id[0] != feature) return null;
+        return fields;
+    }
+
+    internal static SpatialAudioMode? ParseSpatial(ReadOnlySpan<byte> payload)
+    {
+        if (ParseFeature(payload, HuaweiCommands.FeatureSpatialAudio) is not { } fields
             || !fields.TryGetValue(2, out var state) || state.Length != 1) return null;
         return state[0] switch { 0 => SpatialAudioMode.Off, 1 => SpatialAudioMode.HeadTracking, 2 => SpatialAudioMode.Fixed, _ => null };
     }
@@ -59,7 +65,7 @@ internal sealed partial class HuaweiDeviceController
             case SpatialAudioMode.Fixed: value = 2; break;
             default: return NotSupported("Spatial mode");
         }
-        if (!await WriteAsync(_codec.Encode(HuaweiCommands.FeatureState, [1, 1, 24, 2, 1, value]), ct).ConfigureAwait(false))
+        if (!await WriteAsync(_codec.Encode(HuaweiCommands.FeatureState, FeatureWrite(HuaweiCommands.FeatureSpatialAudio, 2, value)), ct).ConfigureAwait(false))
             return new CommandResult(CommandStatus.TransportError);
         await Task.Delay(ReadBackDelay, Context.Time, ct).ConfigureAwait(false);
         var (frame, status) = await QueryAsync(HuaweiCommands.FeatureState, SpatialQuery, ct).ConfigureAwait(false);

@@ -17,16 +17,20 @@ public sealed class AkgHybridProfile(bool earbuds, bool noiseReady = false) : IC
     public DeviceForm Form => earbuds ? DeviceForm.Earbuds : DeviceForm.Headphones;
     public bool IsGeneric => false;
     public IDeviceCapabilities Capabilities => DeviceCapabilities.CreateBuilder()
-        .Set(DeviceCapability.BatteryLevel, CapabilitySupport.Supported, "Official Airoha RACE battery queries; Windows hardware validation pending.")
+        .Set(DeviceCapability.BatteryLevel, CapabilitySupport.Supported, "RACE battery 0x0CD6 / charging 0x0009 / case 0x000B, observed on a real N9 Hybrid (kalicyh/Raito); Windows validation pending.")
+        .Set(DeviceCapability.ChargingStatus, CapabilitySupport.Supported, "RACE GET_CHARGE_INFO 0x0009 per role.")
         .Set(DeviceCapability.NoiseCancellation, noiseReady ? CapabilitySupport.Supported : CapabilitySupport.Unknown,
-            "Enabled only after a valid six- or twelve-byte ANC module readback.").Build();
+            "Experimental opt-in: 0x0E06 write with a valid 0x0901 readback; values are from a JBL RACE note, unverified on AKG.").Build();
     public IReadOnlyList<NoiseControlOption> NoiseControlOptions => noiseReady ?
     [new(NoiseControlMode.Off, null, "Off", "NoiseMode_Off", CapabilitySupport.Supported),
      new(NoiseControlMode.NoiseCancellation, null, "Noise cancelling", "NoiseMode_NoiseCancellation", CapabilitySupport.Supported),
      new(NoiseControlMode.Transparency, null, "Ambient sound", "NoiseMode_Transparency", CapabilitySupport.Supported)] : [];
     public IReadOnlyList<EqualizerPreset> EqualizerPresets => [];
-    public IReadOnlyList<Guid> ControlServiceUuids =>
-        [new("00000000-0000-0000-0099-aabbccddeeff"), new("00001101-0000-1000-8000-00805f9b34fb")];
+    /// <summary>
+    /// Classic RACE / SPP services first (the paired classic address is known; the N9 Hybrid also
+    /// advertises a separate "-LE" peripheral), then RACE over BLE GATT as seen on a real N9 Hybrid.
+    /// </summary>
+    public IReadOnlyList<Guid> ControlServiceUuids => [AkgBleUuids.RaceSpp, AkgBleUuids.Spp, AkgBleUuids.RaceService];
     public int MatchScore(DeviceIdentity identity)
     {
         if (identity.Transport != DeviceTransport.Bluetooth) return 0;

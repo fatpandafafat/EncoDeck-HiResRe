@@ -103,8 +103,8 @@ public sealed class AppHost : IAsyncDisposable
             store,
             new RfcommChannelConnector(registry, loggers.CreateLogger<RfcommChannelConnector>()),
             preferredDeviceId: () => settings.Current.PreferredDeviceId,
-            // Experimental MOONDROP commands remain opt-in and read this preference dynamically.
-            allowExperimental: () => store.Current.Profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile && settings.Current.EnableExperimentalFeatures,
+            // Experimental MOONDROP, AKG Hybrid, vivo and EDIFIER settings remain opt-in and read this preference dynamically.
+            allowExperimental: () => EncoDeck.App.ViewModels.FeaturesViewModel.OffersExperimental(store.Current.Profile) && settings.Current.EnableExperimentalFeatures,
             loggers,
             trace: new RawProtocolLog(loggers.CreateLogger("EncoDeck.Protocol.Raw"), () => settings.Current.RawProtocolLogging));
 

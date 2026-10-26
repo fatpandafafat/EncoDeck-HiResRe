@@ -19,7 +19,7 @@ internal static class OppoControlChannelRouter
         catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException)
         {
             return ChannelOpenResult.Failed(ChannelOpenStatus.ConnectFailed,
-                $"Could not determine the LE Audio pairing state (0x{ex.HResult:X8}); Classic control was not opened.");
+                $"Could not determine the LE Audio pairing state (0x{ex.HResult:X8}): {ex.Message}; Classic control was not opened.");
         }
 
         if (!leBonded) return await openClassic().ConfigureAwait(false);

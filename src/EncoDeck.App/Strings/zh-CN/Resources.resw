@@ -44,6 +44,7 @@
   <data name="Connection_PairedNotConnected" xml:space="preserve"><value>已配对，未连接</value></data>
   <data name="Connection_AudioConnected" xml:space="preserve"><value>已连接，正在准备控制</value></data>
   <data name="Connection_UsbReceiverConnected" xml:space="preserve"><value>USB 接收器已连接</value></data>
+  <data name="Connection_UsbHeadsetConnected" xml:space="preserve"><value>耳机已通过 USB 接收器无线连接</value></data>
   <data name="Connection_ControlConnecting" xml:space="preserve"><value>正在连接控制通道…</value></data>
   <data name="Connection_ControlReady" xml:space="preserve"><value>已连接</value></data>
   <data name="Connection_ControlUnavailable" xml:space="preserve"><value>蓝牙已连接，控制通道不可用</value></data>
@@ -121,6 +122,8 @@
   <data name="Nav_Controls.Content" xml:space="preserve"><value>控制</value></data>
   <data name="Nav_Devices.Content" xml:space="preserve"><value>设备</value></data>
   <data name="Nav_Settings.Content" xml:space="preserve"><value>设置</value></data>
+  <data name="Nav_Labs.Content" xml:space="preserve"><value>实验室</value></data>
+  <data name="Labs_Summary.Text" xml:space="preserve"><value>实验性音频功能。这些功能会更改 Windows 蓝牙或音频设置，不保证适用于所有设备。</value></data>
   <data name="Home_GenericModel.Title" xml:space="preserve"><value>未识别的型号</value></data>
   <data name="Home_NoDevice_Title.Text" xml:space="preserve"><value>没有找到支持的耳机</value></data>
   <data name="Home_NoDevice_Body.Text" xml:space="preserve"><value>请先在 Windows 蓝牙设置中配对耳机。配对后 EncoDeck 会自动发现它。</value></data>
@@ -136,6 +139,7 @@
   <data name="NoiseSelector_Transparency.Text" xml:space="preserve"><value>通透</value></data>
   <data name="Sound_Title.Text" xml:space="preserve"><value>音效</value></data>
   <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>耳机端 EQ</value></data>
+  <data name="Sound_BandEditor.Text" xml:space="preserve"><value>自定义曲线</value></data>
   <data name="Sound_Spatial.Text" xml:space="preserve"><value>空间音频</value></data>
   <data name="Controls_Title.Text" xml:space="preserve"><value>控制</value></data>
   <data name="Controls_Settings.Text" xml:space="preserve"><value>更多设置</value></data>
@@ -192,7 +196,7 @@
   <data name="Settings_Advanced.Text" xml:space="preserve"><value>高级</value></data>
   <data name="Settings_RawLogging.Header" xml:space="preserve"><value>记录控制通道数据（诊断）</value></data>
   <data name="Settings_About.Text" xml:space="preserve"><value>关于</value></data>
-  <data name="Settings_Disclaimer.Text" xml:space="preserve"><value>EncoDeck 是开源社区项目，与 OPPO、OnePlus、realme 没有关联，也未获得其认可或支持。产品名称仅用于说明兼容性。</value></data>
+  <data name="Settings_Disclaimer.Text" xml:space="preserve"><value>EncoDeck 是非官方开源项目，与所支持的耳机品牌及其所属厂商无隶属、合作或背书关系。品牌和产品名称仅用于说明兼容性。</value></data>
   <data name="Settings_License.Text" xml:space="preserve"><value>本软件以 GNU 通用公共许可证第 3 版（仅限，GPL-3.0-only）发布。第三方声明随应用附带。</value></data>
   <data name="Settings_Source.Content" xml:space="preserve"><value>源代码</value></data>
   <data name="Settings_Notices.Content" xml:space="preserve"><value>第三方声明</value></data>
@@ -336,7 +340,7 @@
   <data name="Home_Spatial.Text" xml:space="preserve"><value>空间音频</value></data>
   <data name="Home_GameMode.Header" xml:space="preserve"><value>游戏模式</value></data>
   <data name="Home_Model_Name" xml:space="preserve"><value>耳机 3D 模型，左右拖动或按方向键旋转</value></data>
-  <data name="Home_GenericModel_Message" xml:space="preserve"><value>欢律的型号列表中也没有这款耳机（产品 ID {0}），无法得知它的设置方式，因此只显示电量与固件信息。</value></data>
+  <data name="Home_GenericModel_Message" xml:space="preserve"><value>型号列表中没有这款耳机（产品 ID {0}），无法得知它的设置方式，因此只显示电量与固件信息。</value></data>
   <data name="Error_CycleAtLeastOne" xml:space="preserve"><value>最少选择 1 项</value></data>
   <data name="Gesture_CycleTitle" xml:space="preserve"><value>{0}切换的噪声控制模式</value></data>
   <data name="Gesture_CycleNote" xml:space="preserve"><value>最少选择 {0} 项以进行切换</value></data>
@@ -414,6 +418,8 @@
   <data name="Home_DeviceBusy" xml:space="preserve"><value>正在处理…</value></data>
   <data name="Home_DeviceConnected" xml:space="preserve"><value>已连接 · 点按断开</value></data>
   <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>点按连接</value></data>
+  <data name="Home_DeviceLastConnected" xml:space="preserve"><value>上次已连接</value></data>
+  <data name="Home_DeviceNotConnected" xml:space="preserve"><value>未连接</value></data>
   <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>在 Windows 蓝牙设置中断开本机</value></data>
   <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>这是本机</value></data>
   <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>耳机正通过蓝牙连接这台电脑。要断开本机，请在 Windows 蓝牙设置中断开耳机。</value></data>
@@ -470,7 +476,7 @@
   <data name="Update_DownloadAndInstall" xml:space="preserve"><value>下载并安装</value></data>
   <data name="Update_InstallNow" xml:space="preserve"><value>立即重启并更新</value></data>
   <data name="Notify_UpdateReady_Title" xml:space="preserve"><value>EncoDeck {0} 已可安装</value></data>
-  <data name="Notify_UpdateReady_Message" xml:space="preserve"><value>已在后台下载。前往 设置 › 更新 安装。</value></data>
+  <data name="Notify_UpdateReady_Message" xml:space="preserve"><value>已在后台下载。前往 关于 › 更新 安装。</value></data>
   <data name="Notify_Updated_Title" xml:space="preserve"><value>EncoDeck 已更新到 {0}</value></data>
   <data name="Notify_Updated_Message" xml:space="preserve"><value>EncoDeck 正在通知区域中运行。</value></data>
   <data name="Settings_StoreUpdate.Content" xml:space="preserve"><value>更新</value></data>
@@ -487,6 +493,18 @@
   <data name="Vivo_Eq_Immersive" xml:space="preserve"><value>沉浸环绕</value></data>
   <data name="Vivo_Eq_Audiobooks" xml:space="preserve"><value>悠扬听书</value></data>
   <data name="Vivo_Eq_UltimateMaster" xml:space="preserve"><value>至臻大师</value></data>
+  <data name="Vivo_Function_Translate" xml:space="preserve"><value>翻译</value></data>
+  <data name="Vivo_Function_DeclineCall" xml:space="preserve"><value>拒接来电</value></data>
+  <data name="Vivo_HoldCycle" xml:space="preserve"><value>长按切换的降噪模式</value></data>
+  <data name="Brand_UnknownValue" xml:space="preserve"><value>未知值 (0x{0})，仅显示</value></data>
+  <data name="Edifier_AncComfort" xml:space="preserve"><value>舒适</value></data>
+  <data name="Edifier_Eq_Classic" xml:space="preserve"><value>经典</value></data>
+  <data name="Edifier_Eq_Pop" xml:space="preserve"><value>流行</value></data>
+  <data name="Edifier_Eq_Classical" xml:space="preserve"><value>古典</value></data>
+  <data name="Edifier_Eq_Rock" xml:space="preserve"><value>摇滚</value></data>
+  <data name="Edifier_ButtonCycle" xml:space="preserve"><value>按键循环切换的模式</value></data>
+  <data name="PowerOff_Minutes" xml:space="preserve"><value>{0} 分钟</value></data>
+  <data name="PowerOff_Hours" xml:space="preserve"><value>{0} 小时</value></data>
   <data name="Huawei_NoiseLevel_Dynamic" xml:space="preserve"><value>动态</value></data>
   <data name="Huawei_NoiseLevel_Cozy" xml:space="preserve"><value>舒适</value></data>
   <data name="Huawei_NoiseLevel_General" xml:space="preserve"><value>均衡</value></data>
@@ -495,6 +513,11 @@
   <data name="Huawei_Eq_Bass" xml:space="preserve"><value>低音增强</value></data>
   <data name="Huawei_Eq_Treble" xml:space="preserve"><value>高音增强</value></data>
   <data name="Huawei_Eq_Voices" xml:space="preserve"><value>人声</value></data>
+  <data name="Huawei_Eq_Balanced" xml:space="preserve"><value>均衡</value></data>
+  <data name="Huawei_Eq_Movie" xml:space="preserve"><value>电影</value></data>
+  <data name="Huawei_Eq_Podcast" xml:space="preserve"><value>播客</value></data>
+  <data name="Huawei_Eq_Game" xml:space="preserve"><value>游戏</value></data>
+  <data name="Huawei_Eq_Sport" xml:space="preserve"><value>运动</value></data>
   <data name="Artwork_Left.Text" xml:space="preserve"><value>左耳</value></data>
   <data name="Artwork_Right.Text" xml:space="preserve"><value>右耳</value></data>
   <data name="Artwork_Case.Text" xml:space="preserve"><value>充电盒</value></data>
@@ -601,6 +624,16 @@
   <data name="Xiaomi_Eq_17" xml:space="preserve"><value>户外</value></data>
   <data name="Xiaomi_Eq_18" xml:space="preserve"><value>水下</value></data>
   <data name="Xiaomi_Eq_21" xml:space="preserve"><value>均衡聆听</value></data>
+  <data name="Xiaomi_Eq_10" xml:space="preserve"><value>自定义</value></data>
+  <data name="Xiaomi_Anc_0" xml:space="preserve"><value>均衡</value></data>
+  <data name="Xiaomi_Anc_1" xml:space="preserve"><value>轻度</value></data>
+  <data name="Xiaomi_Anc_2" xml:space="preserve"><value>深度</value></data>
+  <data name="Xiaomi_Ambient_0" xml:space="preserve"><value>标准</value></data>
+  <data name="Xiaomi_Ambient_1" xml:space="preserve"><value>人声增强</value></data>
+  <data name="Xiaomi_Ambient_2" xml:space="preserve"><value>环境声增强</value></data>
+  <data name="Toggle_AutoAnswerCalls" xml:space="preserve"><value>自动接听来电</value></data>
+  <data name="Toggle_AutoAnswerCalls_Description" xml:space="preserve"><value>来电时由耳机自动接听</value></data>
+  <data name="Error_FindWhileWorn" xml:space="preserve"><value>检测到耳机在耳中。请先取下两只耳机，再播放查找提示音。</value></data>
   <data name="Moondrop_Gain.Header" xml:space="preserve"><value>增益</value></data>
   <data name="Moondrop_GainLow" xml:space="preserve"><value>低</value></data>
   <data name="Moondrop_GainMid" xml:space="preserve"><value>中</value></data>
@@ -612,6 +645,18 @@
   <data name="Cap_Gain" xml:space="preserve"><value>增益</value></data>
   <data name="Cap_IndicatorLight" xml:space="preserve"><value>指示灯</value></data>
   <data name="Cap_PromptTone" xml:space="preserve"><value>提示音</value></data>
+  <data name="Cap_HiResCodec" xml:space="preserve"><value>LHDC</value></data>
+  <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Cap_ChannelSwap" xml:space="preserve"><value>左右声道交换</value></data>
+  <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Toggle_Ldac_Description" xml:space="preserve"><value>耳机端 LDAC 开关。此开关不会为 Windows 安装 LDAC 编码器。</value></data>
+  <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Toggle_Lc3_Description" xml:space="preserve"><value>耳机端 LC3 编码开关，不改变 Windows 蓝牙传输方式。</value></data>
+  <data name="Toggle_ChannelSwap" xml:space="preserve"><value>交换左右声道</value></data>
+  <data name="Toggle_ChannelSwap_Description" xml:space="preserve"><value>在耳机端交换左右音频声道。</value></data>
+  <data name="Moondrop_Bass_Title" xml:space="preserve"><value>动态低音</value></data>
+  <data name="Moondrop_Bass_Summary" xml:space="preserve"><value>在耳机内增强低频。</value></data>
   <data name="Moondrop_Hold1" xml:space="preserve"><value>长按 1 秒</value></data>
   <data name="Moondrop_Hold3" xml:space="preserve"><value>长按 3 秒</value></data>
   <data name="Moondrop_Function_0" xml:space="preserve"><value>无</value></data>
@@ -629,18 +674,43 @@
   <data name="Home_SwitchDevice.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve"><value>切换设备</value></data>
   <data name="Home_SwitchDevice_NotConnected" xml:space="preserve"><value>{0}（未连接）</value></data>
   <data name="Home_ManageDevices" xml:space="preserve"><value>管理设备</value></data>
-  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>LE Audio（LC3）连接</value></data>
-  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>LE Audio（LC3）连接</value></data>
+  <data name="Codec_Classic.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>耳机报告的传统蓝牙（A2DP）音频编码</value></data>
+  <data name="Codec_Classic.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>传统蓝牙音频编码</value></data>
+  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>已连接 LE 链路；LC3 音频流由 Windows 管理，尚未验证</value></data>
+  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>已连接 LE 链路，音频流尚未验证</value></data>
+  <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>等待 LC3 连接 · 长按充电盒按键可恢复</value></data>
   <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio（LC3）连接（实验性）</value></data>
   <data name="LeAudio_Summary.Text" xml:space="preserve"><value>让 Windows 通过 LE Audio 使用 LC3 编码连接这副耳机，取代传统蓝牙的 A2DP。电脑的蓝牙需支持 LE Audio。</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>切换到 LE Audio 后，不支持通过 EncoDeck 切换降噪，请在耳机上手动切换降噪。</value></data>
   <data name="LeAudio_Switch" xml:space="preserve"><value>切换到 LE Audio</value></data>
   <data name="LeAudio_Restore" xml:space="preserve"><value>恢复传统蓝牙</value></data>
-  <data name="LeAudio_StatusLe" xml:space="preserve"><value>当前：LE Audio（LC3），左右耳均已配对。</value></data>
+  <data name="LeAudio_StatusLe" xml:space="preserve"><value>左右耳均已完成 LE 配对；实际音频连接由 Windows 管理。</value></data>
+  <data name="LeAudio_StatusClassicEndpoint" xml:space="preserve"><value>Windows 仍暴露经典 A2DP 端点；选中“耳机 (OPPO Enco X4)”会只有单耳有声，请选择 LE Audio 的“扬声器”。</value></data>
+  <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>无法确认 Windows 的音频端点状态；不要把 ACL/GATT 就绪当作双耳播放成功。</value></data>
+  <data name="LeAudio_DisableClassic" xml:space="preserve"><value>禁用经典音频端点</value></data>
+  <data name="LeAudio_EnableClassic" xml:space="preserve"><value>恢复经典音频端点</value></data>
+  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>禁用耳机麦克风</value></data>
+  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>应用打开耳机麦克风时，Windows 会把 LE Audio 切到双向通话配置，播放音质明显下降。禁用后应用只能使用其他麦克风，耳机播放保持媒体音质。重新配对后需要再次开启。</value></data>
+  <data name="LeAudio_MicFailed" xml:space="preserve"><value>无法更改耳机麦克风：{0}</value></data>
+  <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>已禁用经典 A2DP 渲染端点；请在声音设置中选择 LE Audio 的“扬声器”。</value></data>
+  <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>经典 A2DP 端点已经处于禁用状态。</value></data>
+  <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>没有找到可禁用的经典 A2DP 端点。</value></data>
+  <data name="LeAudio_Endpoint_Enabled" xml:space="preserve"><value>已重新启用经典音频端点。</value></data>
+  <data name="LeAudio_Endpoint_NothingToRestore" xml:space="preserve"><value>没有需要恢复的经典音频端点。</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeLinks" xml:space="preserve"><value>两只耳的 LE 链路尚未都连接；未修改任何端点。</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeAudioEndpointMissing" xml:space="preserve"><value>没有找到 LE Audio 渲染端点；为避免破坏 LE 音频，未禁用经典端点。</value></data>
+  <data name="LeAudio_Endpoint_Ambiguous" xml:space="preserve"><value>检测到多个可能的 LE Audio 端点；未修改任何设置。</value></data>
+  <data name="LeAudio_Endpoint_Failed" xml:space="preserve"><value>端点操作失败：{0}</value></data>
+  <data name="Connection_LeAudioSingleEar" xml:space="preserve"><value>LE 仅连接一只耳机</value></data>
+  <data name="LeAudio_Stage_WaitingForLinks" xml:space="preserve"><value>双耳已配对，正在等待两只耳机建立 LE 连接…</value></data>
+  <data name="LeAudio_Result_PairedWaitingForLinks" xml:space="preserve"><value>双耳已完成 LE 配对，但尚未确认双耳连接。请取出两只耳机等待重连；无需立即删除配对。</value></data>
   <data name="LeAudio_StatusLeSingle" xml:space="preserve"><value>当前：LE Audio，但只有一只耳机已配对，声音可能只在一侧。可以重新切换一次。</value></data>
   <data name="LeAudio_StatusClassic" xml:space="preserve"><value>当前：传统蓝牙（A2DP）。</value></data>
   <data name="LeAudio_StatusUnpaired" xml:space="preserve"><value>当前：本电脑尚未配对这副耳机。</value></data>
   <data name="LeAudio_ConfirmTitle" xml:space="preserve"><value>更改耳机的连接方式？</value></data>
-  <data name="LeAudio_ConfirmSwitch" xml:space="preserve"><value>请按提示把耳机放回充电盒、打开盖子，长按充电盒按键进入配对模式。检测到配对模式后，EncoDeck 会删除这副耳机在本电脑上的旧配对（手机等其他设备不受影响），再通过 LE Audio 自动配对两只耳机，期间声音会中断。
+  <data name="LeAudio_ConfirmSwitch" xml:space="preserve"><value>EncoDeck 会先关闭耳机的“设备双连”并回读确认，以免手机抢回连接；关闭后将不再同时连接两台设备。确认失败会停止切换。
+
+请按提示把耳机放回充电盒、打开盖子，长按充电盒按键进入配对模式。检测到配对模式后，EncoDeck 会删除这副耳机在本电脑上的旧配对（手机等其他设备的配对记录保留），再通过 LE Audio 自动配对两只耳机，期间声音会中断。
 
 切换后，Windows 的蓝牙列表里会出现两个同名条目（其中一个是另一只耳机），声音输出改为“扬声器 (耳机名)”。</value></data>
   <data name="LeAudio_ConfirmRestore" xml:space="preserve"><value>EncoDeck 将删除这副耳机在本电脑上的 LE Audio 和关联的传统蓝牙配对，期间声音会中断。清理完成后，请让耳机进入配对模式，在 Windows“蓝牙和设备”中点击“添加设备”手动重新配对。</value></data>
@@ -650,7 +720,13 @@
   <data name="LeAudio_Stage_WaitingForPairingMode" xml:space="preserve"><value>请把两只耳机放回充电盒，打开盖子，长按充电盒按键直到指示灯闪烁（最多等待 2 分钟）…</value></data>
   <data name="LeAudio_Stage_PairingPrimary" xml:space="preserve"><value>已检测到配对模式，正在通过 LE Audio 配对第一只耳机…</value></data>
   <data name="LeAudio_Stage_PairingSecondary" xml:space="preserve"><value>正在配对另一只耳机…</value></data>
+  <data name="LeAudio_Stage_DisablingMultipoint" xml:space="preserve"><value>正在关闭设备双连，并确认耳机已关闭双连…</value></data>
+  <data name="Error_LeAudioMultipoint" xml:space="preserve"><value>使用 LE Audio 时需要保持设备双连关闭，以免手机抢回连接。请先恢复传统蓝牙，再开启双连。</value></data>
+  <data name="LeAudio_Result_MultipointDisableFailed" xml:space="preserve"><value>无法确认设备双连已关闭，已停止切换，原有配对保留。请先恢复本电脑的耳机控制连接后重试。</value></data>
   <data name="LeAudio_Result_Paired" xml:space="preserve"><value>已切换到 LE Audio。戴上耳机，在声音设置中选择“扬声器 (耳机名)”作为输出。</value></data>
+  <data name="LeAudio_Result_PairedWithClassicAudio" xml:space="preserve"><value>LE Audio 已配对，但 Windows 仍暴露经典 A2DP 端点。播放前请禁用经典端点，或手动选择 LE Audio 的“扬声器”，否则可能只有单耳有声。</value></data>
+  <data name="LeAudio_Result_PairedButLeAudioEndpointMissing" xml:space="preserve"><value>双耳 LE 已连接，但没有找到 LE Audio 渲染端点；为避免破坏 LE 音频，未修改经典端点。请稍后重试或查看诊断信息。</value></data>
+  <data name="LeAudio_Result_ClassicAudioEndpointRestoreFailed" xml:space="preserve"><value>无法重新启用经典音频端点，已停止删除配对。请以管理员权限重试，或在设备管理器中手动启用。</value></data>
   <data name="LeAudio_Result_PrimaryOnly" xml:space="preserve"><value>只配对上了一只耳机，声音可能只在一侧。请重新进入配对模式后再试一次。</value></data>
   <data name="LeAudio_Result_Removed" xml:space="preserve"><value>已清理本电脑上的耳机配对。请让耳机进入配对模式，点击“打开 Windows 蓝牙设置”，再选择“添加设备 → 蓝牙”手动配对，以恢复传统蓝牙音频。</value></data>
   <data name="LeAudio_Result_PairingModeNotSeen" xml:space="preserve"><value>没有检测到耳机的配对模式，原有配对没有改动。请重试。</value></data>
@@ -687,4 +763,141 @@
   <data name="Sennheiser_UnknownAction" xml:space="preserve"><value>未知动作 (0x{0})</value></data>
   <data name="Sennheiser_LowLatency" xml:space="preserve"><value>低延迟模式</value></data>
   <data name="Sennheiser_LowLatencyDescription" xml:space="preserve"><value>减少耳机播放声音的延迟，适用于游戏和视频。</value></data>
+  <data name="NoiseLevel_TransparencyStandard" xml:space="preserve"><value>标准通透</value></data>
+  <data name="NoiseLevel_EnhancedVoices" xml:space="preserve"><value>人声增强</value></data>
+  <data name="NoiseSelector_TransparencyLevel" xml:space="preserve"><value>通透模式</value></data>
+  <data name="Toggle_AutoVolume" xml:space="preserve"><value>智能音量调节</value></data>
+  <data name="Toggle_AutoVolume_Description" xml:space="preserve"><value>根据环境噪声变化自动调整耳机播放音量</value></data>
+  <data name="Dual_ManagementUnavailable" xml:space="preserve"><value>此耳机固件支持查看设备列表，但不支持远程连接、断开或移除。请在对应设备的蓝牙设置中操作。</value></data>
+  <data name="Nav_About.Content" xml:space="preserve"><value>关于</value></data>
+  <data name="About_Legal.Text" xml:space="preserve"><value>法律信息</value></data>
+  <data name="About_Tagline.Text" xml:space="preserve"><value>在 Windows 上轻松管理你的耳机，不用为了切个降噪再拿起手机。</value></data>
+  <data name="About_Compatibility.Content" xml:space="preserve"><value>设备兼容性</value></data>
+  <data name="About_Changelog.Content" xml:space="preserve"><value>更新日志</value></data>
+  <data name="About_Feedback.Text" xml:space="preserve"><value>反馈问题</value></data>
+  <data name="About_FeedbackText.Text" xml:space="preserve"><value>如果遇到连不上、某项设置不生效或者型号识别错误，欢迎提交 Issue，并写明耳机型号、固件版本、Windows 版本和操作步骤。耳机不在已测试列表中但可以正常使用，也欢迎反馈测试结果。</value></data>
+  <data name="About_ReportIssue.Content" xml:space="preserve"><value>提交 Issue</value></data>
+  <data name="About_Contributing.Content" xml:space="preserve"><value>参与贡献</value></data>
+  <data name="About_Thanks.Text" xml:space="preserve"><value>致谢</value></data>
+  <data name="About_ThanksProtocol.Text" xml:space="preserve"><value>耳机协议与设备适配</value></data>
+  <data name="About_ThanksMoondrop.Text" xml:space="preserve"><value>水月雨型号档案、GAIA 帧格式与控制命令</value></data>
+  <data name="About_ThanksLhdc.Text" xml:space="preserve"><value>LHDC V5 组件</value></data>
+  <data name="About_ThanksTray.Text" xml:space="preserve"><value>托盘图标</value></data>
+  <data name="About_LicenseLink.Content" xml:space="preserve"><value>许可证全文</value></data>
+  <data name="Error_SonyLeAudioControl" xml:space="preserve"><value>耳机正通过 LE Audio 连接，这种连接下暂时打不开控制服务。可以在手机的 Sony | Sound Connect 中把“LE Audio 连接设置”改为“仅经典音频”，或把“蓝牙连接质量”设为“音质优先”或“稳定连接优先”，让耳机以经典蓝牙重新连接；重新连接后 EncoDeck 会自动重试。</value></data>
+  <data name="Error_SonyClassicLinkDown" xml:space="preserve"><value>耳机当前没有经典蓝牙连接，因此没有可用的控制通道。请在 Windows 设置 › 蓝牙和设备 中连接耳机（或播放一段音频唤醒它），必要时把耳机切换到经典音频后重试。</value></data>
+  <data name="Update_BadgeHint" xml:space="preserve"><value>有新版本可用</value></data>
+  <data name="Samsung_AncLevel_1" xml:space="preserve"><value>1 档</value></data>
+  <data name="Samsung_AncLevel_2" xml:space="preserve"><value>2 档</value></data>
+  <data name="Samsung_AncLevel_3" xml:space="preserve"><value>3 档</value></data>
+  <data name="Samsung_AncLevel_4" xml:space="preserve"><value>4 档</value></data>
+  <data name="Samsung_AncLevel_5" xml:space="preserve"><value>5 档</value></data>
+  <data name="Samsung_Eq_Normal" xml:space="preserve"><value>标准</value></data>
+  <data name="Samsung_Eq_BassBoost" xml:space="preserve"><value>低音增强</value></data>
+  <data name="Samsung_Eq_Soft" xml:space="preserve"><value>柔和</value></data>
+  <data name="Samsung_Eq_Dynamic" xml:space="preserve"><value>动感</value></data>
+  <data name="Samsung_Eq_Clear" xml:space="preserve"><value>清晰</value></data>
+  <data name="Samsung_Eq_TrebleBoost" xml:space="preserve"><value>高音增强</value></data>
+  <data name="Google_Eq_Balanced" xml:space="preserve"><value>均衡</value></data>
+  <data name="Google_Eq_HeavyBass" xml:space="preserve"><value>重低音</value></data>
+  <data name="Google_Eq_VocalBoost" xml:space="preserve"><value>人声增强</value></data>
+  <data name="Google_Eq_TrebleBoost" xml:space="preserve"><value>高音增强</value></data>
+  <data name="Google_Eq_LightBass" xml:space="preserve"><value>低音减弱</value></data>
+  <data name="Nothing_Eq_Balanced" xml:space="preserve"><value>均衡</value></data>
+  <data name="Nothing_Eq_Voice" xml:space="preserve"><value>人声</value></data>
+  <data name="Nothing_Eq_MoreTreble" xml:space="preserve"><value>高音增强</value></data>
+  <data name="Nothing_Eq_MoreBass" xml:space="preserve"><value>低音增强</value></data>
+  <data name="Nothing_Eq_Rock" xml:space="preserve"><value>摇滚</value></data>
+  <data name="Nothing_Eq_Electronic" xml:space="preserve"><value>电子</value></data>
+  <data name="Nothing_Eq_Pop" xml:space="preserve"><value>流行</value></data>
+  <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>人声增强</value></data>
+  <data name="Nothing_Eq_Classical" xml:space="preserve"><value>古典</value></data>
+  <data name="Eq_DeviceCustom" xml:space="preserve"><value>自定义 EQ</value></data>
+  <data name="Eq_DevicePreset" xml:space="preserve"><value>预设 {0}</value></data>
+  <data name="Sennheiser_EqOff" xml:space="preserve"><value>关闭</value></data>
+  <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>播客</value></data>
+  <data name="Dual_ConnectOnly" xml:space="preserve"><value>可在这里连接列表中的设备；断开或移除设备请在对应设备的蓝牙设置中操作。</value></data>
+  <data name="Find_Loud_Message" xml:space="preserve"><value>提示音非常响亮。请先确认耳机不在任何人耳中，否则可能会损伤听力。</value></data>
+  <data name="Toggle_SpeakToChat" xml:space="preserve"><value>说话即对话</value></data>
+  <data name="Toggle_SpeakToChat_Description" xml:space="preserve"><value>开口说话时暂停播放并切换到环境声</value></data>
+  <data name="Toggle_Upscaling" xml:space="preserve"><value>DSEE</value></data>
+  <data name="Toggle_Upscaling_Description" xml:space="preserve"><value>耳机端提升压缩音源的音质，可能增加耗电</value></data>
+  <data name="Toggle_TouchControls" xml:space="preserve"><value>触控操作</value></data>
+  <data name="Toggle_TouchControls_Description" xml:space="preserve"><value>开启或关闭触控面板 / 触控传感器；关闭时各手势的原有设置保持不变</value></data>
+  <data name="NoiseLevel_SonyAmbient" xml:space="preserve"><value>标准</value></data>
+  <data name="NoiseLevel_SonyVoice" xml:space="preserve"><value>聚焦人声</value></data>
+  <data name="NoiseLevel_AkgAmbientAware" xml:space="preserve"><value>环境感知</value></data>
+  <data name="NoiseLevel_AkgTalkThrough" xml:space="preserve"><value>对话模式</value></data>
+  <data name="SonyOption_AmbientLevel" xml:space="preserve"><value>环境声级别</value></data>
+  <data name="SonyOption_Unknown" xml:space="preserve"><value>未知（0x{0}）</value></data>
+  <data name="AutoOff_Title" xml:space="preserve"><value>自动关机</value></data>
+  <data name="AutoOff_Off" xml:space="preserve"><value>关闭</value></data>
+  <data name="AutoOff_WhenRemoved" xml:space="preserve"><value>摘下时关机</value></data>
+  <data name="SonyKey_Left" xml:space="preserve"><value>左耳触控</value></data>
+  <data name="SonyKey_Right" xml:space="preserve"><value>右耳触控</value></data>
+  <data name="SonyKey_Custom" xml:space="preserve"><value>自定义按钮</value></data>
+  <data name="SonyKey_NcAmbient" xml:space="preserve"><value>降噪 / 环境声按钮</value></data>
+  <data name="SonyKey_Other" xml:space="preserve"><value>可分配按键</value></data>
+  <data name="SonyPreset_00" xml:space="preserve"><value>环境声控制</value></data>
+  <data name="SonyPreset_10" xml:space="preserve"><value>音量控制</value></data>
+  <data name="SonyPreset_20" xml:space="preserve"><value>播放控制</value></data>
+  <data name="SonyPreset_21" xml:space="preserve"><value>曲目控制</value></data>
+  <data name="SonyPreset_30" xml:space="preserve"><value>语音助手</value></data>
+  <data name="SonyPreset_31" xml:space="preserve"><value>Google 助理</value></data>
+  <data name="SonyPreset_32" xml:space="preserve"><value>Amazon Alexa</value></data>
+  <data name="SonyPreset_35" xml:space="preserve"><value>环境声控制 / 快速访问</value></data>
+  <data name="SonyPreset_36" xml:space="preserve"><value>快速访问</value></data>
+  <data name="SonyPreset_45" xml:space="preserve"><value>环境声控制（麦克风）</value></data>
+  <data name="SonyPreset_46" xml:space="preserve"><value>聆听模式 / 快速访问</value></data>
+  <data name="SonyPreset_47" xml:space="preserve"><value>环境声控制 / 聆听模式</value></data>
+  <data name="SonyPreset_FF" xml:space="preserve"><value>无功能</value></data>
+  <data name="SonyEq_Off" xml:space="preserve"><value>关闭</value></data>
+  <data name="SonyEq_Rock" xml:space="preserve"><value>摇滚</value></data>
+  <data name="SonyEq_Pop" xml:space="preserve"><value>流行</value></data>
+  <data name="SonyEq_Jazz" xml:space="preserve"><value>爵士</value></data>
+  <data name="SonyEq_Dance" xml:space="preserve"><value>舞曲</value></data>
+  <data name="SonyEq_Edm" xml:space="preserve"><value>电子舞曲</value></data>
+  <data name="SonyEq_RnbHipHop" xml:space="preserve"><value>R&amp;B / 嘻哈</value></data>
+  <data name="SonyEq_Acoustic" xml:space="preserve"><value>原声</value></data>
+  <data name="SonyEq_Bright" xml:space="preserve"><value>明亮</value></data>
+  <data name="SonyEq_Excited" xml:space="preserve"><value>激昂</value></data>
+  <data name="SonyEq_Mellow" xml:space="preserve"><value>柔和</value></data>
+  <data name="SonyEq_Relaxed" xml:space="preserve"><value>放松</value></data>
+  <data name="SonyEq_Vocal" xml:space="preserve"><value>人声</value></data>
+  <data name="SonyEq_TrebleBoost" xml:space="preserve"><value>高音增强</value></data>
+  <data name="SonyEq_BassBoost" xml:space="preserve"><value>低音增强</value></data>
+  <data name="SonyEq_Speech" xml:space="preserve"><value>语音</value></data>
+  <data name="SonyEq_Heavy" xml:space="preserve"><value>Heavy</value></data>
+  <data name="SonyEq_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="SonyEq_Hard" xml:space="preserve"><value>Hard</value></data>
+  <data name="SonyEq_Soft" xml:space="preserve"><value>Soft</value></data>
+  <data name="SonyEq_Custom" xml:space="preserve"><value>自定义</value></data>
+  <data name="AkgEq_Off" xml:space="preserve"><value>关闭</value></data>
+  <data name="AkgEq_Jazz" xml:space="preserve"><value>爵士</value></data>
+  <data name="AkgEq_Vocal" xml:space="preserve"><value>人声</value></data>
+  <data name="AkgEq_Bass" xml:space="preserve"><value>低音</value></data>
+  <data name="AkgEq_User" xml:space="preserve"><value>用户</value></data>
+  <data name="AkgEq_Rock" xml:space="preserve"><value>摇滚</value></data>
+  <data name="AkgEq_Piano" xml:space="preserve"><value>钢琴</value></data>
+  <data name="AkgEq_Club" xml:space="preserve"><value>俱乐部</value></data>
+  <data name="AkgEq_Studio" xml:space="preserve"><value>录音室</value></data>
+  <data name="Settings_AkgExperimental.Header" xml:space="preserve"><value>AKG Hybrid 实验性功能</value></data>
+  <data name="Settings_AkgExperimental.Description" xml:space="preserve"><value>启用 AKG N5 / N9 Hybrid 未经验证的降噪命令。默认关闭，风险自负。开启后请重新连接以读取新功能。</value></data>
+  <data name="SonyEq_Game" xml:space="preserve"><value>游戏</value></data>
+  <data name="SonyEq_Manual" xml:space="preserve"><value>手动</value></data>
+  <data name="SonyEq_CustomN" xml:space="preserve"><value>自定义 {0}</value></data>
+  <data name="SonyEq_UserSetting" xml:space="preserve"><value>用户设置 {0}</value></data>
+  <data name="PowerOff_Timer" xml:space="preserve"><value>定时关机</value></data>
+  <data name="PowerOff_Timer_Description" xml:space="preserve"><value>到达所选时间后自动关闭耳机</value></data>
+  <data name="Settings_BrandExperimental.Header" xml:space="preserve"><value>实验性功能</value></data>
+  <data name="Settings_BrandExperimental.Description" xml:space="preserve"><value>启用尚无真机记录的设置（如手势、佩戴检测或游戏模式）。默认关闭，风险自负。开启后请重新连接以读取新功能。</value></data>
+  <data name="Toggle_DoNotDisturb" xml:space="preserve"><value>勿扰模式</value></data>
+  <data name="Toggle_DoNotDisturb_Description" xml:space="preserve"><value>使用 2.4 GHz 无线连接时，不让已连接蓝牙设备的声音打扰</value></data>
+  <data name="UsbEq_Default" xml:space="preserve"><value>默认</value></data>
+  <data name="UsbEq_Game" xml:space="preserve"><value>游戏</value></data>
+  <data name="UsbEq_Music" xml:space="preserve"><value>音乐</value></data>
+  <data name="UsbEq_Movie" xml:space="preserve"><value>电影</value></data>
+  <data name="UsbEq_Custom" xml:space="preserve"><value>自定义</value></data>
+  <data name="AutoOff_Minutes" xml:space="preserve"><value>{0} 分钟后</value></data>
+  <data name="AutoOff_IdleDescription" xml:space="preserve"><value>耳机闲置达到所选时长后自动关机</value></data>
 </root>

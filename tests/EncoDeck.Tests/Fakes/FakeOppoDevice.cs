@@ -22,6 +22,9 @@ internal sealed class FakeOppoDevice
 
     public byte[] Battery { get; set; } = [0x01, 0x64, 0x02, 0x64];
 
+    /// <summary>0x8114 payload: [status][codec]; 01 01 is what the X4 answers over LE Audio.</summary>
+    public byte[] CodecResponse { get; set; } = [0x00, 0x02];
+
     /// <summary>Wear flags per component (left, right, case): 0x07 = in ear, 0x04 = in case lid open.</summary>
     public byte[] Wear { get; set; } = [0x07, 0x07, 0x04];
 
@@ -56,6 +59,8 @@ internal sealed class FakeOppoDevice
     public sbyte BassCurrent { get; set; }
 
     public byte HeadMotionType { get; set; }
+    public bool LeBrSwitchEnabled { get; set; }
+    public byte[]? LeBrSwitchResponse { get; set; }
 
     public uint CycleLeft { get; set; } = 0x0006;
 
@@ -149,7 +154,7 @@ internal sealed class FakeOppoDevice
             case OppoCommand.QueryMtu:
                 return [new OppoFrame(rsp, seq, [0x00, 0x00, 0x02])];
             case OppoCommand.QueryCodec:
-                return [new OppoFrame(rsp, seq, [0x00, 0x02])];
+                return [new OppoFrame(rsp, seq, CodecResponse)];
             case OppoCommand.QueryUpgradeCapability:
                 return [new OppoFrame(rsp, seq, [0x00, 0x00])];
             case OppoCommand.QueryEventCodes:
@@ -191,6 +196,11 @@ internal sealed class FakeOppoDevice
                 return [new OppoFrame(rsp, seq, [0x00, 0xFD, 0x03, unchecked((byte)BassCurrent)])];
             case OppoCommand.QueryHeadMotionType:
                 return [new OppoFrame(rsp, seq, [0x00, HeadMotionType])];
+            case OppoCommand.QueryLeBrSwitch:
+                return [new OppoFrame(rsp, seq, LeBrSwitchResponse ?? [0, (byte)(2 | (LeBrSwitchEnabled ? 1 : 0))])];
+            case OppoCommand.SetLeBrSwitch:
+                if (CanApply && p.Length == 1) LeBrSwitchEnabled = p[0] != 0;
+                return [Ack(request)];
             case OppoCommand.QueryTouchControls:
                 return [new OppoFrame(rsp, seq, [0x00, (byte)Keys.Count, .. Keys.SelectMany(k => new[] { k.Side, k.Button, k.Action, k.Function })])];
             case OppoCommand.QueryEqualizerList:

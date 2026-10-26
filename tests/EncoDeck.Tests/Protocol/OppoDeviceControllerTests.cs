@@ -255,6 +255,86 @@ public class OppoDeviceControllerTests
     }
 
     [Fact]
+    public async Task Codec_IsReadOnStartAndClearedWithoutClassicAudio()
+    {
+        await using var h = new Harness();
+        await h.Controller.InitializeAsync(Ct);
+        Assert.Equal(AudioCodec.Aac, h.Store.Current.Codec!.Value);
+
+        // Over LE Audio the earbuds answer 01 01: no Classic codec, so nothing stale stays shown.
+        h.Device.CodecResponse = [0x01, 0x01];
+        await h.Controller.RefreshAsync(Ct);
+        Assert.Null(h.Store.Current.Codec);
+    }
+
+    [Theory]
+    [InlineData("0001", AudioCodec.Sbc)]
+    [InlineData("0003", AudioCodec.Ldac)]
+    [InlineData("0006", AudioCodec.AptXAdaptive)]
+    [InlineData("0007", AudioCodec.Lhdc)]
+    [InlineData("0008", AudioCodec.Lhdc)]
+    public void Codec_MapsReportedValues(string hex, AudioCodec expected)
+    {
+        var frame = new OppoFrame(OppoCommand.ResponseOf(OppoCommand.QueryCodec), 0, Convert.FromHexString(hex));
+        Assert.True(OppoParsers.TryParseCodec(frame, out var codec));
+        Assert.Equal(expected, codec);
+    }
+
+    [Theory]
+    [InlineData("0101")]
+    [InlineData("0009")]
+    [InlineData("00")]
+    public void Codec_RejectsFailuresAndUnknownValues(string hex) =>
+        Assert.False(OppoParsers.TryParseCodec(new OppoFrame(OppoCommand.ResponseOf(OppoCommand.QueryCodec), 0, Convert.FromHexString(hex)), out _));
+
+    [Fact]
+    public async Task SetNoiseControl_StaleNotWorn_RereadsWearBeforeRefusing()
+    {
+        await using var h = new Harness();
+        await h.Controller.InitializeAsync(Ct);
+        // Missed wear events (a silent GATT earbud) left the earbuds "in the case".
+        h.Store.TryUpdate(X4.DeviceId, s => s with { Wear = Observed.From(new WearStatus(false, false, true, true, true), DateTimeOffset.UtcNow, StateSource.QueryResponse) });
+
+        var result = await h.Controller.SetNoiseControlAsync(new NoiseControlState(NoiseControlMode.Transparency), Ct);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(h.Store.Current.Wear!.Value.LeftInEar);
+        Assert.Single(h.Device.Received, f => f.Command == OppoCommand.SetNoiseControl);
+    }
+
+    [Fact]
+    public async Task SetNoiseControl_NotWorn_IsRefusedWithoutSending()
+    {
+        await using var h = new Harness();
+        h.Device.Wear = [0x04, 0x04, 0x04];
+        await h.Controller.InitializeAsync(Ct);
+
+        var result = await h.Controller.SetNoiseControlAsync(new NoiseControlState(NoiseControlMode.Transparency), Ct);
+
+        Assert.Equal(CommandStatus.Rejected, result.Status);
+        Assert.Equal(OppoDeviceController.WearRequiredDetail, result.Detail);
+        Assert.DoesNotContain(h.Device.Received, f => f.Command == OppoCommand.SetNoiseControl);
+    }
+
+    [Fact]
+    public async Task KeepAlive_RereadsBatteryWhileIdle()
+    {
+        var device = new FakeOppoDevice();
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = X4 });
+        await using var session = new OppoSession(device.Channel);
+        session.Start();
+        await using var controller = new OppoDeviceController(session, new OppoDeviceProfile(OppoModels.EncoX4), X4, store)
+        {
+            KeepAliveInterval = TimeSpan.FromMilliseconds(50),
+        };
+        await controller.InitializeAsync(Ct);
+
+        device.Battery = [0x01, 0x32, 0x02, 0x32];
+        await WaitUntil(() => store.Current.Battery.Left?.Value.Level == 50);
+    }
+
+    [Fact]
     public async Task MissingCaseEntry_KeepsLastReadingWithOriginalTimestamp()
     {
         var time = new ManualTimeProvider(DateTimeOffset.Parse("2026-10-20T10:00:00Z"));
@@ -293,6 +373,60 @@ public class OppoDeviceControllerTests
         Assert.Equal("dev-other", h.Store.Current.Device!.DeviceId);
         Assert.Null(h.Store.Current.NoiseControl);
         Assert.Null(h.Store.Current.Battery.Left);
+    }
+
+    [Fact]
+    public async Task LeAudioBond_RejectsEnablingMultipointWithoutSendingIt()
+    {
+        await using var h = new Harness();
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        h.Store.TryUpdate(X4.DeviceId, s => s with { IsLeAudioBonded = true });
+        int writes = h.Device.Received.Count(f => f.Command == OppoCommand.SetFeature);
+        var result = await h.Controller.SetToggleAsync(DeviceToggle.DualDeviceConnection, true, Ct);
+        Assert.Equal(CommandStatus.Rejected, result.Status);
+        Assert.Equal(writes, h.Device.Received.Count(f => f.Command == OppoCommand.SetFeature));
+    }
+
+    [Fact]
+    public async Task DisableMultipoint_ConfirmsActualDeviceEvenWhenCachedStateSaysOff()
+    {
+        await using var h = new Harness();
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        h.Device.Features[0x11] = 1;
+        h.Store.TryUpdate(X4.DeviceId, s => s with
+        {
+            IsLeAudioBonded = true,
+            Toggles = s.Toggles.SetItem(DeviceToggle.DualDeviceConnection, Observed.From(false, DateTimeOffset.UtcNow, StateSource.CommandConfirmation)),
+        });
+        var result = await h.Controller.SetToggleAsync(DeviceToggle.DualDeviceConnection, false, Ct);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, h.Device.Features[0x11]);
+        Assert.Equal(new byte[] { 0x11, 0x00 }, h.Device.Received.Last(f => f.Command == OppoCommand.SetFeature).Payload);
+        Assert.False(h.Store.Current.Toggles[DeviceToggle.DualDeviceConnection].Value);
+        Assert.Equal(StateSource.CommandConfirmation, h.Store.Current.Toggles[DeviceToggle.DualDeviceConnection].Source);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("00")]
+    [InlineData("0100")]
+    public async Task LeBrSwitch_InvalidReadBackCannotConfirmOff(string hex)
+    {
+        await using var h = new Harness();
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        h.Device.LeBrSwitchResponse = Convert.FromHexString(hex);
+        var result = await h.Controller.SetLeBrSwitchAsync(false, Ct);
+        Assert.Equal(CommandStatus.Rejected, result.Status);
+    }
+
+    [Fact]
+    public async Task LeBrSwitch_UpdatesStateOnlyFromValidReadBack()
+    {
+        await using var h = new Harness();
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        Assert.True((await h.Controller.SetLeBrSwitchAsync(true, Ct)).IsSuccess);
+        Assert.True(h.Store.Current.LeAudioSwitch!.Value.Enabled);
+        Assert.Equal(StateSource.CommandConfirmation, h.Store.Current.LeAudioSwitch.Source);
     }
 
     [Fact]

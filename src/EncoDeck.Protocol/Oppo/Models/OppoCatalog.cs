@@ -107,6 +107,7 @@ internal static partial class OppoCatalog
             Offer(DeviceCapability.BassEngine, "feature 29, 0x0124 / 0x041B.");
         }
         if (model.Flag("highToneQuality") is 1 or 2) Switch(DeviceToggle.HiRes, 0x18);
+        if (model.Flag("controlAutoVolumeSupport") == 1) Switch(DeviceToggle.AutoVolume, 0x1C);
 
         var spatialTypes = model.List("spatialTypes");
         if (spatialTypes.Count > 0)
@@ -133,6 +134,7 @@ internal static partial class OppoCatalog
         return new OppoModelDefinition
         {
             ModelId = "oppo-" + model.ProductId.ToLowerInvariant(),
+            SupportsLeAudioPairing = model.ProductIdValue is 0x067410 or 0x06EC10,
             DisplayName = model.Name,
             ImageKey = "generic",
             // "N" is the official configuration's neckband type.
@@ -199,7 +201,18 @@ internal static partial class OppoCatalog
                     break;
                 case 2:
                     // Children: plain transparency and, on X2/X3, "enhance voices" (modeType 6).
-                    Single(NoiseControlMode.Transparency, "Transparency", "NoiseMode_Transparency", node);
+                    if (model.ProductIdValue == 0x067410 && node.Children.Any(c => c.ModeType == 6))
+                    {
+                        parents[NoiseControlMode.Transparency] = new(node.ProtocolIndex, CapabilitySupport.Supported, "transparency-standard");
+                        foreach (var child in node.Children)
+                        {
+                            if (child.ModeType == 2)
+                                Level(NoiseControlMode.Transparency, "transparency-standard", "Standard", "NoiseLevel_TransparencyStandard", child.ProtocolIndex, node.ProtocolIndex);
+                            else if (child.ModeType == 6)
+                                Level(NoiseControlMode.Transparency, "enhanced-voices", "Enhance voices", "NoiseLevel_EnhancedVoices", child.ProtocolIndex);
+                        }
+                    }
+                    else Single(NoiseControlMode.Transparency, "Transparency", "NoiseMode_Transparency", node);
                     break;
                 case 6:
                     // "Voice" listening (flat trees): shown by the official client only when the earbuds offer it.

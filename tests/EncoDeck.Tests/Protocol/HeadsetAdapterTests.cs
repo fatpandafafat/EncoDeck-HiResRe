@@ -64,7 +64,8 @@ public sealed class HeadsetAdapterTests
         Assert.Null(store.Current.LastError);
         Assert.Equal(90, store.Current.Battery.Left?.Value.Level);
         Assert.Equal(earbuds ? 80 : (int?)null, store.Current.Battery.Right?.Value.Level);
-        Assert.Equal(NoiseControlMode.NoiseCancellation, store.Current.NoiseControl?.Value.Mode);
+        // AKG Hybrid noise control is experimental opt-in; the supervisor here does not opt in.
+        Assert.Null(store.Current.NoiseControl);
         Assert.Null(device.LastAncWrite);
     }
 
@@ -125,23 +126,35 @@ public sealed class HeadsetAdapterTests
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async Task AkgHybridReadsCorrectPhysicalSidesAndConfirmsAncWithoutChangingGains(bool agentRight, bool modern)
+    public async Task AkgHybridReadsCorrectPhysicalSidesAndOffersAncOnlyWhenExperimental(bool agentRight, bool modern)
     {
         var identity = Identity("AKG N5 Hybrid");
         var profile = new AkgHybridProfile(true);
         var store = new DeviceStateStore(); store.Reset(DeviceState.Empty with { Device = identity, Profile = profile });
         var device = new SimulatedChannel(false) { AgentRight = agentRight, ModernAnc = modern };
-        await using var controller = profile.CreateController(device, Context(identity, store));
+        bool experimental = false;
+        await using var controller = profile.CreateController(device, new(identity, store, () => experimental, NullLoggerFactory.Instance, TimeProvider.System));
         Assert.True(await controller.InitializeAsync(Ct));
         Assert.Equal(agentRight ? 80 : 90, store.Current.Battery.Left?.Value.Level);
         Assert.Equal(agentRight ? 90 : 80, store.Current.Battery.Right?.Value.Level);
         Assert.Equal(60, store.Current.Battery.Case?.Value.Level);
+        Assert.False(store.Current.Battery.Left?.Value.IsCharging);
+        // Without the experimental opt-in nothing is offered or written.
+        Assert.Null(store.Current.NoiseControl);
+        Assert.Equal(CommandStatus.Unsupported, (await controller.SetNoiseControlAsync(new(NoiseControlMode.Transparency), Ct)).Status);
+        Assert.Null(device.LastAncWrite);
+
+        experimental = true;
+        Assert.True((await controller.RefreshAsync(Ct)).IsSuccess);
+        Assert.Equal(NoiseControlMode.NoiseCancellation, store.Current.NoiseControl?.Value.Mode);
         Assert.True((await controller.SetNoiseControlAsync(new(NoiseControlMode.Transparency), Ct)).IsSuccess);
+        Assert.Equal(new byte[] { 0, 0x0A, 0x0A }, device.LastAncWrite);
         Assert.Equal(modern ? (byte)10 : (byte)6, device.Filter);
-        Assert.Equal(modern ? new byte[] { 0, 0, 0x30, 0, 0x40, 0, 2, 0, 0, 0 } : new byte[] { 0x30, 0, 0x40, 0 }, device.LastAncWrite![4..]);
+        Assert.True((await controller.SetNoiseControlAsync(new(NoiseControlMode.Off), Ct)).IsSuccess);
+        Assert.Equal(new byte[] { 0, 0x0B }, device.LastAncWrite);
         device.RejectSet = true;
-        Assert.Equal(CommandStatus.Rejected, (await controller.SetNoiseControlAsync(new(NoiseControlMode.Off), Ct)).Status);
-        Assert.Equal(NoiseControlMode.Transparency, store.Current.NoiseControl?.Value.Mode);
+        Assert.Equal(CommandStatus.Rejected, (await controller.SetNoiseControlAsync(new(NoiseControlMode.NoiseCancellation), Ct)).Status);
+        Assert.Equal(NoiseControlMode.Off, store.Current.NoiseControl?.Value.Mode);
         device.AgentRight = !agentRight;
         Assert.True((await controller.RefreshAsync(Ct)).IsSuccess);
         Assert.Equal(agentRight ? 90 : 80, store.Current.Battery.Left?.Value.Level);
@@ -231,18 +244,25 @@ public sealed class HeadsetAdapterTests
             else
             {
                 ushort command = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(4));
-                byte type = command is 0x0CD6 or 0x000B ? (byte)0x5D : (byte)0x5B;
+                byte type = command is 0x0CD6 or 0x000B or 0x0009 ? (byte)0x5D : (byte)0x5B;
                 byte[] payload = command switch
                 {
                     0x0CD4 => [0, AgentRight ? (byte)1 : (byte)0],
                     0x0CD6 => [0, bytes[6], bytes[6] == 0 ? (byte)90 : (byte)80],
                     0x000B => [0, 60],
+                    0x0009 => [0, bytes[6], 0],
                     0x0901 => ModernAnc ? [5, 0, 0, Filter == 0 ? (byte)0 : (byte)1, Filter, 0, 0, 0x30, 0, 0x40, 0, 2, 0, 0, 0]
                         : [5, 0, 0, Filter == 0 ? (byte)0 : (byte)1, Filter, 0x30, 0, 0x40, 0],
                     0x0900 => [5, 0, RejectSet ? (byte)1 : (byte)0],
+                    0x0E06 => [RejectSet ? (byte)1 : (byte)0],
                     _ => throw new InvalidOperationException($"Unexpected command {command:X4}"),
                 };
                 if (command == 0x0900) { LastAncWrite = bytes[6..]; if (!RejectSet) Filter = bytes[9]; }
+                if (command == 0x0E06)
+                {
+                    LastAncWrite = bytes[6..];
+                    if (!RejectSet) Filter = bytes[7] == 0x0B ? (byte)0 : bytes[8] == 1 ? (byte)1 : ModernAnc ? (byte)10 : (byte)6;
+                }
                 var response = RaceFrameCodec.Encode(command, payload, type);
                 // Split a real RACE header across reads to exercise the session deframer too.
                 _responses.Writer.TryWrite(response[..3]); _responses.Writer.TryWrite(response[3..]);

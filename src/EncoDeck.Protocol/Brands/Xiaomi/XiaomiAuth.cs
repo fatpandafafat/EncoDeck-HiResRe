@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// Encrypted block corrected after BudsLink (https://github.com/maniacx/BudsLink, GPL-3.0) and mebuds
+// (https://github.com/paradox-ng/mebuds, GPL-3.0-or-later); checked against real-device auth vectors
+// published by OpenXia (MIT) and BudsLink PR #110, see the tests and THIRD_PARTY_NOTICES.md.
 using System.Security.Cryptography;
 
 namespace EncoDeck.Protocol.Brands.Xiaomi;
 
 /// <summary>
-/// Challenge/response used by Xiaomi earbuds after the RFCOMM channel opens. The phone sends
-/// <c>0x01 || random(16)</c>; the earbuds answer <c>version || GetEncryptedAuthCheckData(random)</c>.
-/// This is the public algorithm from OppoPodsManager, unchanged (default link key, 17-round key
-/// schedule, 8-round substitution/mix network).
+/// Challenge/response used by Xiaomi earbuds after the RFCOMM channel opens. Each side sends
+/// <c>0x01 || random(16)</c>; the other answers <c>0x01 || GetEncryptedAuthCheckData(random)</c>:
+/// the fixed address block <c>11 22 33 33 22 11 …</c> encrypted under a key schedule seeded with
+/// the challenge (last byte XOR 6), 17 round keys, 8-round substitution/mix network.
 /// </summary>
 public static class XiaomiAuth
 {
@@ -20,7 +23,8 @@ public static class XiaomiAuth
 
     private const int Mask = 0x9999;
 
-    private static readonly byte[] DefaultLinkKey = [6, 119, 95, 135, 145, 141, 212, 35, 0, 93, 241, 216, 207, 12, 20, 43];
+    /// <summary>The fixed address <c>11 22 33 33 22 11</c> repeated to 16 bytes: the block that is encrypted.</summary>
+    private static readonly byte[] AddressBlock = [0x11, 0x22, 0x33, 0x33, 0x22, 0x11, 0x11, 0x22, 0x33, 0x33, 0x22, 0x11, 0x11, 0x22, 0x33, 0x33];
 
     private static readonly byte[] SBox =
     [
@@ -42,11 +46,7 @@ public static class XiaomiAuth
     {
         if (challenge.Length != AuthRandomLength) throw new ArgumentException("The challenge must be 16 bytes.", nameof(challenge));
 
-        // Initial state = key[0..6] ++ key[0..6] ++ key[0..4].
-        var state = new byte[16];
-        for (int i = 0; i < 6; i++) state[i] = DefaultLinkKey[i];
-        for (int i = 0; i < 6; i++) state[6 + i] = DefaultLinkKey[i];
-        for (int i = 0; i < 4; i++) state[12 + i] = DefaultLinkKey[i];
+        var state = (byte[])AddressBlock.Clone();
 
         var scheduleInput = challenge.ToArray();
         scheduleInput[15] ^= 6;

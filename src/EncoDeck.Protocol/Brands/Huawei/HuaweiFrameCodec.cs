@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// Length field corrected after OpenFreebuds (https://github.com/melianmiko/OpenFreebuds, MelianMiko and
+// contributors, GPL-3.0) PR #116: the field is two bytes, big-endian.
 namespace EncoDeck.Protocol.Brands.Huawei;
 
 /// <summary>Wire format spoken by a HUAWEI audio device. Both share the same command numbers.</summary>
 public enum HuaweiProtocol
 {
-    /// <summary>Classic FreeBuds framing: <c>5A 00 len_lo len_hi svc cmd TLV… crc_hi crc_lo</c>.</summary>
+    /// <summary>Classic FreeBuds framing: <c>5A len_hi len_lo 00 svc cmd TLV… crc_hi crc_lo</c>.</summary>
     Legacy,
 
     /// <summary>HarmonyOS "MBB" framing: <c>5A len_hi len_lo ctrl svc cmd TLV… crc_hi crc_lo</c>.</summary>
@@ -83,6 +85,26 @@ public static class HuaweiWire
         return fields.Count > 0;
     }
 
+    /// <summary>
+    /// Reads the TLV 0x7F result code. Writes are answered with <c>7F 04 00 01 86 A0</c> (100000) when
+    /// accepted; a shorter or longer value is kept as a nonzero error so it never passes as success.
+    /// </summary>
+    public static bool TryGetResultCode(Dictionary<byte, byte[]> fields, out uint code)
+    {
+        code = 0;
+        if (!fields.TryGetValue(HuaweiCommands.ErrorTlv, out var value)) return false;
+        code = value.Length == 4 ? (uint)(value[0] << 24 | value[1] << 16 | value[2] << 8 | value[3]) : uint.MaxValue;
+        return true;
+    }
+
+    /// <summary>A write acknowledgement (success result code): never a state report, whatever else it carries.</summary>
+    public static bool IsSuccessAck(Dictionary<byte, byte[]> fields) =>
+        TryGetResultCode(fields, out uint code) && code == HuaweiCommands.ResultSuccess;
+
+    /// <summary>A result code other than success: the device refused the command.</summary>
+    public static bool IsError(Dictionary<byte, byte[]> fields) =>
+        TryGetResultCode(fields, out uint code) && code != HuaweiCommands.ResultSuccess;
+
     public static IHuaweiFrameCodec CreateCodec(HuaweiProtocol protocol) =>
         protocol == HuaweiProtocol.Mbb ? new MbbFrameCodec() : new LegacyHuaweiFrameCodec();
 
@@ -103,13 +125,14 @@ public static class HuaweiWire
 }
 
 /// <summary>
-/// Classic FreeBuds framing. The length (little-endian, as the reference reads it) counts the command
-/// byte, the TLVs and the 2-byte CRC; the CRC covers everything from 0x5A to the last TLV byte.
-/// There is no byte escaping in either HUAWEI framing.
+/// Classic FreeBuds framing. The length is two bytes, big-endian, and counts the zero byte, the
+/// command and the TLVs (= TLV length + 3); the CRC covers everything from 0x5A to the last TLV byte.
+/// Short frames read the same either way, but replies over 255 bytes (FreeBuds Pro 5 device info is
+/// 282 bytes) need the high byte. There is no byte escaping in either HUAWEI framing.
 /// </summary>
 public sealed class LegacyHuaweiFrameCodec : IHuaweiFrameCodec
 {
-    private const int HeaderSize = 6; // 5A 00 len len svc cmd
+    private const int HeaderSize = 6; // 5A len len 00 svc cmd
     private readonly List<byte> _buffer = [];
 
     public HuaweiProtocol Protocol => HuaweiProtocol.Legacy;
@@ -120,9 +143,9 @@ public sealed class LegacyHuaweiFrameCodec : IHuaweiFrameCodec
         int length = payload.Length + 3;
         var frame = new byte[HeaderSize + payload.Length + 2];
         frame[0] = 0x5A;
-        frame[1] = 0x00;
+        frame[1] = (byte)(length >> 8);
         frame[2] = (byte)length;
-        frame[3] = (byte)(length >> 8);
+        frame[3] = 0x00;
         frame[4] = (byte)(command >> 8);
         frame[5] = (byte)command;
         payload.CopyTo(frame.AsSpan(HeaderSize));
@@ -142,15 +165,9 @@ public sealed class LegacyHuaweiFrameCodec : IHuaweiFrameCodec
                 break;
             }
             if (start > 0) _buffer.RemoveRange(0, start);
-            if (_buffer.Count < 2) break;
-            if (_buffer[1] != 0x00)
-            {
-                _buffer.RemoveAt(0);
-                continue;
-            }
-            if (_buffer.Count < HeaderSize) break;
-            int length = _buffer[2] | (_buffer[3] << 8);
-            if (length < 3 || length > HuaweiWire.MaxPayload + 3)
+            if (_buffer.Count < 4) break;
+            int length = (_buffer[1] << 8) | _buffer[2];
+            if (_buffer[3] != 0x00 || length < 3 || length > HuaweiWire.MaxPayload + 3)
             {
                 _buffer.RemoveAt(0);
                 continue;

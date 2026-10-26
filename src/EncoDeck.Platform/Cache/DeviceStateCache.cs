@@ -23,7 +23,13 @@ internal sealed record CachedDevice(CachedReading? Left, CachedReading? Right, C
 
     /// <summary>Last firmware version (lower of the two earbuds); some EQ presets depend on it.</summary>
     public int? Firmware { get; init; }
+
+    /// <summary>Last multi-connection list the earbuds reported (without addresses), shown until they answer again.</summary>
+    public IReadOnlyList<CachedSource>? Sources { get; init; }
 }
+
+/// <summary>One multi-connection source device; its Bluetooth address is deliberately not kept.</summary>
+internal sealed record CachedSource(string Name, int State, bool IsThisDevice, bool IsAudioActive, int DeviceType, DateTimeOffset Timestamp);
 
 [JsonSourceGenerationOptions(WriteIndented = true, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(Dictionary<string, CachedDevice>))]
@@ -97,6 +103,7 @@ public sealed class DeviceStateCache : IDisposable
                 ColorId = current.ColorId ?? existing?.ColorId,
                 Capabilities = current.ControlCapabilities is { Length: > 0 } caps ? Convert.ToHexString(caps) : existing?.Capabilities,
                 Firmware = current.BudFirmware ?? existing?.Firmware,
+                Sources = PickSources(current.SourceDevices, existing?.Sources),
             };
             if (next != existing)
             {
@@ -126,13 +133,15 @@ public sealed class DeviceStateCache : IDisposable
                 ColorId = state.ColorId ?? cached.ColorId,
                 ControlCapabilities = state.ControlCapabilities ?? Capabilities(cached.Capabilities),
                 BudFirmware = state.BudFirmware ?? cached.Firmware,
+                SourceDevices = state.SourceDevices ?? ToObserved(cached.Sources),
             };
         });
     }
 
     /// <summary>A freshly reset state: nothing read from the earbuds yet.</summary>
     private static bool IsBlank(DeviceState state) =>
-        state.Battery.Left is null && state.Battery.Right is null && state.Battery.Case is null && state.ProductId is null;
+        state.Battery.Left is null && state.Battery.Right is null && state.Battery.Case is null && state.ProductId is null
+        && state.SourceDevices is null;
 
     private static byte[]? Capabilities(string? hex)
     {
@@ -149,6 +158,28 @@ public sealed class DeviceStateCache : IDisposable
 
     private static Observed<BatteryReading> ToObserved(CachedReading r) =>
         Observed.From(new BatteryReading(r.Level, r.Charging), r.Timestamp, StateSource.Cache);
+
+    /// <summary>
+    /// Restored without addresses and marked <see cref="StateSource.Cache"/>: the UI shows them as last
+    /// known and offers no actions until the earbuds report the live list.
+    /// </summary>
+    private static Observed<IReadOnlyList<SourceDevice>>? ToObserved(IReadOnlyList<CachedSource>? sources) =>
+        sources is { Count: > 0 }
+            ? Observed.From<IReadOnlyList<SourceDevice>>(
+                sources.Select(d => new SourceDevice([], d.Name, d.State, d.IsThisDevice, d.IsAudioActive, d.DeviceType)).ToArray(),
+                sources[0].Timestamp, StateSource.Cache)
+            : null;
+
+    private static IReadOnlyList<CachedSource>? PickSources(Observed<IReadOnlyList<SourceDevice>>? live, IReadOnlyList<CachedSource>? existing)
+    {
+        if (live is null || !live.IsConfirmed) return existing;
+        // Connecting / disconnecting (1, 4) is momentary: remember the device as not connected.
+        var next = live.Value.Select(d => new CachedSource(d.Name, d.State == 2 ? 2 : 0, d.IsThisDevice, d.IsAudioActive && d.State == 2, d.DeviceType, live.Timestamp)).ToArray();
+        // Same devices as before: keep the old list (and its timestamp) so nothing is saved.
+        return existing is not null && next.Select(Comparable).SequenceEqual(existing.Select(Comparable)) ? existing : next;
+
+        static CachedSource Comparable(CachedSource d) => d with { Timestamp = default };
+    }
 
     private static CachedReading? Pick(Observed<BatteryReading>? live, CachedReading? existing)
     {

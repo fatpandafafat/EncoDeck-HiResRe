@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Model data and ANC mappings ported from MiuixMoondrop MoondropModels.kt (GPL-3.0-or-later).
+// EDGE 2 / ROBIN / NEKOCAKE / U.C.T.S entries and the PEQ gate follow bqj6666/FxxkMoondrop (GPL-3.0),
+// FEAKEuser/moondrop-control (GPL-3.0-or-later) and Konakonai/Edge2Pods (MIT, Copyright (c) 2026 Konakonai;
+// the MIT notice is reproduced in THIRD_PARTY_NOTICES.md).
 using System.Text;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
@@ -31,30 +34,34 @@ public static class MoondropProfiles
     private static readonly byte[] Ga2Get = [0, 1, 2, 3];
     private static readonly byte[] AcIdentity = [1, 2, 3, 4];
     private static readonly byte[] PuddingMap = [0, 4, 2, 3, 1];
+    private static readonly byte[] AncV2Identity = [0, 1, 2, 3, 4];
 
     public static IReadOnlyList<IDeviceProfile> CreateBuiltIn() =>
     [
         // Only these four model entries are marked verified by the reference catalog.
         new MoondropProfile(new("edge", "MOONDROP EDGE", ["MOONDROP EDGE", "EDGE", "羽翼 EDGE"],
-            SppThenBle, true, 8, AcThreeSet, AcThreeGet, SingleDeviceBattery: true, Lhdc: true, PromptVolume: true, DualConnection: true, Form: DeviceForm.Headphones)),
+            SppThenBle, true, 8, AcThreeSet, AcThreeGet, SingleDeviceBattery: true, Lhdc: true, PromptVolume: true, DualConnection: true, Form: DeviceForm.Headphones,
+            RfcommChannel: 1, PeqVerified: true)),
         new MoondropProfile(new("pudding", "MOONDROP PUDDING", ["PUDDING", "MD-TWS-056", "布丁"],
             Spp, true, 32, PuddingMap, PuddingMap, Lhdc: true, PromptVolume: true, DualConnection: true)),
         new MoondropProfile(new("golden_ages_2", "MOONDROP GOLDEN AGES 2", ["GOLDEN AGES 2", "GOLDENAGES2", "GOLDEN AGES2", "梦回2", "GA2"],
             Ble, true, 8, Ga2Set, Ga2Get, Lhdc: true)),
         new MoondropProfile(new("space_travel_2", "MOONDROP SPACE TRAVEL 2", ["SPACE TRAVEL 2", "SPACETRAVEL2", "太空漫游2", "ST2"],
-            BleThenSpp, true, 8, Ga2Set, Ga2Get)),
+            BleThenSpp, true, 8, Ga2Set, Ga2Get, PeqVerified: true)),
         new MoondropProfile(new("golden_ages", "MOONDROP GOLDEN AGES", ["GOLDEN AGES", "GOLDENAGES", "梦回", "梦回1979"],
             Ble, false, 8, Ga2Set, Ga2Get, Lhdc: true)),
         new MoondropProfile(new("moca", "MOONDROP MOCA", ["MOCA", "猫咖"],
             BleThenSpp, false, 8, AcIdentity, null)),
+        // Real NEKOCAKE 1.0.0 answers a GAIA subset (features 0/1/3/5/6) on RFCOMM channel 1; no battery or ANC replies.
         new MoondropProfile(new("nekocake", "MOONDROP NEKOCAKE", ["NEKOCAKE", "NEKO CAKE", "猫饼"],
-            Ble, false, 8, AcIdentity, null)),
+            SppThenBle, false, null, AcIdentity, null, RfcommChannel: 1)),
         new MoondropProfile(new("pill", "MOONDROP MUSIC PILL", ["MUSIC PILL", "PILL", "音乐胶囊"],
             Ble, false, 8, AcIdentity, null)),
         new MoondropProfile(new("ultrasonic", "MOONDROP ULTRASONIC", ["ULTRASONIC", "超声波"],
             Ble, false, 8, AcIdentity, null)),
-        new MoondropProfile(new("robin", "MOONDROP ROBIN", ["ROBIN", "知更鸟"],
-            Ble, false, 8, AcIdentity, null)),
+        // A user log reports only states 1 / 2 (ANC / transparency); the published ROBIN map writes 1 / 2 / 4 like EDGE.
+        new MoondropProfile(new("robin", "MOONDROP ROBIN", ["ROBIN", "知更鸟", "ROBIN'S EARPHONES"],
+            Ble, false, 8, AcThreeSet, AcThreeGet)),
         new MoondropProfile(new("alice", "MOONDROP ALICE", ["ALICE", "爱丽丝"],
             Ble, false, 8, AcIdentity, null, Lhdc: true)),
         new MoondropProfile(new("sparks", "MOONDROP SPARKS", ["SPARKS", "火花"],
@@ -65,8 +72,12 @@ public static class MoondropProfiles
             Ble, false, 8, AcIdentity, null)),
         new MoondropProfile(new("space_travel", "MOONDROP SPACE TRAVEL", ["SPACE TRAVEL", "SPACETRAVEL", "太空漫游"],
             Ble, false, 8, AcIdentity, null)),
+        // EDGE 2 1.2.5: classic RFCOMM channel 1 only, ANC V2 (feature 32) 0 off / 1 ANC / 2 transparency / 3 anti-wind / 4 adaptive.
         new MoondropProfile(new("edge2", "MOONDROP EDGE2", ["MOONDROP EDGE2", "EDGE2", "EDGE 2", "羽翼 EDGE2"],
-            Ble, false, 8, AcThreeSet, AcThreeGet, Lhdc: true, DualConnection: true, Form: DeviceForm.Headphones)),
+            Spp, false, 32, AncV2Identity, AncV2Identity, Lhdc: true, PromptVolume: true, DualConnection: true, Form: DeviceForm.Headphones, RfcommChannel: 1)),
+        // U.C.T.S (open-ear, MD-OWS-014): a user confirmed GAIA recognition and per-ear battery; the hardware has no ANC.
+        new MoondropProfile(new("ucts", "MOONDROP U.C.T.S", ["U.C.T.S", "UCTS", "MD-OWS-014"],
+            BleThenSpp, false, null, AcIdentity, null)),
         new MoondropProfile(new("space_travel_2_ultra", "MOONDROP SPACE TRAVEL 2 ULTRA", ["SPACE TRAVEL 2 ULTRA", "SPACETRAVEL2ULTRA", "太空漫游2 ULTRA", "ST2 ULTRA"],
             Ble, false, 8, Ga2Set, Ga2Get)),
         // 9ECA is a separate, unimplemented protocol, never an alternative GAIA service.
@@ -97,22 +108,40 @@ internal sealed record MoondropModel(
     bool Lhdc = false,
     bool PromptVolume = false,
     bool DualConnection = false,
-    DeviceForm Form = DeviceForm.Earbuds);
+    DeviceForm Form = DeviceForm.Earbuds,
+    uint? RfcommChannel = null,
+    bool PeqVerified = false);
 
 /// <summary>Model hints are not proof: inferred ANC mappings remain experimental after feature discovery.</summary>
-public sealed class MoondropProfile : IControllableProfile
+/// <summary>What a valid feature-5 read reported: factory preset ids and whether the user curve (0x3F) exists.</summary>
+internal sealed record MoondropEqualizerInfo(IReadOnlyList<byte> FactoryPresets, bool UserCurve, BandEqualizerSpec? Curve)
+{
+    public bool Equals(MoondropEqualizerInfo? other) => other is not null && FactoryPresets.SequenceEqual(other.FactoryPresets)
+        && UserCurve == other.UserCurve && Curve == other.Curve;
+    public override int GetHashCode() => HashCode.Combine(FactoryPresets.Count, UserCurve, Curve);
+}
+
+public sealed class MoondropProfile : IControllableProfile, IBandEqualizerProfile
 {
     private readonly MoondropModel _model;
     private readonly IReadOnlySet<int>? _features;
+    private readonly MoondropEqualizerInfo? _equalizer;
     private readonly byte[] _setMap;
     private readonly byte[]? _getMap;
     private readonly CapabilitySupport _noiseSupport;
     private readonly byte[]? _gainMap;
 
-    internal MoondropProfile(MoondropModel model, IReadOnlySet<int>? features = null)
+    private readonly IReadOnlySet<DeviceToggle> _codecs;
+
+    internal MoondropProfile(MoondropModel model, IReadOnlySet<int>? features = null, IReadOnlySet<DeviceToggle>? codecs = null, MoondropEqualizerInfo? equalizer = null)
     {
+        _codecs = codecs ?? new HashSet<DeviceToggle>();
         _model = model;
         _features = features is null ? null : new HashSet<int>(features);
+        // The EQ is only offered after the device returned a complete preset list or user curve.
+        _equalizer = _features?.Contains(5) == true ? equalizer : null;
+        var eqSupport = _equalizer is null ? (_features is not null && !_features.Contains(5) ? CapabilitySupport.Unsupported : CapabilitySupport.Unknown)
+            : model.PeqVerified ? CapabilitySupport.Supported : CapabilitySupport.Experimental;
         // Only catalogued mappings are meaningful; discovery cannot identify an unknown model's gain order.
         _gainMap = model.Id switch
         {
@@ -141,19 +170,35 @@ public sealed class MoondropProfile : IControllableProfile
             .Set(DeviceCapability.Gain, _gainMap is null ? CapabilitySupport.Unsupported : DiscoveredSupport(15, model.Verified), Evidence("Catalogued UI low/mid/high to DAC_GAIN device mapping"))
             .Set(DeviceCapability.IndicatorLight, DiscoveredSupport(19, model.Id == "pudding"), Evidence("GAIA LED GET/SET 1/2"))
             .Set(DeviceCapability.PromptTone, DiscoveredSupport(14, model.Id == "pudding"), Evidence("Complete three-byte VoiceConf read-modify-write"))
-            .Set(DeviceCapability.Equalizer, CapabilitySupport.Unsupported, "Not implemented.")
-            .Set(DeviceCapability.SpatialAudio, CapabilitySupport.Unsupported, "Upstream command chain is not hardware-verified; not ported.")
-            .Set(DeviceCapability.HeadTracking, CapabilitySupport.Unsupported, "Upstream command chain is not hardware-verified; not ported.")
+            .Set(DeviceCapability.Equalizer, _equalizer is null ? eqSupport : _equalizer.FactoryPresets.Count > 0 ? eqSupport : CapabilitySupport.Unsupported,
+                Evidence("GAIA Music Processing (feature 5) factory presets, confirmed by readback of the active preset"))
+            .Set(DeviceCapability.CustomEqualizer, _equalizer is null ? eqSupport : _equalizer is { UserCurve: true, Curve: not null } ? eqSupport : CapabilitySupport.Unsupported,
+                Evidence("Feature 5 user PEQ curve (frequency / Q / filter / gain per band); gains written and confirmed by byte-exact readback"))
+            .Set(DeviceCapability.SpatialAudio, DiscoveredSupport(18, false), Evidence("GAIA SPATIAL_AUDIO GET/SET 1/2; protocol implementation, not hardware-verified"))
+            .Set(DeviceCapability.HeadTracking, DiscoveredSupport(18, false), Evidence("GAIA SPATIAL_AUDIO head-tracking GET/SET 3/4; protocol implementation, not hardware-verified"))
+            .Set(DeviceCapability.InEarDetection, DiscoveredSupport(17, false), Evidence("GAIA LIGHT_SENSOR GET/SET 1/2; protocol implementation, not hardware-verified"))
+            .Set(DeviceCapability.BassEngine, DiscoveredSupport(27, false), Evidence("GAIA DYBASS GET/SET 1/2; protocol implementation, not hardware-verified"))
+            .Set(DeviceCapability.ChannelSwap, DiscoveredSupport(30, false), Evidence("GAIA LR_CHANNEL GET/SET 1/2; protocol implementation, not hardware-verified"))
+            .Set(DeviceCapability.HiResCodec, CodecSupport(DeviceToggle.HiRes), Evidence("GAIA CODEC_TYPE LHDC GET/SET 5/6; enabled only after a valid LHDC response"))
+            .Set(DeviceCapability.Ldac, CodecSupport(DeviceToggle.Ldac), Evidence("GAIA CODEC_TYPE LDAC GET/SET 2/4; enabled only after a valid LDAC response"))
+            .Set(DeviceCapability.Lc3, CodecSupport(DeviceToggle.Lc3), Evidence("GAIA CODEC_TYPE LC3 GET/SET 1/3; enabled only after a valid LC3 response"))
             .Set(DeviceCapability.TouchCustomization, DiscoveredSupport(22, model.Id == "pudding"), Evidence("Five-byte TOUCHV2 both-ear configuration; action IDs 4/5 are inferred"))
             .Build();
         Toggles = features is null ? [] :
         [
-            .. features.Contains(16) ? new[] { DeviceToggle.HiRes } : [],
+            .. features.Contains(16) ? _codecs.ToArray() : [],
             .. features.Contains(20) ? new[] { DeviceToggle.DualDeviceConnection } : [],
             .. features.Contains(19) ? new[] { DeviceToggle.IndicatorLight } : [],
             .. features.Contains(14) ? new[] { DeviceToggle.PromptTone } : [],
+            .. features.Contains(17) ? new[] { DeviceToggle.InEarDetection } : [],
+            .. features.Contains(18) ? new[] { DeviceToggle.SpatialAudio, DeviceToggle.HeadTracking } : [],
+            .. features.Contains(27) ? new[] { DeviceToggle.BassEngine } : [],
+            .. features.Contains(30) ? new[] { DeviceToggle.ChannelSwap } : [],
         ];
-        ProfileKey = ModelId + (features is null ? string.Empty : "/" + string.Join(',', features.Order()));
+        ProfileKey = ModelId + (features is null ? string.Empty : "/" + string.Join(',', features.Order()))
+            + (_equalizer is null ? string.Empty : $"/eq:{string.Join(',', _equalizer.FactoryPresets)}:{_equalizer.UserCurve}:{_equalizer.Curve}");
+        EqualizerPresets = _equalizer is null || eqSupport is CapabilitySupport.Unknown or CapabilitySupport.Unsupported ? [] :
+            [.. _equalizer.FactoryPresets.Select(id => new EqualizerPreset(FactoryPresetId(id), $"Preset {id + 1}", $"Eq_DevicePreset:{id + 1}", eqSupport))];
     }
 
     public string Brand => "moondrop";
@@ -169,11 +214,27 @@ public sealed class MoondropProfile : IControllableProfile
     public string ProfileKey { get; }
     public IDeviceCapabilities Capabilities { get; }
     public IReadOnlyList<NoiseControlOption> NoiseControlOptions { get; }
-    public IReadOnlyList<EqualizerPreset> EqualizerPresets => [];
+    public IReadOnlyList<EqualizerPreset> EqualizerPresets { get; }
+    public BandEqualizerSpec? BandEqualizer => _equalizer?.UserCurve == true ? _equalizer.Curve : null;
+    internal static string FactoryPresetId(byte id) => "moondrop-eq-" + id;
     public IReadOnlyList<Guid> ControlServiceUuids => _model.Services;
-    /// <summary>Known EDGE channel, confirmed by Windows firmware query; never a channel scan.</summary>
-    public uint? RfcommChannel => _model.Id == "edge" ? 1u : null;
+    /// <summary>Known RFCOMM channel (EDGE: confirmed by Windows firmware query; EDGE 2 / NEKOCAKE: community hardware logs); never a channel scan.</summary>
+    public uint? RfcommChannel => _model.RfcommChannel;
     public IReadOnlyCollection<DeviceToggle> Toggles { get; }
+    public static DeviceCapability ToggleCapability(DeviceToggle toggle) => toggle switch
+    {
+        DeviceToggle.InEarDetection => DeviceCapability.InEarDetection,
+        DeviceToggle.BassEngine => DeviceCapability.BassEngine,
+        DeviceToggle.ChannelSwap => DeviceCapability.ChannelSwap,
+        DeviceToggle.SpatialAudio => DeviceCapability.SpatialAudio,
+        DeviceToggle.HeadTracking => DeviceCapability.HeadTracking,
+        DeviceToggle.IndicatorLight => DeviceCapability.IndicatorLight,
+        DeviceToggle.PromptTone => DeviceCapability.PromptTone,
+        DeviceToggle.Ldac => DeviceCapability.Ldac,
+        DeviceToggle.Lc3 => DeviceCapability.Lc3,
+        DeviceToggle.HiRes => DeviceCapability.HiResCodec,
+        _ => DeviceCapability.DualDeviceConnection,
+    };
     public byte? EncodeGain(int level) => _gainMap is not null && (uint)level < (uint)_gainMap.Length ? _gainMap[level] : null;
     public int? DecodeGain(byte value) => _gainMap is not null && Array.IndexOf(_gainMap, value) is var level && level >= 0 ? level : null;
     public bool HasFeature(int feature) => _features?.Contains(feature) == true;
@@ -195,8 +256,20 @@ public sealed class MoondropProfile : IControllableProfile
         : !_features.Contains(feature) ? CapabilitySupport.Unsupported
         : confirmed ? CapabilitySupport.Supported : CapabilitySupport.Experimental;
 
+    private CapabilitySupport CodecSupport(DeviceToggle codec) => codec == DeviceToggle.HiRes ? LhdcSupport : DiscoveredSupport(16, false);
+
     public MoondropProfile WithFeatures(IReadOnlySet<int> features) =>
-        _features is not null && _features.SetEquals(features) ? this : new(_model, features);
+        _features is not null && _features.SetEquals(features) ? this : new(_model, features, _codecs, _equalizer);
+
+    public MoondropProfile WithCodec(DeviceToggle codec)
+    {
+        if (codec is not (DeviceToggle.HiRes or DeviceToggle.Ldac or DeviceToggle.Lc3) || _codecs.Contains(codec)) return this;
+        var codecs = new HashSet<DeviceToggle>(_codecs) { codec };
+        return new(_model, _features, codecs, _equalizer);
+    }
+
+    internal MoondropProfile WithEqualizer(MoondropEqualizerInfo? equalizer) =>
+        _features is null || Equals(_equalizer, equalizer) ? this : new(_model, _features, _codecs, equalizer);
 
     public NoiseControlState? DecodeNoise(byte value)
     {

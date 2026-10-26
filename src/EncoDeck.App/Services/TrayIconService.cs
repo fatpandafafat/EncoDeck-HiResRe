@@ -99,7 +99,7 @@ public sealed partial class TrayIconService : IDisposable
         if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is
             nameof(DeviceViewModel.TrayToolTip) or nameof(DeviceViewModel.HasDevice) or
             nameof(DeviceViewModel.DeviceName) or nameof(DeviceViewModel.ConnectionText) or
-            nameof(DeviceViewModel.IsNoiseAvailable) or nameof(DeviceViewModel.IsNoisePending) or
+            nameof(DeviceViewModel.CanSetNoise) or nameof(DeviceViewModel.IsNoisePending) or
             nameof(DeviceViewModel.HasAncMode) or nameof(DeviceViewModel.HasAdaptiveMode) or
             nameof(DeviceViewModel.HasTransparencyMode) or nameof(DeviceViewModel.HasOffMode) or
             nameof(DeviceViewModel.IsAncSelected) or nameof(DeviceViewModel.IsAdaptiveSelected) or
@@ -116,7 +116,7 @@ public sealed partial class TrayIconService : IDisposable
         }
         if (_statusItem is not null) _statusItem.Text = _device.HasDevice ? $"{_device.DeviceName} · {_device.ConnectionText}" : Loc.Get("Device_None");
 
-        bool available = _device.IsNoiseAvailable && !_device.IsNoisePending;
+        bool available = _device.CanSetNoise && !_device.IsNoisePending;
         Set(_ancItem, _device.HasAncMode, _device.IsAncSelected, available);
         Set(_adaptiveItem, _device.HasAdaptiveMode, _device.IsAdaptiveSelected, available);
         Set(_transparencyItem, _device.HasTransparencyMode, _device.IsTransparencySelected, available);

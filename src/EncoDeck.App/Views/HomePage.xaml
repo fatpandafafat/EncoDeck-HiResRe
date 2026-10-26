@@ -127,6 +127,9 @@
                                 x:Uid="Codec_LeAudio" ToolTipService.ToolTip="LE Audio (LC3)">
                             <TextBlock Text="LC3" Style="{StaticResource CodecBadgeTextStyle}" />
                         </Border>
+                        <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.HasClassicCodec, Mode=OneWay}" x:Uid="Codec_Classic">
+                            <TextBlock Text="{x:Bind ViewModel.ClassicCodec, Mode=OneWay}" Style="{StaticResource CodecBadgeTextStyle}" />
+                        </Border>
                         <!-- Inline with no vertical padding, so showing/hiding it never changes the row height. -->
                         <HyperlinkButton x:Uid="DeviceConnect" Click="OnOpenBluetoothSettings" Padding="2,0" MinHeight="0" VerticalAlignment="Center"
                                          Visibility="{x:Bind ViewModel.IsLinkDown, Mode=OneWay}" />

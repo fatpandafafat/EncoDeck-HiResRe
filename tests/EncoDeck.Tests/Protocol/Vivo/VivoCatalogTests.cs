@@ -57,7 +57,7 @@ public class VivoCatalogTests
         Assert.Equal(["vivo-eq-0", "vivo-eq-1", "vivo-eq-2", "vivo-eq-3", "vivo-eq-5"], tws4.EqualizerPresets.Select(p => p.Id));
         Assert.Equal(CapabilitySupport.Supported, tws4.Capabilities.Get(DeviceCapability.GamingMode).Support);
         Assert.Equal(CapabilitySupport.Unsupported, tws4.Capabilities.Get(DeviceCapability.SpatialAudio).Support);
-        Assert.Equal([VivoConstants.ServiceUuid], tws4.ControlServiceUuids);
+        Assert.Equal([VivoConstants.ServiceUuid, VivoConstants.GattServiceUuid], tws4.ControlServiceUuids);
 
         var tws1 = new VivoDeviceProfile(VivoCatalog.All.Single(m => m.ModelId == "vivo-tws-1"));
         Assert.Empty(tws1.NoiseControlOptions);

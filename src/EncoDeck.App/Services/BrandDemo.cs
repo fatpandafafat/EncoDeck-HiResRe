@@ -161,7 +161,7 @@ internal sealed class BrandDemo
             PromptVolume = Has(DeviceCapability.PromptVolume)
                 ? O(model is not null ? (model.PromptVolumeRange.Min + model.PromptVolumeRange.Max) / 2 : profile is MoondropProfile ? 40 : 5) : null,
             Gain = Has(DeviceCapability.Gain) ? O(1) : null,
-            BassEngine = Has(DeviceCapability.BassEngine) ? O(new BassEngineState(-5, 5, 0)) : null,
+            BassEngine = Has(DeviceCapability.BassEngine) ? O(profile is MoondropProfile ? new BassEngineState(0, 0, 0) : new BassEngineState(-5, 5, 0)) : null,
             KeyFunctions = Has(DeviceCapability.TouchCustomization) ? O(DemoKeys(profile, model)) : null,
             NoiseCycle = cycle != 0 ? O(new NoiseCycleState(cycle, cycle)) : null,
             HeadMotionType = toggles.Contains(DeviceToggle.HeadGestures) ? O(0) : null,
@@ -183,6 +183,10 @@ internal sealed class BrandDemo
             return (from side in new[] { EarSide.Left, EarSide.Right }
                     from action in SennheiserGestures.Actions
                     select new KeyFunction(side, 0, action, action == GestureAction.SqueezeAndHold ? (side == EarSide.Left ? 5 : 4) : 1)).ToArray();
+        // Xiaomi: the gesture answer of a REDMI Buds 6 Pro (community capture).
+        if (profile is EncoDeck.Protocol.Brands.Xiaomi.XiaomiDeviceProfile
+            && EncoDeck.Protocol.Brands.Xiaomi.XiaomiGestures.TryParse(Convert.FromHexString("040808010101020303030606050B0B"), out var xiaomi))
+            return EncoDeck.Protocol.Brands.Xiaomi.XiaomiGestures.ToKeyFunctions(xiaomi);
         if (profile is MoondropProfile)
             return [.. from side in new[] { EarSide.Left, EarSide.Right }
                        from pair in new[] { (GestureAction.SingleSqueeze, 1), (GestureAction.DoubleSqueeze, 2), (GestureAction.TripleSqueeze, 3),
@@ -383,9 +387,12 @@ internal sealed class BrandDemo
         private static Task<CommandResult> Ok => Task.FromResult(CommandResult.Ok);
         public Task<CommandResult> SetNoiseControlAsync(NoiseControlState target, CancellationToken cancellationToken = default) => Apply(s => s with { NoiseControl = O(target) });
         public Task<CommandResult> SetEqualizerPresetAsync(string presetId, CancellationToken cancellationToken = default) => Apply(s => s with { Equalizer = O(new EqualizerState(presetId, 0)) });
+        public Task<CommandResult> SetEqualizerBandsAsync(IReadOnlyList<int> bands, CancellationToken cancellationToken = default) =>
+            Apply(s => s.Equalizer?.Value is { } eq ? s with { Equalizer = O(eq with { Bands = bands }) } : s);
         public Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken = default) => Apply(s => s with { Toggles = s.Toggles.SetItem(toggle, O(enabled)) });
         public Task<CommandResult> RefreshAsync(CancellationToken cancellationToken = default) => Ok;
         public Task<CommandResult> ReconnectAsync(CancellationToken cancellationToken = default) => Ok;
+        public Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default) => Ok;
 
         public Task<CommandResult> SetSpatialAudioAsync(SpatialAudioMode mode, CancellationToken cancellationToken = default) => Apply(s => s with { Spatial = O(mode) });
         public Task<CommandResult> SetGameSoundAsync(int type, CancellationToken cancellationToken = default) =>

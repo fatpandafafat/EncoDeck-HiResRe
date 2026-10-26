@@ -89,7 +89,7 @@ public sealed class HotkeyService : IDisposable
     {
         var action = (HotkeyAction)(id - 1);
         if (!Enum.IsDefined(action) || _running) return;
-        if (!_device.IsNoiseAvailable || _device.IsNoisePending) return;
+        if (!_device.CanSetNoise || _device.IsNoisePending) return;
         string? mode = TargetOf(action);
         if (mode is null) return;
         _logger.LogInformation("Hotkey {Action}: switching to {Mode}", action, mode);

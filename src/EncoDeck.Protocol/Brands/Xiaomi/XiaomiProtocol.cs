@@ -1,22 +1,45 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// Opcodes, device-info / run-info records and the battery byte layout follow BudsLink
+// (https://github.com/maniacx/BudsLink, GPL-3.0), redmi-buds-bar by robin-liquidium
+// (https://github.com/robin-liquidium/redmi-buds-bar, GPL-3.0) and mebuds
+// (https://github.com/paradox-ng/mebuds, GPL-3.0-or-later). Service UUIDs and the info-mask style
+// are also documented by android_packages_apps_XiaomiTWS (Apache-2.0, see THIRD_PARTY_NOTICES.md).
+using EncoDeck.Core.State;
+
 namespace EncoDeck.Protocol.Brands.Xiaomi;
 
-/// <summary>Wire constants of the Xiaomi RCSP control channel, as far as the reference has confirmed them.</summary>
+/// <summary>Wire constants and record parsers of the Xiaomi RCSP control channel.</summary>
 public static class XiaomiProtocol
 {
-    /// <summary>XIAOAI SPP service (non-standard base <c>…008584D01810</c>).</summary>
+    /// <summary>Xiaomi fast-connect SPP service <c>0xFD2D</c>; the service the earbuds advertise first.</summary>
+    public static readonly Guid FastConnectSppUuid = new("0000FD2D-0000-1000-8000-00805F9B34FB");
+
+    /// <summary>XIAOAI SPP service (non-standard base <c>…008584D01810</c>), the older fallback.</summary>
     public static readonly Guid XiaoAiSppUuid = new("00001101-0000-1000-8000-008584D01810");
 
-    /// <summary>Type byte of requests.</summary>
+    /// <summary>Type byte of phone requests that expect a reply.</summary>
     public const byte KindRequest = 0xC4;
 
-    /// <summary>Type byte of the auth result report.</summary>
-    public const byte KindAuthResult = 0x04;
+    /// <summary>Type byte of phone responses to earbud requests.</summary>
+    public const byte KindResponse = 0x04;
 
-    /// <summary>Battery query, and (with sequence <see cref="AuthSequence"/>) the auth challenge.</summary>
+    /// <summary>Device information (name, firmware, VID/PID, battery…), mask <c>FF FF FF FF</c>.</summary>
     public const byte OpTargetInfo = 0x02;
 
+    /// <summary>Set one device-info record <c>[len][type][value]</c> (in-ear detection switch).</summary>
+    public const byte OpSetDeviceInfo = 0x08;
+
+    /// <summary>Device run information <c>[len][type][value]</c> records.</summary>
+    public const byte OpRunInfo = 0x09;
+
+    /// <summary>Earbud status push (battery and noise mode records).</summary>
+    public const byte OpReportStatus = 0x0E;
+
+    /// <summary>Auth challenge: <c>01 || random(16)</c>, answered with <c>01 || E(random)</c>. Both sides send one.</summary>
+    public const byte OpAuthCheck = 0x50;
+
+    /// <summary>Auth verdict: <c>01 00</c> when the peer's answer was right; acknowledged with <c>01</c>.</summary>
     public const byte OpAuthResult = 0x51;
 
     public const byte OpSetConfig = 0xF2;
@@ -25,56 +48,142 @@ public static class XiaomiProtocol
 
     public const byte OpNotifyConfig = 0xF4;
 
-    /// <summary>Sequence byte of the battery query (known-good capture <c>FE DC BA C4 02 00 05 0B FF FF FF FF EF</c>).</summary>
-    public const byte BatterySequence = 0x0B;
+    /// <summary>Response status for an unsupported setting or command.</summary>
+    public const byte StatusUnsupported = 0x04;
 
-    /// <summary>Sequence byte the reference uses for the auth challenge (CMD_AUTH_CHECK = 80).</summary>
-    public const byte AuthSequence = 0x50;
-
-    /// <summary>First sequence byte of config requests.</summary>
+    /// <summary>First sequence byte of phone requests.</summary>
     public const byte ConfigSequenceStart = 0x90;
 
-    public static ReadOnlySpan<byte> BatteryQueryPayload => [0xFF, 0xFF, 0xFF, 0xFF];
+    /// <summary>Requests every device-info record.</summary>
+    public static ReadOnlySpan<byte> TargetInfoQueryPayload => [0xFF, 0xFF, 0xFF, 0xFF];
 
-    /// <summary>Battery answer prefix; the left/right/case levels follow.</summary>
-    public static ReadOnlySpan<byte> BatteryResponsePrefix => [0x02, 0x02, 0x04, 0x07];
+    /// <summary>Run-info mask for record <see cref="RunInfoWearDetection"/> only (bit 10).</summary>
+    public static ReadOnlySpan<byte> RunInfoWearQueryPayload => [0x00, 0x00, 0x04, 0x00];
 
-    /// <summary>Auth result report payload (<c>FE DC BA 04 51 00 03 00 03 01 EF</c>).</summary>
-    public static ReadOnlySpan<byte> AuthResultPayload => [0x03, 0x01];
+    /// <summary>Run-info record: in-ear detection switch, inverted (0 = on, 1 = off).</summary>
+    public const byte RunInfoWearDetection = 0x0A;
+
+    /// <summary>Set-device-info record type of the in-ear detection switch (same inverted value).</summary>
+    public const byte DeviceInfoWearDetection = 0x06;
+
+    /// <summary>Device-info record types.</summary>
+    public const byte InfoName = 0x00, InfoFirmware = 0x01, InfoVidPid = 0x03, InfoBattery = 0x07;
+
+    /// <summary>Status-push record types: battery <c>L R C</c> and the current noise mode.</summary>
+    public const byte StatusBattery = 0x00, StatusNoiseMode = 0x04;
+
+    /// <summary>Rejection detail when the find tone is refused because an earbud is in an ear.</summary>
+    public const string FindWornDetail = "find-worn";
 
     /// <summary>Device config id of low-latency (game) mode; value 1 = on, 0 = off.</summary>
-    public const ushort ConfigLowLatency = 47;
+    public const ushort ConfigLowLatency = XiaomiConfig.LowLatency;
 
-    /// <summary>Official GetDeviceConfigParam: a list of 16-bit big-endian type ids, without a TLV length.</summary>
-    public static byte[] GetConfigPayload(ushort configId) => [(byte)(configId >> 8), (byte)configId];
+    /// <summary>Set-device-info payload for the in-ear detection switch.</summary>
+    public static byte[] WearDetectionPayload(bool enabled) => [0x02, DeviceInfoWearDetection, enabled ? (byte)0 : (byte)1];
 
-    /// <summary>Set-config payload: <c>[0x03][configId BE][value]</c>.</summary>
-    public static byte[] SetConfigPayload(ushort configId, byte value) => [0x03, (byte)(configId >> 8), (byte)configId, value];
-
-    /// <summary>Parses a config answer or notification <c>[0x03][configId BE][value]</c>.</summary>
-    public static bool TryParseConfig(XiaomiFrame frame, out ushort configId, out byte value)
+    /// <summary>
+    /// Walks <c>[len][type][value(len-1)]</c> records (device info, run info, status pushes). A
+    /// truncated tail ends the walk; records before it are kept.
+    /// </summary>
+    public static IReadOnlyList<(byte Type, byte[] Value)> ParseInfoRecords(ReadOnlySpan<byte> payload)
     {
-        configId = 0;
-        value = 0;
-        if (frame.OpCode is not (OpGetConfig or OpNotifyConfig)) return false;
-        var p = frame.Payload;
-        if (p.Length < 4 || p[0] != 0x03) return false;
-        configId = (ushort)((p[1] << 8) | p[2]);
-        value = p[3];
-        return true;
+        var records = new List<(byte, byte[])>();
+        while (payload.Length >= 2)
+        {
+            int length = payload[0];
+            if (length < 1 || payload.Length < length + 1) break;
+            records.Add((payload[1], payload.Slice(2, length - 1).ToArray()));
+            payload = payload[(length + 1)..];
+        }
+        return records;
     }
 
-    /// <summary>Parses the battery answer: left, right, case (each null when absent or out of range).</summary>
-    public static bool TryParseBattery(XiaomiFrame frame, out int? left, out int? right, out int? @case)
+    /// <summary>
+    /// One battery byte: level in bits 0–6, charging in bit 7, <c>0xFF</c> = not reported. Levels
+    /// above 100 are treated as unknown.
+    /// </summary>
+    public static BatteryReading? DecodeBattery(byte value)
     {
-        left = right = @case = null;
-        var p = frame.Payload;
-        if (frame.OpCode != OpTargetInfo || p.Length < 5 || !p.AsSpan().StartsWith(BatteryResponsePrefix)) return false;
-        left = Level(p, 4);
-        right = Level(p, 5);
-        @case = Level(p, 6);
-        return true;
-
-        static int? Level(byte[] p, int i) => i < p.Length && p[i] <= 100 ? p[i] : null;
+        if (value == 0xFF) return null;
+        int level = value & 0x7F;
+        return level > 100 ? null : new BatteryReading(level, (value & 0x80) != 0);
     }
+
+    /// <summary>Parses a device-info answer; false when it carries none of the records EncoDeck uses.</summary>
+    public static bool TryParseTargetInfo(ReadOnlySpan<byte> payload, out XiaomiTargetInfo info)
+    {
+        string? name = null, firmware = null;
+        int? vid = null, pid = null;
+        BatteryReading?[]? battery = null;
+        foreach (var (type, value) in ParseInfoRecords(payload))
+        {
+            switch (type)
+            {
+                case InfoName when value.Length > 0 && value.All(b => b is >= 0x20 and < 0x7F):
+                    name = System.Text.Encoding.ASCII.GetString(value);
+                    break;
+                case InfoFirmware when value.Length >= 2:
+                    firmware = $"{value[0] >> 4}.{value[0] & 0xF}.{value[1] >> 4}.{value[1] & 0xF}";
+                    break;
+                case InfoVidPid when value.Length == 4:
+                    vid = (value[0] << 8) | value[1];
+                    pid = (value[2] << 8) | value[3];
+                    break;
+                case InfoBattery when value.Length == 3:
+                    battery = [DecodeBattery(value[0]), DecodeBattery(value[1]), DecodeBattery(value[2])];
+                    break;
+            }
+        }
+        info = new XiaomiTargetInfo(name, firmware, vid, pid, battery);
+        return name is not null || firmware is not null || vid is not null || battery is not null;
+    }
+}
+
+/// <summary>Device-info records: name, firmware (first earbud), VID/PID and left / right / case battery.</summary>
+public sealed record XiaomiTargetInfo(string? Name, string? Firmware, int? VendorId, int? ProductId, BatteryReading?[]? Battery);
+
+/// <summary>Device config ids (two-byte types of get / set / push config).</summary>
+public static class XiaomiConfig
+{
+    /// <summary><c>[kind][left][right]</c> per gesture; a write sends one group with 0xFF for the untouched side.</summary>
+    public const ushort Gestures = 0x0002;
+
+    /// <summary>Automatically answer calls, 0 / 1.</summary>
+    public const ushort AutoAnswer = 0x0003;
+
+    /// <summary>Dual connection (multipoint), 0 / 1.</summary>
+    public const ushort DualConnection = 0x0004;
+
+    /// <summary>EQ preset id (10 = the custom curve).</summary>
+    public const ushort EqualizerPreset = 0x0007;
+
+    /// <summary>Find earbuds <c>[ring][1 left / 2 right / 3 both]</c> (write only).</summary>
+    public const ushort FindEarbuds = 0x0009;
+
+    /// <summary>Noise mode and strength <c>[mode][strength]</c>; mode 0 off, 1 ANC, 2 transparency.</summary>
+    public const ushort Noise = 0x000B;
+
+    /// <summary>Wear state (read / push only): bit 3 left in ear, 2 right in ear, 1 left in case, 0 right in case.</summary>
+    public const ushort WearState = 0x000C;
+
+    /// <summary>Spatial audio bit field: bit 0 on, bits 1–2 audio preference, bit 3 head tracking.</summary>
+    public const ushort Spatial = 0x001D;
+
+    /// <summary>Adaptive (smart) noise cancellation, 0 / 1.</summary>
+    public const ushort AdaptiveAnc = 0x0025;
+
+    /// <summary>Low latency (game mode), 0 / 1.</summary>
+    public const ushort LowLatency = 0x002F;
+
+    /// <summary>Custom EQ curve <c>[1][mode][max][min][id][nameLen][name][count]{freq16 gain}*</c>.</summary>
+    public const ushort CustomEqualizer = 0x0037;
+
+    /// <summary>Prompt volume <c>[level][default][max][1]</c>.</summary>
+    public const ushort PromptVolume = 0x00A1;
+
+    /// <summary>
+    /// Pseudo id (never sent) recording that the run-info in-ear detection switch answered; it
+    /// lives outside the config space, see <see cref="XiaomiProtocol.OpRunInfo"/>.
+    /// </summary>
+    internal const ushort WearDetectionSwitch = 0xF00A;
 }

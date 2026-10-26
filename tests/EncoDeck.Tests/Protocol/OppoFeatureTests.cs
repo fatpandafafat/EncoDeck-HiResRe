@@ -117,6 +117,15 @@ public class OppoFeatureTests
     }
 
     [Fact]
+    public async Task SpatialMutexFailure_DoesNotSendTheSpatialWrite()
+    {
+        await using var h = await StartAsync();
+        h.Device.SetStatus = 1;
+        Assert.Equal(CommandStatus.Rejected, (await h.Controller.SetSpatialAudioAsync(SpatialAudioMode.Fixed, Ct)).Status);
+        Assert.Equal(0, h.Count(OppoCommand.SetSpatialAudio));
+    }
+
+    [Fact]
     public async Task SetSpatialAudio_Off_LeavesHiResAlone()
     {
         await using var h = await StartAsync(d => { d.Features[0x18] = 1; d.SpatialType = 1; });
@@ -314,6 +323,48 @@ public class OppoFeatureTests
         Assert.True((await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct)).IsSuccess);
         Assert.Equal(new byte[] { 0x01, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 }, h.LastPayload(OppoCommand.OperateMultiConnect));
         Assert.True(h.State.SourceDevices!.Value.Single(d => d.Name == "Phone").IsConnected);
+    }
+
+    [Fact]
+    public async Task MultiConnect_AcknowledgementWithoutStateChangeIsNotSuccess()
+    {
+        await using var h = await StartAsync();
+        h.Device.ApplySets = false;
+        var result = await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct);
+        Assert.Equal(CommandStatus.Rejected, result.Status);
+        Assert.False(h.State.SourceDevices!.Value.Single(d => d.Name == "Phone").IsConnected);
+        Assert.False(h.State.IsPending("multi-connect"));
+    }
+
+    [Fact]
+    public async Task MultiConnect_RequiresManagementCapabilitySeparateFromMultipoint()
+    {
+        await using var h = await StartAsync(d => d.Capabilities[7] &= 0xF7); // bit 59
+        var model = Assert.IsType<OppoDeviceProfile>(h.State.Profile).Definition;
+        Assert.False(model.SupportsMultiConnectOperations);
+        Assert.Contains(model.FeatureSwitches, f => f.Toggle == DeviceToggle.DualDeviceConnection);
+        Assert.NotEmpty(h.State.SourceDevices!.Value);
+        Assert.Equal(CommandStatus.Unsupported, (await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct)).Status);
+        Assert.Equal(CommandStatus.Unsupported, (await h.Controller.SetPreferredDeviceAsync(PcAddress, Ct)).Status);
+        Assert.Equal(0, h.Count(OppoCommand.OperateMultiConnect));
+    }
+
+    [Fact]
+    public async Task MultiConnect_RejectsUnknownDeviceAndInvalidPreferredAddress()
+    {
+        await using var h = await StartAsync();
+        Assert.Equal(CommandStatus.Unsupported, (await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, new byte[6], Ct)).Status);
+        Assert.Equal(CommandStatus.Unsupported, (await h.Controller.SetPreferredDeviceAsync(new byte[5], Ct)).Status);
+        Assert.Equal(0, h.Count(OppoCommand.OperateMultiConnect));
+    }
+
+    [Fact]
+    public async Task MultiConnect_LastRemovedDeviceClearsTheList()
+    {
+        await using var h = await StartAsync(d => d.Sources.RemoveAt(0));
+        Assert.True((await h.Controller.MultiConnectAsync(MultiConnectOperation.Remove, PhoneAddress, Ct)).IsSuccess);
+        Assert.Empty(h.State.SourceDevices!.Value);
+        Assert.False(h.State.IsPending("multi-connect"));
     }
 
     [Fact]

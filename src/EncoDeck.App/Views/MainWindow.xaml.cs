@@ -16,7 +16,9 @@ public sealed partial class MainWindow : Window
         ["Sound"] = typeof(SoundPage),
         ["Controls"] = typeof(ControlsPage),
         ["Devices"] = typeof(DevicesPage),
+        ["Labs"] = typeof(LabsPage),
         ["Settings"] = typeof(SettingsPage),
+        ["About"] = typeof(AboutPage),
     };
 
     public MainWindow()
@@ -44,6 +46,62 @@ public sealed partial class MainWindow : Window
         };
 
         Navigate("Home");
+
+        var settings = App.Instance.Settings;
+        settings.PropertyChanged += OnSettingsChanged;
+        Closed += (_, _) => settings.PropertyChanged -= OnSettingsChanged;
+        ShowUpdateBadge();
+        AboutItem.Loaded += (_, _) => PinUpdateBadgeToIcon();
+    }
+
+    /// <summary>
+    /// Puts the update dot on the icon's top-right corner in the open pane too, where WinUI puts it
+    /// while the pane is closed (NavigationViewItemPresenter, ClosedCompactAndTopLevelItem). These are
+    /// local values; that state's setters still apply over them and give the same place.
+    /// </summary>
+    private void PinUpdateBadgeToIcon()
+    {
+        if (FindNamed(AboutItem, "InfoBadgePresenter") is not FrameworkElement presenter)
+        {
+            // The item's presenter template is applied after the item loads.
+            void Retry(object? sender, object e)
+            {
+                if (FindNamed(AboutItem, "InfoBadgePresenter") is null) return;
+                AboutItem.LayoutUpdated -= Retry;
+                PinUpdateBadgeToIcon();
+            }
+            AboutItem.LayoutUpdated += Retry;
+            return;
+        }
+        Grid.SetColumn(presenter, 0);
+        Grid.SetColumnSpan(presenter, 1);
+        presenter.VerticalAlignment = VerticalAlignment.Top;
+        presenter.HorizontalAlignment = HorizontalAlignment.Right;
+        presenter.Margin = new Thickness(0, 2, 2, 0);
+    }
+
+    private static DependencyObject? FindNamed(DependencyObject root, string name)
+    {
+        for (int i = 0; i < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is FrameworkElement { Name: var childName } && childName == name) return child;
+            if (FindNamed(child, name) is { } found) return found;
+        }
+        return null;
+    }
+
+    private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(ViewModels.SettingsViewModel.IsUpdateAvailable)) ShowUpdateBadge();
+    }
+
+    private void ShowUpdateBadge()
+    {
+        bool available = App.Instance.Settings.IsUpdateAvailable;
+        UpdateBadge.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+        ToolTipService.SetToolTip(AboutItem, available ? Loc.Get("Update_BadgeHint") : null);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(AboutItem, available ? Loc.Get("Update_BadgeHint") : string.Empty);
     }
 
     /// <summary>

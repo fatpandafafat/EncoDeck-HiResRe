@@ -14,11 +14,4 @@ public sealed partial class SettingsPage : Page
 
     private void OnPreviewPopup(object sender, RoutedEventArgs e) =>
         App.Instance.Windows.ShowConnectionPopup(TimeSpan.FromSeconds(App.Instance.Host.Settings.Current.PopupDurationSeconds));
-
-    private void OnOpenNotices(object sender, RoutedEventArgs e)
-    {
-        string path = Path.Combine(AppContext.BaseDirectory, "THIRD_PARTY_NOTICES.md");
-        if (File.Exists(path))
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
-    }
 }

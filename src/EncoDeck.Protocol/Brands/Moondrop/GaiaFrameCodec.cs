@@ -74,7 +74,7 @@ public sealed class GaiaFrameDecoder
                 {
                     (14, 1) => 3,
                     (22, 2) => 5,
-                    (2, 1) or (8 or 32, 3) or (15 or 19 or 20, 1) or (16, 5) => 1,
+                    (2, 1) or (8 or 32, 3) or (15 or 19 or 20, 1) or (16, 5) or (5, 0 or 2 or 4) => 1,
                     _ => -1,
                 };
                 // SET acknowledgements and variable-length discovery/battery payloads require a quiet burst.

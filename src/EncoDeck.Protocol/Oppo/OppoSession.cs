@@ -328,7 +328,12 @@ public sealed class OppoSession : IAsyncDisposable
         _lifetime.Cancel();
         PendingRequest? pending;
         lock (_pendingGate) pending = _pending;
-        pending?.Completion.TrySetException(new SessionClosedException(reason));
+        if (pending?.Completion.TrySetException(new SessionClosedException(reason)) == true)
+        {
+            // A request can still be inside WriteFrameAsync (or have stopped waiting on cancellation).
+            // Its result reports the closure, but it may never await this completion task.
+            _ = pending.Completion.Task.Exception;
+        }
         return dispose.AsTask();
     }
 

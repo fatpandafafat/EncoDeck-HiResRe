@@ -63,7 +63,8 @@ public sealed class EdifierProtocolTests
     [InlineData("W820NB", "edifier-w820nb")]
     [InlineData("EDIFIER W820NB", "edifier-w820nb")]
     [InlineData("W820NB Plus", "edifier-w820nb")]
-    [InlineData("EDIFIER W200BT Plus", "edifier-w200bt")]
+    [InlineData("EDIFIER W200BT Plus", "edifier-w200bt-plus")]
+    [InlineData("EDIFIER W200BT", "edifier-w200bt")]
     [InlineData("EDIFIER NeoBuds", "edifier")]
     public void Registry_MatchesByName(string name, string modelId)
     {
@@ -134,8 +135,11 @@ public sealed class EdifierProtocolTests
                         EdifierConstants.QueryBattery => EdifierFrameCodec.Encode(EdifierConstants.ResponseHeadBb, 0xD0, [80]),
                         EdifierConstants.QueryNoiseMode => EdifierFrameCodec.Encode(EdifierConstants.ResponseHeadBb, 0xCC, [mode, 0]),
                         EdifierConstants.SetNoiseMode => SetMode(request.Payload[0]),
+                        EdifierConstants.QueryGameMode => EdifierFrameCodec.Encode(EdifierConstants.ResponseHeadBb, 0x08, [0]),
+                        EdifierConstants.QueryPowerOffTimer => EdifierFrameCodec.Encode(EdifierConstants.ResponseHeadBb, 0xD3, [0]),
                         _ => [],
                     };
+                    if (reply.Length == 0) continue;
                     // Split each answer in two to exercise partial-frame buffering.
                     channel.Receive(reply[..2]);
                     channel.Receive(reply[2..]);

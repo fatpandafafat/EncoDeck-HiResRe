@@ -25,7 +25,7 @@ public class HonorTests
         public List<HuaweiFrame> Writes { get; } = [];
         public byte[] Noise = [0, 0];
         public byte Wear, Dual, Eq = 4;
-        public bool IgnoreWrites, RejectWrites, MalformedBattery;
+        public bool IgnoreWrites, RejectWrites, MalformedBattery, HuaweiAck, Choice;
         public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken ct)
         {
             await _inner.WriteAsync(data, ct);
@@ -35,6 +35,7 @@ public class HonorTests
                 byte[]? answer = f.Command switch
                 {
                     0x0108 => MalformedBattery ? [2, 3, 50] : [2, 3, 80, 70, 60, 3, 3, 0, 1, 0],
+                    0x2B2A when Choice => [1, 1, Noise[1]],
                     0x2B2A => [1, 2, .. Noise],
                     0x2B11 => [1, 1, Wear],
                     0x2B2E => [1, 1, Dual],
@@ -43,12 +44,14 @@ public class HonorTests
                 };
                 if (answer is null)
                 {
-                    answer = RejectWrites ? [127, 1, 1] : [1, 1, 0];
+                    // Result code 100000 is how HUAWEI-derived firmware acknowledges a write.
+                    answer = RejectWrites ? [127, 1, 1] : HuaweiAck ? [127, 4, 0, 1, 0x86, 0xA0] : [1, 1, 0];
                     if (!IgnoreWrites && !RejectWrites)
                     {
                         switch (f.Command)
                         {
-                            case 0x2B04: Noise = [f.Payload[3], f.Payload[2]]; break;
+                            case 0x2B04 when f.Payload.Length == 3: Noise = [0, f.Payload[2]]; break;
+                            case 0x2B04: Noise = [f.Payload[3] == 0xFF ? (byte)1 : f.Payload[3], f.Payload[2]]; break;
                             case 0x2B10: Wear = f.Payload[2]; break;
                             case 0x2B2F: Dual = f.Payload[2]; break;
                             case 0x2B6E: Eq = f.Payload[2]; break;
@@ -148,5 +151,50 @@ public class HonorTests
         var (controller, store) = Create(new Device { MalformedBattery = true }); await using var session = controller;
         Assert.False(await controller.InitializeAsync(Ct));
         Assert.Null(store.Current.Battery.Left);
+    }
+
+    [Fact]
+    public async Task ResultCodeAcknowledgement_AndModeButtonKeepTheLevel()
+    {
+        // Earbuds 2 SE runs HUAWEI-derived firmware (OpenFreebuds #56): writes answer 7F 04 000186A0.
+        var device = new Device { HuaweiAck = true };
+        var (controller, store) = Create(device); await using var session = controller;
+        Assert.True(await controller.InitializeAsync(Ct));
+
+        Assert.True((await controller.SetToggleAsync(DeviceToggle.InEarDetection, true, Ct)).IsSuccess);
+        Assert.True((await controller.SetNoiseControlAsync(new(NoiseControlMode.NoiseCancellation), Ct)).IsSuccess);
+        Assert.Contains(device.Writes, f => f.Command == 0x2B04 && f.Payload.SequenceEqual(new byte[] { 1, 2, 1, 0xFF }));
+        Assert.Equal(new NoiseControlState(NoiseControlMode.NoiseCancellation, "general"), store.Current.NoiseControl!.Value);
+    }
+
+    [Theory]
+    [InlineData("HONOR CHOICE Earbuds X5", "honor-choice-x5")]
+    [InlineData("HONOR CHOICE Earbuds X5 Pro", "honor-choice-x5-pro")]
+    public void ChoiceModels_AreMatchedByTheirOwnNames(string name, string expected)
+    {
+        var registry = new DeviceProfileRegistry(BuiltInProfiles.Create());
+        var profile = Assert.IsType<HonorDeviceProfile>(registry.Match(new("test", name, default)));
+        Assert.Equal(expected, profile.ModelId);
+        Assert.Equal([NoiseControlMode.Off, NoiseControlMode.NoiseCancellation, NoiseControlMode.Transparency], profile.NoiseControlOptions.Select(o => o.Mode));
+        Assert.Empty(profile.Toggles);
+        Assert.Empty(profile.EqualizerPresets);
+    }
+
+    [Fact]
+    public async Task Choice_UsesEmptyQueriesAndAOneByteNoiseWrite()
+    {
+        // Nezerkill/honor-earbuds (HONOR CHOICE Earbuds X5, tested): 0108 and 2B2A without TLVs, 2B04 TLV 1 = [mode].
+        var device = new Device { Choice = true };
+        var (controller, store) = Create(device, "CHOICE-X5"); await using var session = controller;
+        Assert.True(await controller.InitializeAsync(Ct));
+        Assert.Equal(80, store.Current.Battery.Left!.Value.Level);
+        Assert.Contains(device.Writes, f => f.Command == 0x0108 && f.Payload.Length == 0);
+        Assert.Equal(NoiseControlMode.Off, store.Current.NoiseControl!.Value.Mode);
+
+        Assert.True((await controller.SetNoiseControlAsync(new(NoiseControlMode.Transparency), Ct)).IsSuccess);
+        Assert.Contains(device.Writes, f => f.Command == 0x2B04 && f.Payload.SequenceEqual(new byte[] { 1, 1, 2 }));
+        Assert.Equal(new NoiseControlState(NoiseControlMode.Transparency), store.Current.NoiseControl!.Value);
+        device.IgnoreWrites = true;
+        Assert.Equal(CommandStatus.Rejected, (await controller.SetNoiseControlAsync(new(NoiseControlMode.NoiseCancellation), Ct)).Status);
     }
 }

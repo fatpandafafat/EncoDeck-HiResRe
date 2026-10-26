@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Buffers.Binary;
+using EncoDeck.Core.State;
 
 namespace EncoDeck.Protocol.Oppo;
 
@@ -102,6 +103,32 @@ public static class OppoParsers
         if (frame.Command != OppoCommand.ResponseOf(OppoCommand.QueryNoiseControl)) return false;
         if (p.Length < 4 || p[0] != StatusOk) return false;
         return TryReadModeBitmap(p.AsSpan(1), out bitmap);
+    }
+
+    /// <summary>
+    /// <c>0x8114</c>: <c>[status][codec]</c>. Status 0x00 carries the A2DP codec (1 SBC, 2 AAC, 3 LDAC,
+    /// 4 aptX, 5 aptX HD, 6 aptX Adaptive, 7/8 LHDC); another status means no Classic audio codec
+    /// (seen over LE Audio). Returns false for that and for codecs this list does not name.
+    /// </summary>
+    public static bool TryParseCodec(OppoFrame frame, out AudioCodec codec)
+    {
+        codec = default;
+        var p = frame.Payload;
+        if (frame.Command != OppoCommand.ResponseOf(OppoCommand.QueryCodec) || p.Length < 2 || p[0] != StatusOk) return false;
+        AudioCodec? known = p[1] switch
+        {
+            1 => AudioCodec.Sbc,
+            2 => AudioCodec.Aac,
+            3 => AudioCodec.Ldac,
+            4 => AudioCodec.AptX,
+            5 => AudioCodec.AptXHd,
+            6 => AudioCodec.AptXAdaptive,
+            7 or 8 => AudioCodec.Lhdc,
+            _ => null,
+        };
+        if (known is not { } value) return false;
+        codec = value;
+        return true;
     }
 
     /// <summary>

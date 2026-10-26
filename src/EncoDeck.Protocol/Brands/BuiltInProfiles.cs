@@ -24,6 +24,10 @@ public static class BuiltInProfiles
         .. MoondropProfiles.CreateBuiltIn(),
         .. Sony.SonyAkgProfiles.CreateBuiltIn(),
         .. Sennheiser.SennheiserProfiles.Create(),
+        .. Samsung.SamsungProfiles.CreateBuiltIn(),
+        .. Google.GoogleProfiles.CreateBuiltIn(),
+        .. Bose.BoseProfiles.CreateBuiltIn(),
+        .. Nothing.NothingProfiles.CreateBuiltIn(),
         .. Usb.UsbHeadsetProfiles.Create(),
     ];
 }

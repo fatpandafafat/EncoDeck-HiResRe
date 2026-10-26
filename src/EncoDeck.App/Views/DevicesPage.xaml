@@ -26,9 +26,9 @@
                 </StackPanel>
             </Border>
 
-            <!-- Only for a MOONDROP model: the switch gates nothing on other brands. -->
+            <!-- Only for MOONDROP and AKG N5 / N9 Hybrid: the switch gates nothing on other brands. -->
             <Border x:Name="MoondropCard" Style="{StaticResource CardStyle}" Visibility="Collapsed">
-                <controls:SettingRow x:Uid="Settings_MoondropExperimental" Header="Experimental MOONDROP features"
+                <controls:SettingRow x:Name="ExperimentalRow" x:Uid="Settings_MoondropExperimental" Header="Experimental MOONDROP features"
                                      Description="Enable unverified MOONDROP commands and inferred gesture actions. Off by default; use at your own risk.">
                     <ToggleSwitch x:Name="MoondropExperimentalSwitch" Style="{StaticResource TrailingSwitchStyle}" Toggled="OnMoondropExperimentalToggled" />
                 </controls:SettingRow>

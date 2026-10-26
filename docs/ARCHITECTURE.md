@@ -85,6 +85,26 @@ ControlConnecting ─成功─► ControlReady ─通道掉线且链路仍在─
 - 主窗口关闭即释放（不是隐藏）；托盘面板复用一个实例；连接弹窗每次创建、关闭后释放。
 - 退出时依次：移除托盘图标 → 关闭窗口 → 释放 DeviceManager（关闭 RFCOMM、停止 watcher、释放 BluetoothDevice）→ 刷新缓存与日志。
 
+## 设备资源
+
+识别到耳机上报的产品 ID 和颜色后，`DeviceResourceSync` 在后台通过 [EncoAPI](https://encoapi.vercel.app) 获取对应图片、连接动画和模型，不影响蓝牙会话初始化。EncoAPI 是独立社区服务，与各耳机厂商无隶属关系；素材权利属于原权利人，不适用本项目代码 GPL，也不随安装包分发。
+
+- **缓存**：`%LOCALAPPDATA%\EncoDeck\Resources\downloads\<产品ID>\<颜色>\`，`manifest.json` 引用经过 SHA-256 校验的文件。元数据至多每 24 小时检查一次，哈希未变不重复下载；更新失败保留已有缓存，无缓存时显示通用插图。
+- **隐私**：请求只包含产品 ID 和颜色，不发送设备名称、蓝牙地址、序列号或账户信息。
+- **展示兜底**：首页依次使用原厂 3D / 转盘模型、原厂产品动画、对静态产品图的本地 Composition 动效；连接弹窗独立选择原厂视频、逐帧 WebP 或 Lottie。无型号图时使用通用插画，不借用其他型号；系统关闭动画时保持静止。华为首页视频按深浅色主题分别选择，深色资源缺失时回退产品图动效。
+- **设置 › 设备素材**：显示下载状态、进度与失败原因，可“重新拉取”（忽略 24 小时缓存）或打开缓存文件夹。进度由 `EncoApiResourceClient.EnsureAsync` 报告。
+
+### 3D 模型
+
+`model` 素材包的 `config.json` 二选一：`modelWebp`（预渲染 360° 转盘，动画 WebP）或 `model3D`（`.vfxms` 场景包）。`.vfxms` 格式：
+
+- 40 字节大端文件头：config / glb / ibl / skybox / animation 五段的（起始，长度）；
+- config：场景 JSON（`modelScale`、光照参数、按材质序号覆盖的材质参数，只应用 FLOAT/FLOAT4 类型）；
+- glb：glTF 2.0 二进制模型（金属度-粗糙度 PBR）；
+- ibl：KTX 1.1 立方体贴图（R11G11B10F，含 mip 预滤波与球谐系数）；skybox 不使用（透明背景）。
+
+渲染代码在 `src/EncoDeck.Platform/Media/Scene3D`（Direct3D 11）。`EncoDeck.Probe render-model --file x.vfxms --out <目录>` 可离屏渲染为 PNG 用于排查。
+
 ## 隐私
 
 - `BluetoothAddress` 默认格式化为 `**:**:**:**:2A:A3`；日志写入前经 `LogRedactor` 再次脱敏。

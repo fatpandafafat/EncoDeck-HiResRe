@@ -29,7 +29,8 @@ internal static class MonitorCommand
             new RfcommChannelConnector(registry, loggers.CreateLogger<RfcommChannelConnector>()),
             preferredDeviceId: () => null,
             allowExperimental: static () => false,
-            loggers);
+            loggers,
+            trace: options.Has("trace") ? new ConsoleTrace(printRaw: false) : null);
 
         var ready = new TaskCompletionSource();
         store.StateChanged += (_, e) =>
@@ -121,6 +122,7 @@ internal static class MonitorCommand
         {
             s.Device?.Name ?? "(no device)",
             s.Connection.ToString(),
+            $"LE bonded={s.LeAudioLinks.BondedEarbuds} connected={s.LeAudioLinks.ConnectedEarbuds} primary={s.LeAudioLinks.PrimaryConnected} secondary={s.LeAudioLinks.SecondaryConnected} streaming=unverified",
             $"model={s.Profile?.ModelId ?? "-"}",
             $"L={Battery(s.Battery.Left)} R={Battery(s.Battery.Right)} C={Battery(s.Battery.Case)}",
         };

@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Devices;
 using EncoDeck.Core.Profiles;
+using EncoDeck.Core.State;
 
 namespace EncoDeck.Protocol.Brands.Usb;
 
@@ -17,11 +18,21 @@ public static class UsbHeadsetProfiles
             var match = Regex.Match(id, @"^USB\\VID_([0-9A-F]{4})&PID_([0-9A-F]{4})(?:&|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if (!match.Success) continue;
             ushort vendor = Convert.ToUInt16(match.Groups[1].Value, 16), product = Convert.ToUInt16(match.Groups[2].Value, 16);
-            string? model = vendor == 0x24AE && product == 0x7205 ? "rapoo-usb-vh800-pro" : UsbVendorBatteryProtocol.Model(vendor, product);
+            string? model = vendor == 0x24AE && product == 0x7205 ? "rapoo-usb-vh800-pro" :
+                BarracudaXProtocol.IsReceiver(vendor, product) ? "razer-usb-barracuda-x" : UsbVendorBatteryProtocol.Model(vendor, product) ?? RecognizedOnly(vendor, product);
             if (model is not null) return Create().OfType<UsbHeadsetProfile>().Single(p => p.ModelId == model);
         }
         return null;
     }
+
+    // BlackShark V3 / V3 Pro receivers (OpenRazer #2794) are named exactly, but the published battery
+    // request differs between the driver and its notes, and frequent queries have reset the radio link.
+    private static string? RecognizedOnly(ushort vendor, ushort product) => (vendor, product) switch
+    {
+        (0x1532, 0x057A) => "razer-usb-blackshark-v3",
+        (0x1532, 0x0577) => "razer-usb-blackshark-v3-pro",
+        _ => null,
+    };
 
     public static IReadOnlyList<IDeviceProfile> Create() =>
     [
@@ -53,27 +64,59 @@ public static class UsbHeadsetProfiles
         new UsbHeadsetProfile("razer", "blackshark-v2-pro-2020", "Razer BlackShark V2 Pro (2020)", []),
         new UsbHeadsetProfile("razer", "blackshark-v2-pro-2023", "Razer BlackShark V2 Pro (2023)", []),
         new UsbHeadsetProfile("razer", "blackshark-v2-hyperspeed", "Razer BlackShark V2 HyperSpeed", []),
+        new UsbHeadsetProfile("razer", "blackshark-v3", "Razer BlackShark V3", []),
         new UsbHeadsetProfile("razer", "blackshark-v3-pro", "Razer BlackShark V3 Pro", []),
+        new UsbHeadsetProfile("razer", "barracuda", "Razer Barracuda", []),
         new UsbHeadsetProfile("razer", "barracuda-x", "Razer Barracuda X", []),
         new UsbHeadsetProfile("razer", "barracuda-pro", "Razer Barracuda Pro", []),
         new UsbHeadsetProfile("razer", "kraken-v3-pro", "Razer Kraken V3 Pro", []),
         new UsbHeadsetProfile("razer", "kraken-v4", "Razer Kraken V4", []),
         new UsbHeadsetProfile("razer", "kraken-v4-pro", "Razer Kraken V4 Pro", []),
+        new UsbHeadsetProfile("hyperx", "cloud-alpha-2", "HyperX Cloud Alpha 2", ["HyperX Cloud Alpha 2 Wireless"]),
+        new UsbHeadsetProfile("hyperx", "cloud-iii-s", "HyperX Cloud III S Wireless", ["HyperX Cloud III S"]),
+        new UsbHeadsetProfile("steelseries", "arctis-nova-7", "SteelSeries Arctis Nova 7", ["Arctis Nova 7"]),
+        new UsbHeadsetProfile("jbl", "quantum-910", "JBL Quantum 910 Wireless", ["JBL Quantum 910"]),
+        new UsbHeadsetProfile("logitech", "g-pro-x-2", "Logitech G PRO X 2 LIGHTSPEED", ["PRO X 2 LIGHTSPEED", "G PRO X 2 LIGHTSPEED"]),
     ];
 }
 
-public sealed class UsbHeadsetProfile(string brand, string model, string name, string[] aliases, bool batteryReady = false) : IDeviceProfile
+public sealed class UsbHeadsetProfile(string brand, string model, string name, string[] aliases, bool batteryReady = false,
+    IReadOnlyCollection<RazerPaSetting>? settings = null) : IDeviceProfile
 {
     public string ModelId => $"{brand}-usb-{model}";
     public string DisplayName => name;
     public string ImageKey => ModelId;
     public DeviceForm Form => DeviceForm.Headphones;
-    public UsbHeadsetProfile WithBattery(bool ready) => new(brand, model, name, aliases, ready);
-    public IDeviceCapabilities Capabilities => DeviceCapabilities.CreateBuilder()
-        .Set(DeviceCapability.BatteryLevel, batteryReady ? CapabilitySupport.Supported : CapabilitySupport.Unknown,
-            "Read-only standard HID percentage, or a documented query gated by exact receiver VID/PID and HID collection. No EQ, lighting or firmware writes.").Build();
+    public UsbHeadsetProfile WithBattery(bool ready) => new(brand, model, name, aliases, ready, settings);
+
+    /// <summary>
+    /// Barracuda X (1532:0550) settings whose last read-back was valid while the headset was linked. Nothing
+    /// else is offered: other receivers and other models stay battery-only.
+    /// </summary>
+    public IReadOnlyCollection<RazerPaSetting> Settings { get; } = settings ?? [];
+    public UsbHeadsetProfile WithSettings(IEnumerable<RazerPaSetting> confirmed) =>
+        new(brand, model, name, aliases, batteryReady, confirmed.Distinct().Order().ToArray());
+    public bool Offers(RazerPaSetting setting) => Settings.Contains(setting);
+    public IReadOnlyList<DeviceToggle> Toggles => Offers(RazerPaSetting.DoNotDisturb) ? [DeviceToggle.DoNotDisturb] : [];
+    public IReadOnlyList<int> AutoPowerOffMinutes => Offers(RazerPaSetting.AutoOff) ? BarracudaXSettingValues.AutoOffMinutes : [];
+
+    public IDeviceCapabilities Capabilities
+    {
+        get
+        {
+            var builder = DeviceCapabilities.CreateBuilder()
+                .Set(DeviceCapability.BatteryLevel, batteryReady ? CapabilitySupport.Supported : CapabilitySupport.Unknown,
+                    "Read-only standard HID percentage, or a documented query gated by exact receiver VID/PID and HID collection. No lighting or firmware writes.");
+            if (Offers(RazerPaSetting.EqPreset))
+                builder.Set(DeviceCapability.Equalizer, CapabilitySupport.Supported, "Barracuda X preset register 13, written only with read-back confirmation.");
+            if (Offers(RazerPaSetting.EqPreset) && Offers(RazerPaSetting.CustomEq))
+                builder.Set(DeviceCapability.CustomEqualizer, CapabilitySupport.Supported, "Barracuda X ten-band register 15, written only with read-back confirmation.");
+            return builder.Build();
+        }
+    }
     public IReadOnlyList<NoiseControlOption> NoiseControlOptions => [];
-    public IReadOnlyList<EqualizerPreset> EqualizerPresets => [];
+    public IReadOnlyList<EqualizerPreset> EqualizerPresets =>
+        Offers(RazerPaSetting.EqPreset) ? BarracudaXSettingValues.EqualizerPresets(Offers(RazerPaSetting.CustomEq)) : [];
     public IReadOnlyList<Guid> ControlServiceUuids => [];
     public int MatchScore(DeviceIdentity identity)
     {

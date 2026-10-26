@@ -18,6 +18,7 @@ public static class OppoModels
     public static OppoModelDefinition EncoX4 { get; } = new()
     {
         ModelId = "oppo-enco-x4",
+        SupportsLeAudioPairing = true,
         DisplayName = "OPPO Enco X4",
         ImageKey = "enco-x4",
         ProductIds = [0x06EC10],

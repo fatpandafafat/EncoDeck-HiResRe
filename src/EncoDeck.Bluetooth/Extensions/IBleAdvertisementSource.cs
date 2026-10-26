@@ -5,7 +5,7 @@ namespace EncoDeck.Bluetooth.Extensions;
 
 /// <summary>
 /// One OPPO/OnePlus BLE manufacturer-data advertisement (company id 0x079A or 0x072F).
-/// Field layout documented in docs/PROTOCOL_FINDINGS.md §6 from the official client.
+/// Field layout documented in docs/PROTOCOL_FINDINGS.md §6.
 /// </summary>
 public sealed record OppoAdvertisement(
     BluetoothAddress Address,
@@ -19,7 +19,7 @@ public sealed record OppoAdvertisement(
 /// <summary>
 /// Extension point for lid-open popups driven by BLE advertisements.
 /// Intentionally not implemented: no advertisement from an Enco X4 has been captured and verified
-/// yet, and the popup must not be triggered by guessed frame layouts (see IMPLEMENTATION_STATUS).
+/// yet, and the popup must not be triggered by guessed frame layouts (see docs/PROTOCOL_FINDINGS.md §6).
 /// </summary>
 public interface IBleAdvertisementSource : IDisposable
 {

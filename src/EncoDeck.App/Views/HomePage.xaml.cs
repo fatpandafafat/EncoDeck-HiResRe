@@ -106,7 +106,9 @@ public sealed partial class HomePage : Page
         }
 
         var devices = f.SourceDevices;
-        string signature = string.Join('|', devices.Select(d => $"{d.AddressText}/{d.State}/{d.IsAudioActive}/{d.Name}")) + $"#{ready}#{f.State.Device?.DeviceId}#{f.State.Profile?.ModelId}";
+        // Last session's list shows right away; tapping waits for the earbuds' own answer.
+        bool cached = f.AreSourceDevicesCached;
+        string signature = string.Join('|', devices.Select(d => $"{d.AddressText}/{d.State}/{d.IsAudioActive}/{d.Name}")) + $"#{ready}#{cached}#{f.State.Device?.DeviceId}#{f.State.Profile?.ModelId}";
         if (signature == _devicesSignature) return;
         _devicesSignature = signature;
 
@@ -116,7 +118,7 @@ public sealed partial class HomePage : Page
         foreach (var device in devices)
         {
             DeviceHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            var cell = DeviceCell(device, ready);
+            var cell = DeviceCell(device, ready && !cached, cached);
             Grid.SetColumn(cell, column++);
             DeviceHost.Children.Add(cell);
         }
@@ -127,7 +129,7 @@ public sealed partial class HomePage : Page
     /// device connects it, tapping a connected one disconnects it (after a confirmation); this PC is
     /// disconnected from Windows Bluetooth settings, as the official client does for the phone.
     /// </summary>
-    private Button DeviceCell(SourceDevice device, bool ready)
+    private Button DeviceCell(SourceDevice device, bool ready, bool cached)
     {
         // Device type icons: 1 phone, 2 computer, 3 tablet, 4 watch.
         string glyph = device.DeviceType switch { 1 => "", 2 => "", 3 => "", 4 => "", _ => "" };
@@ -158,7 +160,9 @@ public sealed partial class HomePage : Page
         bool busy = device.State is 1 or 4;
         var status = new TextBlock
         {
-            Text = Loc.Get(device.IsThisDevice ? "Home_DeviceThisPc" : busy ? "Home_DeviceBusy" : connected ? "Home_DeviceConnected" : "Home_DeviceTapToConnect"),
+            Text = Loc.Get(device.IsThisDevice ? "Home_DeviceThisPc"
+                : cached ? connected ? "Home_DeviceLastConnected" : "Home_DeviceNotConnected"
+                : busy ? "Home_DeviceBusy" : connected ? "Home_DeviceConnected" : "Home_DeviceTapToConnect"),
             TextAlignment = TextAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center,
             Style = (Style)Application.Current.Resources["SecondaryTextStyle"],

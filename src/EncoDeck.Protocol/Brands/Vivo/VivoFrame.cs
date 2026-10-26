@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// GATT framing (no FF header) from vivopods-mac (https://github.com/FxRayHughes/vivopods-mac, be25133, GPL-3.0-only).
 using System.Buffers.Binary;
 
 namespace EncoDeck.Protocol.Brands.Vivo;
@@ -28,6 +29,21 @@ public sealed record VivoFrame(ushort Command, byte[] Payload)
         BinaryPrimitives.WriteUInt16BigEndian(frame.AsSpan(6), Command);
         Payload.CopyTo(frame.AsSpan(VivoConstants.HeaderLength));
         return frame;
+    }
+
+    /// <summary>
+    /// GATT form: <c>[vendor_hi] [vendor_lo] [cmd_hi] [cmd_lo] [payload…]</c>, the RFCOMM frame
+    /// without its <c>FF version flags length</c> header (each GATT message carries its own length).
+    /// </summary>
+    public byte[] EncodeGatt(int gaiaVersion) => Encode(gaiaVersion)[4..];
+
+    /// <summary>Decodes one GATT message; null when it is too short or names another vendor.</summary>
+    public static VivoFrame? DecodeGatt(ReadOnlySpan<byte> message)
+    {
+        if (message.Length < 4 || message.Length - 4 > VivoConstants.MaxPayload) return null;
+        ushort vendor = BinaryPrimitives.ReadUInt16BigEndian(message);
+        if (vendor is not (VivoConstants.GaiaVendor or VivoConstants.VivoVendor)) return null;
+        return new VivoFrame(BinaryPrimitives.ReadUInt16BigEndian(message[2..]), message[4..].ToArray());
     }
 
     public override string ToString() => $"0x{Command:X4} [{Convert.ToHexString(Payload)}]";

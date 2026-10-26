@@ -120,7 +120,7 @@ public static class PopupPlacement
     /// </summary>
     public static PixelRect? PlaceAboveQuickSettings(PixelRect cards, PixelRect workArea, int height, int margin)
     {
-        int width = cards.Width - 2 * margin;
+        int width = QuickSettingsPanelWidth(cards, margin);
         if (width <= 0 || height <= 0) return null;
         int y = cards.Y - height;
         if (y >= workArea.Y + margin) return new PixelRect(cards.X + margin, y, width, height);
@@ -133,6 +133,14 @@ public static class PopupPlacement
         if (x < workArea.X + margin || x + width > workArea.Right - margin) return null;
         return new PixelRect(x, top, width, height);
     }
+
+    /// <summary>
+    /// Width of the panel on top of Quick Settings: the cards' column, i.e. the window region
+    /// without the shell's margin on either side. It follows <paramref name="cards"/>, so the
+    /// panel stays as wide as Quick Settings when the shell's width changes (another display,
+    /// scaling factor or Windows build).
+    /// </summary>
+    public static int QuickSettingsPanelWidth(PixelRect cards, int margin) => cards.Width - 2 * margin;
 
     /// <summary>True when the popup sits along the top of the screen (it then slides down, not up).</summary>
     public static bool IsTop(PopupPosition position, TaskbarEdge edge) =>

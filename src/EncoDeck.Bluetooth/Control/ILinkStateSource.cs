@@ -9,8 +9,16 @@ public interface ILinkStateSource : IDisposable
     /// <summary>Raised on an arbitrary thread when <see cref="IsConnected"/> changes.</summary>
     event EventHandler<bool>? ConnectionChanged;
 
-    /// <summary>The audio runs over LE Audio (LC3) rather than Classic Bluetooth.</summary>
+    /// <summary>At least one bonded LE earbud is connected; does not verify audio streaming.</summary>
     bool IsLeAudio => false;
+
+    EncoDeck.Core.State.LeAudioLinkState LeAudioLinks => EncoDeck.Core.State.LeAudioLinkState.Empty;
+
+    /// <summary>Per-ear bond/ACL changes, including one ear dropping while the other stays up.</summary>
+    event EventHandler? LinkDetailsChanged { add { } remove { } }
+
+    /// <summary>The earbuds were switched to LE Audio on this PC (connected or not).</summary>
+    bool IsLeAudioBonded => false;
 
     /// <summary>Raised on an arbitrary thread when <see cref="IsLeAudio"/> changes.</summary>
     event EventHandler? TransportChanged { add { } remove { } }

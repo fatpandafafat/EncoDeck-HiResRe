@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// Mutual auth sequence, device-info / status records and push acknowledgements ported from BudsLink
+// (https://github.com/maniacx/BudsLink, GPL-3.0) and redmi-buds-bar by robin-liquidium
+// (https://github.com/robin-liquidium/redmi-buds-bar, GPL-3.0); the exchange matches OpenXia's and
+// android_packages_apps_XiaomiTWS's descriptions (MIT / Apache-2.0, see THIRD_PARTY_NOTICES.md).
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Transport;
@@ -8,13 +12,17 @@ using Microsoft.Extensions.Logging;
 namespace EncoDeck.Protocol.Brands.Xiaomi;
 
 /// <summary>
-/// Controller for Xiaomi / Redmi earbuds over the XIAOAI SPP channel: optional auth challenge,
-/// battery, and low-latency (game) mode via the RCSP device-config channel.
+/// Controller for Xiaomi / Redmi earbuds over the Xiaomi SPP channel: mutual auth (when the
+/// earbuds answer it), device info and battery, then the device-config settings, each read on
+/// its own and enabled only after a valid readback.
 /// </summary>
 internal sealed partial class XiaomiDeviceController : BrandControllerBase
 {
-    /// <summary>The auth probe is short: models that do not require auth never answer it.</summary>
+    /// <summary>The auth probe is short: models that do not require auth may never answer it.</summary>
     private static readonly TimeSpan AuthTimeout = TimeSpan.FromMilliseconds(1200);
+
+    /// <summary>How long to wait for the earbuds' own challenge and verdict after ours.</summary>
+    private static readonly TimeSpan AuthVerdictTimeout = TimeSpan.FromMilliseconds(1500);
 
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(2);
 
@@ -23,6 +31,7 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
     private readonly List<Waiter> _waiters = [];
     private XiaomiDeviceProfile _profile;
     private byte _sequence = XiaomiProtocol.ConfigSequenceStart;
+    private TaskCompletionSource<bool>? _deviceVerdict;
 
     public XiaomiDeviceController(IDuplexByteChannel channel, ControllerContext context, XiaomiDeviceProfile profile)
         : base(channel, context)
@@ -30,7 +39,7 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
         _profile = profile.ForDevice(context.Identity.Name);
     }
 
-    /// <summary>True when the earbuds answered the auth challenge correctly.</summary>
+    /// <summary>True when the earbuds proved the shared secret and did not reject ours.</summary>
     public bool IsAuthenticated { get; private set; }
 
     public XiaomiDeviceProfile Profile => _profile;
@@ -40,12 +49,12 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
     protected override async Task<bool> StartSessionAsync(CancellationToken cancellationToken)
     {
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
-        if (!await ReadBatteryAsync(cancellationToken).ConfigureAwait(false))
+        if (!await ReadTargetInfoAsync(cancellationToken).ConfigureAwait(false))
         {
-            Logger.LogInformation("Xiaomi earbuds did not answer the battery query");
+            Logger.LogInformation("Xiaomi earbuds did not answer the device-info query");
             return false;
         }
-        await ReadFeaturesAsync(cancellationToken).ConfigureAwait(false);
+        await ReadFeaturesAsync(discover: true, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -53,69 +62,9 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
 
     private async Task<CommandResult> RefreshCoreAsync(CancellationToken cancellationToken)
     {
-        bool battery = await ReadBatteryAsync(cancellationToken).ConfigureAwait(false);
-        await ReadFeaturesAsync(cancellationToken).ConfigureAwait(false);
-        return battery ? CommandResult.Ok : new CommandResult(CommandStatus.Timeout, "The earbuds did not answer the battery query.");
-    }
-
-    private async Task<CommandResult> SetGamingModeCoreAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken)
-    {
-        if (toggle != DeviceToggle.GamingMode || !_profile.HasGamingMode) return NotSupported(toggle.ToString());
-
-        DeviceState? before = null;
-        Store.TryUpdate(DeviceId, s =>
-        {
-            before = s;
-            return s with
-            {
-                Toggles = s.Toggles.SetItem(toggle, Observed.From(enabled, Now, StateSource.Optimistic)),
-                LastError = null,
-            };
-        });
-
-        CommandResult result;
-        try
-        {
-            var write = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpSetConfig, NextSequence(),
-                XiaomiProtocol.SetConfigPayload(XiaomiProtocol.ConfigLowLatency, enabled ? (byte)1 : (byte)0));
-            if (!await WriteAsync(write.Encode(), cancellationToken).ConfigureAwait(false))
-            {
-                result = new CommandResult(CommandStatus.TransportError, "Write failed.");
-            }
-            else
-            {
-                // The write acknowledgement format is unconfirmed, so confirm by reading the value back.
-                byte? value = await ReadConfigAsync(XiaomiProtocol.ConfigLowLatency, cancellationToken).ConfigureAwait(false);
-                result = value switch
-                {
-                    null => new CommandResult(CommandStatus.Timeout, "The earbuds did not report low-latency mode after the write."),
-                    _ when (value != 0) == enabled => CommandResult.Ok,
-                    _ => new CommandResult(CommandStatus.Rejected, "The earbuds kept the previous low-latency setting."),
-                };
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            result = new CommandResult(CommandStatus.Cancelled);
-        }
-
-        Store.TryUpdate(DeviceId, s =>
-        {
-            if (result.IsSuccess)
-            {
-                return s with { Toggles = s.Toggles.SetItem(toggle, Observed.From(enabled, Now, StateSource.CommandConfirmation)), LastUpdateSource = StateSource.CommandConfirmation };
-            }
-            var next = s;
-            // Roll back unless a read-back already replaced the optimistic value with the device's.
-            if (s.Toggles.TryGetValue(toggle, out var current) && current.Source == StateSource.Optimistic)
-            {
-                next = before is not null && before.Toggles.TryGetValue(toggle, out var old)
-                    ? s with { Toggles = s.Toggles.SetItem(toggle, old) }
-                    : s with { Toggles = s.Toggles.Remove(toggle) };
-            }
-            return next with { LastError = new DeviceError(result.Detail ?? result.Status.ToString(), result.Status, Now) };
-        });
-        return result;
+        bool info = await ReadTargetInfoAsync(cancellationToken).ConfigureAwait(false);
+        await ReadFeaturesAsync(discover: false, cancellationToken).ConfigureAwait(false);
+        return info ? CommandResult.Ok : new CommandResult(CommandStatus.Timeout, "The earbuds did not answer the device-info query.");
     }
 
     protected override void OnReceived(ReadOnlySpan<byte> data)
@@ -126,12 +75,13 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
             if (frame is null) continue;
             Logger.LogTrace("Xiaomi frame received: {Frame}", frame);
             Touch();
-            Apply(frame);
-            ApplyFeatures(frame);
-            if (raw.OpCode == XiaomiProtocol.OpNotifyConfig && (raw.Kind & 0xC0) == 0xC0
-                && XiaomiConfigCodec.TryParse(raw.Payload, out _))
-                _ = WriteAsync(new XiaomiFrame((byte)(raw.Kind & 0x3F), raw.OpCode, 0, [raw.Sequence]).Encode(), CancellationToken.None);
-            Waiter? match = null;
+            if (!frame.IsResponse)
+            {
+                HandleEarbudRequest(frame);
+                continue;
+            }
+            if (frame.Status == 0) ApplyResponse(frame);
+            Waiter? match;
             lock (_gate)
             {
                 match = _waiters.FirstOrDefault(w => w.Accepts(frame));
@@ -141,78 +91,143 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
         }
     }
 
-    private void Apply(XiaomiFrame frame)
+    /// <summary>Requests the earbuds send: their auth round, setting pushes and status pushes.</summary>
+    private void HandleEarbudRequest(XiaomiFrame frame)
     {
-        if (XiaomiProtocol.TryParseBattery(frame, out var left, out var right, out var @case))
+        switch (frame.OpCode)
         {
-            var now = Now;
-            Store.TryUpdate(DeviceId, s => s with
-            {
-                Battery = new BatteryStatus(
-                    left is null ? s.Battery.Left : Observed.From(new BatteryReading(left, null), now, StateSource.QueryResponse),
-                    right is null ? s.Battery.Right : Observed.From(new BatteryReading(right, null), now, StateSource.QueryResponse),
-                    @case is null ? s.Battery.Case : Observed.From(new BatteryReading(@case, null), now, StateSource.QueryResponse)),
-                LastUpdateSource = StateSource.QueryResponse,
-            });
+            case XiaomiProtocol.OpAuthCheck when frame.Payload.Length >= 1 + XiaomiAuth.AuthRandomLength && frame.Payload[0] == XiaomiAuth.AuthVersion:
+                var answer = XiaomiAuth.BuildAuthCheckPayload(XiaomiAuth.GetEncryptedAuthCheckData(frame.Payload.AsSpan(1, XiaomiAuth.AuthRandomLength)));
+                Reply(frame, answer);
+                break;
+            case XiaomiProtocol.OpAuthResult:
+                Reply(frame, [XiaomiAuth.AuthVersion]);
+                bool accepted = frame.Payload is [XiaomiAuth.AuthVersion, 0, ..];
+                TaskCompletionSource<bool>? verdict;
+                lock (_gate) verdict = _deviceVerdict;
+                verdict?.TrySetResult(accepted);
+                break;
+            case XiaomiProtocol.OpNotifyConfig:
+                ApplyFeatures(frame);
+                if (frame.NeedsReply) Reply(frame, []);
+                break;
+            case XiaomiProtocol.OpReportStatus:
+                ApplyStatusReport(frame.Payload);
+                if (frame.NeedsReply) Reply(frame, []);
+                break;
         }
-        else if (XiaomiProtocol.TryParseConfig(frame, out var configId, out var value)
-            && configId == XiaomiProtocol.ConfigLowLatency && value <= 1)
+    }
+
+    private void Reply(XiaomiFrame request, byte[] data) =>
+        _ = WriteAsync(XiaomiFrame.Response(XiaomiProtocol.KindResponse, request.OpCode, request.Sequence, data).Encode(), CancellationToken.None);
+
+    private void ApplyResponse(XiaomiFrame frame)
+    {
+        switch (frame.OpCode)
         {
-            var source = frame.OpCode == XiaomiProtocol.OpNotifyConfig ? StateSource.DeviceNotification : StateSource.QueryResponse;
+            case XiaomiProtocol.OpTargetInfo when XiaomiProtocol.TryParseTargetInfo(frame.Payload, out var info):
+                ApplyTargetInfo(info);
+                break;
+            case XiaomiProtocol.OpGetConfig:
+                ApplyFeatures(frame);
+                break;
+            case XiaomiProtocol.OpRunInfo:
+                ApplyRunInfo(frame.Payload);
+                break;
+        }
+    }
+
+    private void ApplyTargetInfo(XiaomiTargetInfo info)
+    {
+        if (info.VendorId is int vid && info.ProductId is int pid)
+        {
+            lock (_gate) _profile = _profile.WithProductId(vid, pid);
+        }
+        var profile = _profile;
+        var now = Now;
+        Store.TryUpdate(DeviceId, s =>
+        {
+            var next = s with { Profile = profile, LastUpdateSource = StateSource.QueryResponse };
+            if (info.Battery is { } b) next = next with { Battery = MergeBattery(s.Battery, b[0], b[1], b[2], now, StateSource.QueryResponse) };
+            if (info.Firmware is not null || info.VendorId is not null)
+            {
+                var extra = new Dictionary<string, string>();
+                if (info.Firmware is { } fw) extra["version"] = fw;
+                if (info.VendorId is int v && info.ProductId is int p) extra["vid-pid"] = $"{v:X4}:{p:X4}";
+                next = next with { Firmware = Observed.From(new FirmwareInfo(info.Firmware, profile.ModelName, extra), now, StateSource.QueryResponse) };
+            }
+            return next;
+        });
+    }
+
+    /// <summary>Status push: record 0 is the battery <c>L R C</c>. The noise mode record carries no strength; the config push that follows does.</summary>
+    private void ApplyStatusReport(byte[] payload)
+    {
+        foreach (var (type, value) in XiaomiProtocol.ParseInfoRecords(payload))
+        {
+            if (type != XiaomiProtocol.StatusBattery || value.Length != 3) continue;
             var now = Now;
-            _profile = _profile.WithGamingMode(true);
-            var profile = _profile;
             Store.TryUpdate(DeviceId, s => s with
             {
-                Profile = profile,
-                Toggles = s.Toggles.SetItem(DeviceToggle.GamingMode, Observed.From(value == 1, now, source)),
-                LastUpdateSource = source,
+                Battery = MergeBattery(s.Battery, XiaomiProtocol.DecodeBattery(value[0]), XiaomiProtocol.DecodeBattery(value[1]), XiaomiProtocol.DecodeBattery(value[2]), now, StateSource.DeviceNotification),
+                LastUpdateSource = StateSource.DeviceNotification,
             });
         }
     }
 
+    /// <summary>A component the earbuds do not report (0xFF) keeps its last timestamped reading.</summary>
+    private static BatteryStatus MergeBattery(BatteryStatus current, BatteryReading? left, BatteryReading? right, BatteryReading? @case, DateTimeOffset now, StateSource source) => new(
+        left is null ? current.Left : Observed.From(left, now, source),
+        right is null ? current.Right : Observed.From(right, now, source),
+        @case is null ? current.Case : Observed.From(@case, now, source));
+
     private async Task AuthenticateAsync(CancellationToken cancellationToken)
     {
+        var verdict = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_gate) _deviceVerdict = verdict;
         var random = XiaomiAuth.CreateRandomFactor();
-        var challenge = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpTargetInfo, XiaomiProtocol.AuthSequence, XiaomiAuth.BuildAuthCheckPayload(random));
-        var answer = await RequestAsync(challenge, f => f.OpCode == XiaomiProtocol.OpTargetInfo && f.Payload.Length == 1 + XiaomiAuth.AuthRandomLength, AuthTimeout, cancellationToken).ConfigureAwait(false);
+        var challenge = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpAuthCheck, NextSequence(), XiaomiAuth.BuildAuthCheckPayload(random));
+        var answer = await RequestAsync(challenge, f => f.OpCode == XiaomiProtocol.OpAuthCheck, AuthTimeout, cancellationToken).ConfigureAwait(false);
         if (answer is null)
         {
             Logger.LogInformation("Xiaomi auth probe got no answer; continuing without auth");
             return;
         }
-        if (!XiaomiAuth.TryParseAuthCheckResponse(answer.Payload, out _, out var result) || !XiaomiAuth.VerifyAuthResponse(random, result))
+        if (answer.Status != 0 || !XiaomiAuth.TryParseAuthCheckResponse(answer.Payload, out _, out var result) || !XiaomiAuth.VerifyAuthResponse(random, result))
         {
             Logger.LogWarning("Xiaomi auth answer did not verify; later commands may be refused");
             return;
         }
         IsAuthenticated = true;
-        var report = new XiaomiFrame(XiaomiProtocol.KindAuthResult, XiaomiProtocol.OpAuthResult, 0x00, XiaomiProtocol.AuthResultPayload.ToArray());
-        await WriteAsync(report.Encode(), cancellationToken).ConfigureAwait(false);
+        var confirm = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpAuthResult, NextSequence(), [XiaomiAuth.AuthVersion, 0]);
+        await RequestAsync(confirm, f => f.OpCode == XiaomiProtocol.OpAuthResult, AuthTimeout, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // The earbuds now challenge us (answered in HandleEarbudRequest) and send their verdict.
+            if (!await verdict.Task.WaitAsync(AuthVerdictTimeout, Context.Time, cancellationToken).ConfigureAwait(false))
+            {
+                IsAuthenticated = false;
+                Logger.LogWarning("Xiaomi earbuds rejected our auth answer");
+            }
+        }
+        catch (TimeoutException)
+        {
+            Logger.LogInformation("Xiaomi earbuds sent no auth verdict; continuing");
+        }
     }
 
-    private async Task<bool> ReadBatteryAsync(CancellationToken cancellationToken)
+    private async Task<bool> ReadTargetInfoAsync(CancellationToken cancellationToken)
     {
-        var query = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpTargetInfo, XiaomiProtocol.BatterySequence, XiaomiProtocol.BatteryQueryPayload.ToArray());
-        var answer = await RequestAsync(query, f => XiaomiProtocol.TryParseBattery(f, out _, out _, out _), RequestTimeout, cancellationToken).ConfigureAwait(false);
+        var query = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpTargetInfo, NextSequence(), XiaomiProtocol.TargetInfoQueryPayload.ToArray());
+        var answer = await RequestAsync(query, f => f.OpCode == XiaomiProtocol.OpTargetInfo && f.Status == 0
+            && XiaomiProtocol.TryParseTargetInfo(f.Payload, out _), RequestTimeout, cancellationToken).ConfigureAwait(false);
         return answer is not null;
     }
 
-    private async Task<byte?> ReadConfigAsync(ushort configId, CancellationToken cancellationToken)
-    {
-        var query = new XiaomiFrame(XiaomiProtocol.KindRequest, XiaomiProtocol.OpGetConfig, NextSequence(), XiaomiProtocol.GetConfigPayload(configId));
-        var answer = await RequestAsync(
-            query,
-            f => f.OpCode == XiaomiProtocol.OpGetConfig && XiaomiProtocol.TryParseConfig(f, out var id, out _) && id == configId,
-            RequestTimeout,
-            cancellationToken).ConfigureAwait(false);
-        return answer is not null && XiaomiProtocol.TryParseConfig(answer, out _, out var value) ? value : null;
-    }
-
-    /// <summary>Sends <paramref name="frame"/> and waits for the first received frame <paramref name="accepts"/> matches; null on timeout or write failure.</summary>
+    /// <summary>Sends <paramref name="frame"/> and waits for the first response <paramref name="accepts"/> matches; null on timeout or write failure.</summary>
     private async Task<XiaomiFrame?> RequestAsync(XiaomiFrame frame, Func<XiaomiFrame, bool> accepts, TimeSpan timeout, CancellationToken cancellationToken)
     {
-        var waiter = new Waiter(f => f.Sequence == frame.Sequence && accepts(f), new TaskCompletionSource<XiaomiFrame>(TaskCreationOptions.RunContinuationsAsynchronously));
+        var waiter = new Waiter(f => f.IsResponse && f.Sequence == frame.Sequence && accepts(f), new TaskCompletionSource<XiaomiFrame>(TaskCreationOptions.RunContinuationsAsynchronously));
         lock (_gate) _waiters.Add(waiter);
         try
         {

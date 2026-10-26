@@ -41,7 +41,7 @@ public sealed class SennheiserTw4Tests
         Assert.Contains(DeviceToggle.InEarDetection, ((IControllableProfile)state.Profile).Toggles);
         Assert.Contains(DeviceToggle.GamingMode, ((IControllableProfile)state.Profile).Toggles);
         Assert.Equal(8, state.KeyFunctions?.Value.Count);
-        Assert.Equal(new byte[] { 3, 4, 12, 13 }, session.Device.Requests.Where(r => r.Command == 7).Select(r => r.Payload[0]));
+        Assert.Equal(new byte[] { 3, 4, 8, 10, 12, 13, 22 }, session.Device.Requests.Where(r => r.Command == 7).Select(r => r.Payload[0]));
         Assert.DoesNotContain(session.Device.Requests, r => r.Command is 0x1A02 or 0x1A03 or 0x1803);
     }
 

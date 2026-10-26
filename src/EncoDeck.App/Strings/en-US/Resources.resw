@@ -44,6 +44,7 @@
   <data name="Connection_PairedNotConnected" xml:space="preserve"><value>Paired, not connected</value></data>
   <data name="Connection_AudioConnected" xml:space="preserve"><value>Connected, preparing controls</value></data>
   <data name="Connection_UsbReceiverConnected" xml:space="preserve"><value>USB receiver connected</value></data>
+  <data name="Connection_UsbHeadsetConnected" xml:space="preserve"><value>Headset connected wirelessly via USB receiver</value></data>
   <data name="Connection_ControlConnecting" xml:space="preserve"><value>Connecting controls…</value></data>
   <data name="Connection_ControlReady" xml:space="preserve"><value>Connected</value></data>
   <data name="Connection_ControlUnavailable" xml:space="preserve"><value>Audio connected · controls unavailable</value></data>
@@ -121,6 +122,8 @@
   <data name="Nav_Controls.Content" xml:space="preserve"><value>Controls</value></data>
   <data name="Nav_Devices.Content" xml:space="preserve"><value>Devices</value></data>
   <data name="Nav_Settings.Content" xml:space="preserve"><value>Settings</value></data>
+  <data name="Nav_Labs.Content" xml:space="preserve"><value>Labs</value></data>
+  <data name="Labs_Summary.Text" xml:space="preserve"><value>Experimental audio features. They change Windows Bluetooth or audio settings and are not guaranteed to work on every device.</value></data>
   <data name="Home_GenericModel.Title" xml:space="preserve"><value>Unrecognized model</value></data>
   <data name="Home_NoDevice_Title.Text" xml:space="preserve"><value>No supported earbuds found</value></data>
   <data name="Home_NoDevice_Body.Text" xml:space="preserve"><value>Pair your earbuds in Windows Bluetooth settings first. EncoDeck finds paired earbuds automatically.</value></data>
@@ -136,6 +139,7 @@
   <data name="NoiseSelector_Transparency.Text" xml:space="preserve"><value>Transparency</value></data>
   <data name="Sound_Title.Text" xml:space="preserve"><value>Sound</value></data>
   <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>Earbud EQ</value></data>
+  <data name="Sound_BandEditor.Text" xml:space="preserve"><value>Custom curve</value></data>
   <data name="Sound_Spatial.Text" xml:space="preserve"><value>Spatial Audio</value></data>
   <data name="Controls_Title.Text" xml:space="preserve"><value>Controls</value></data>
   <data name="Controls_Settings.Text" xml:space="preserve"><value>More settings</value></data>
@@ -192,7 +196,7 @@
   <data name="Settings_Advanced.Text" xml:space="preserve"><value>Advanced</value></data>
   <data name="Settings_RawLogging.Header" xml:space="preserve"><value>Log control-channel traffic (diagnostics)</value></data>
   <data name="Settings_About.Text" xml:space="preserve"><value>About</value></data>
-  <data name="Settings_Disclaimer.Text" xml:space="preserve"><value>EncoDeck is an open-source community project. It is not affiliated with, endorsed by or supported by OPPO, OnePlus or realme. Product names are used only to describe compatibility.</value></data>
+  <data name="Settings_Disclaimer.Text" xml:space="preserve"><value>EncoDeck is an unofficial open-source project with no affiliation, partnership or endorsement from the earbud brands it supports or their manufacturers. Brand and product names are used only to describe compatibility.</value></data>
   <data name="Settings_License.Text" xml:space="preserve"><value>Licensed under the GNU General Public License v3.0 only (GPL-3.0-only). Third-party notices are included with the app.</value></data>
   <data name="Settings_Source.Content" xml:space="preserve"><value>Source code</value></data>
   <data name="Settings_Notices.Content" xml:space="preserve"><value>Third-party notices</value></data>
@@ -336,7 +340,7 @@
   <data name="Home_Spatial.Text" xml:space="preserve"><value>Spatial audio</value></data>
   <data name="Home_GameMode.Header" xml:space="preserve"><value>Game mode</value></data>
   <data name="Home_Model_Name" xml:space="preserve"><value>3D model of the earbuds; drag or use the arrow keys to rotate</value></data>
-  <data name="Home_GenericModel_Message" xml:space="preserve"><value>These earbuds (product ID {0}) are not in the official app's model list either, so only battery and firmware information is shown.</value></data>
+  <data name="Home_GenericModel_Message" xml:space="preserve"><value>These earbuds (product ID {0}) are not in the model list, so only battery and firmware information is shown.</value></data>
   <data name="Error_CycleAtLeastOne" xml:space="preserve"><value>Select at least 1 item</value></data>
   <data name="Gesture_CycleTitle" xml:space="preserve"><value>Noise control modes for {0}</value></data>
   <data name="Gesture_CycleNote" xml:space="preserve"><value>At least {0} items need to be selected</value></data>
@@ -414,6 +418,8 @@
   <data name="Home_DeviceBusy" xml:space="preserve"><value>Working…</value></data>
   <data name="Home_DeviceConnected" xml:space="preserve"><value>Connected · tap to disconnect</value></data>
   <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>Tap to connect</value></data>
+  <data name="Home_DeviceLastConnected" xml:space="preserve"><value>Connected last time</value></data>
+  <data name="Home_DeviceNotConnected" xml:space="preserve"><value>Not connected</value></data>
   <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>Disconnect this PC in Windows Bluetooth settings</value></data>
   <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>This is this PC</value></data>
   <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>The earbuds are connected to this PC. To disconnect this PC, disconnect the earbuds in Windows Bluetooth settings.</value></data>
@@ -470,7 +476,7 @@
   <data name="Update_DownloadAndInstall" xml:space="preserve"><value>Download and install</value></data>
   <data name="Update_InstallNow" xml:space="preserve"><value>Restart and update now</value></data>
   <data name="Notify_UpdateReady_Title" xml:space="preserve"><value>EncoDeck {0} is ready to install</value></data>
-  <data name="Notify_UpdateReady_Message" xml:space="preserve"><value>Downloaded in the background. Install it from Settings › Updates.</value></data>
+  <data name="Notify_UpdateReady_Message" xml:space="preserve"><value>Downloaded in the background. Install it from About › Updates.</value></data>
   <data name="Notify_Updated_Title" xml:space="preserve"><value>EncoDeck was updated to {0}</value></data>
   <data name="Notify_Updated_Message" xml:space="preserve"><value>EncoDeck is running in the notification area.</value></data>
   <data name="Settings_StoreUpdate.Content" xml:space="preserve"><value>Update</value></data>
@@ -487,6 +493,18 @@
   <data name="Vivo_Eq_Immersive" xml:space="preserve"><value>Immersive audio</value></data>
   <data name="Vivo_Eq_Audiobooks" xml:space="preserve"><value>Audiobooks</value></data>
   <data name="Vivo_Eq_UltimateMaster" xml:space="preserve"><value>Ultimate master</value></data>
+  <data name="Vivo_Function_Translate" xml:space="preserve"><value>Translate</value></data>
+  <data name="Vivo_Function_DeclineCall" xml:space="preserve"><value>Decline incoming call</value></data>
+  <data name="Vivo_HoldCycle" xml:space="preserve"><value>Touch-and-hold noise modes</value></data>
+  <data name="Brand_UnknownValue" xml:space="preserve"><value>Unknown value (0x{0}) — reported only</value></data>
+  <data name="Edifier_AncComfort" xml:space="preserve"><value>Comfort</value></data>
+  <data name="Edifier_Eq_Classic" xml:space="preserve"><value>Classic</value></data>
+  <data name="Edifier_Eq_Pop" xml:space="preserve"><value>Pop</value></data>
+  <data name="Edifier_Eq_Classical" xml:space="preserve"><value>Classical</value></data>
+  <data name="Edifier_Eq_Rock" xml:space="preserve"><value>Rock</value></data>
+  <data name="Edifier_ButtonCycle" xml:space="preserve"><value>Modes the button cycles through</value></data>
+  <data name="PowerOff_Minutes" xml:space="preserve"><value>{0} min</value></data>
+  <data name="PowerOff_Hours" xml:space="preserve"><value>{0} h</value></data>
   <data name="Huawei_NoiseLevel_Dynamic" xml:space="preserve"><value>Dynamic</value></data>
   <data name="Huawei_NoiseLevel_Cozy" xml:space="preserve"><value>Cozy</value></data>
   <data name="Huawei_NoiseLevel_General" xml:space="preserve"><value>General</value></data>
@@ -495,6 +513,11 @@
   <data name="Huawei_Eq_Bass" xml:space="preserve"><value>Bass boost</value></data>
   <data name="Huawei_Eq_Treble" xml:space="preserve"><value>Treble boost</value></data>
   <data name="Huawei_Eq_Voices" xml:space="preserve"><value>Vocals</value></data>
+  <data name="Huawei_Eq_Balanced" xml:space="preserve"><value>Balanced</value></data>
+  <data name="Huawei_Eq_Movie" xml:space="preserve"><value>Movie</value></data>
+  <data name="Huawei_Eq_Podcast" xml:space="preserve"><value>Podcast</value></data>
+  <data name="Huawei_Eq_Game" xml:space="preserve"><value>Game</value></data>
+  <data name="Huawei_Eq_Sport" xml:space="preserve"><value>Sport</value></data>
   <data name="Artwork_Left.Text" xml:space="preserve"><value>Left earbud</value></data>
   <data name="Artwork_Right.Text" xml:space="preserve"><value>Right earbud</value></data>
   <data name="Artwork_Case.Text" xml:space="preserve"><value>Charging case</value></data>
@@ -601,6 +624,16 @@
   <data name="Xiaomi_Eq_17" xml:space="preserve"><value>Outdoor</value></data>
   <data name="Xiaomi_Eq_18" xml:space="preserve"><value>Underwater</value></data>
   <data name="Xiaomi_Eq_21" xml:space="preserve"><value>Balanced listening</value></data>
+  <data name="Xiaomi_Eq_10" xml:space="preserve"><value>Custom</value></data>
+  <data name="Xiaomi_Anc_0" xml:space="preserve"><value>Balanced</value></data>
+  <data name="Xiaomi_Anc_1" xml:space="preserve"><value>Light</value></data>
+  <data name="Xiaomi_Anc_2" xml:space="preserve"><value>Deep</value></data>
+  <data name="Xiaomi_Ambient_0" xml:space="preserve"><value>Regular</value></data>
+  <data name="Xiaomi_Ambient_1" xml:space="preserve"><value>Voice</value></data>
+  <data name="Xiaomi_Ambient_2" xml:space="preserve"><value>Ambient</value></data>
+  <data name="Toggle_AutoAnswerCalls" xml:space="preserve"><value>Auto-answer calls</value></data>
+  <data name="Toggle_AutoAnswerCalls_Description" xml:space="preserve"><value>The earbuds answer incoming calls automatically</value></data>
+  <data name="Error_FindWhileWorn" xml:space="preserve"><value>An earbud is in an ear. Take both earbuds out before playing the find tone.</value></data>
   <data name="Moondrop_Gain.Header" xml:space="preserve"><value>Gain</value></data>
   <data name="Moondrop_GainLow" xml:space="preserve"><value>Low</value></data>
   <data name="Moondrop_GainMid" xml:space="preserve"><value>Mid</value></data>
@@ -612,6 +645,18 @@
   <data name="Cap_Gain" xml:space="preserve"><value>Gain</value></data>
   <data name="Cap_IndicatorLight" xml:space="preserve"><value>Indicator light</value></data>
   <data name="Cap_PromptTone" xml:space="preserve"><value>Prompt tones</value></data>
+  <data name="Cap_HiResCodec" xml:space="preserve"><value>LHDC</value></data>
+  <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Cap_ChannelSwap" xml:space="preserve"><value>Left / right channel swap</value></data>
+  <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Toggle_Ldac_Description" xml:space="preserve"><value>Device-side LDAC switch. This does not install an LDAC encoder in Windows.</value></data>
+  <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Toggle_Lc3_Description" xml:space="preserve"><value>Device-side LC3 codec switch. This does not change the Windows Bluetooth transport.</value></data>
+  <data name="Toggle_ChannelSwap" xml:space="preserve"><value>Swap left / right channels</value></data>
+  <data name="Toggle_ChannelSwap_Description" xml:space="preserve"><value>Swap the left and right audio channels on the device.</value></data>
+  <data name="Moondrop_Bass_Title" xml:space="preserve"><value>Dynamic bass</value></data>
+  <data name="Moondrop_Bass_Summary" xml:space="preserve"><value>Enhances low frequencies inside the earbuds.</value></data>
   <data name="Moondrop_Hold1" xml:space="preserve"><value>Touch and hold (1 second)</value></data>
   <data name="Moondrop_Hold3" xml:space="preserve"><value>Touch and hold (3 seconds)</value></data>
   <data name="Moondrop_Function_0" xml:space="preserve"><value>None</value></data>
@@ -629,18 +674,43 @@
   <data name="Home_SwitchDevice.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve"><value>Switch device</value></data>
   <data name="Home_SwitchDevice_NotConnected" xml:space="preserve"><value>{0} (not connected)</value></data>
   <data name="Home_ManageDevices" xml:space="preserve"><value>Manage devices</value></data>
-  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Connected over LE Audio (LC3)</value></data>
-  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Connected over LE Audio (LC3)</value></data>
+  <data name="Codec_Classic.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Classic Bluetooth (A2DP) codec reported by the earbuds</value></data>
+  <data name="Codec_Classic.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Classic Bluetooth audio codec</value></data>
+  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>LE link connected; Windows manages LC3 streaming, which has not been verified</value></data>
+  <data name="Codec_LeAudio.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>LE link connected; audio streaming unverified</value></data>
+  <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>Waiting for LC3 · hold the case button to reconnect</value></data>
   <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio (LC3) connection (experimental)</value></data>
   <data name="LeAudio_Summary.Text" xml:space="preserve"><value>Lets Windows connect these earbuds over LE Audio with the LC3 codec instead of Classic Bluetooth A2DP. Your PC's Bluetooth must support LE Audio.</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>After switching to LE Audio, noise control cannot be changed from EncoDeck. Change it on the earbuds instead.</value></data>
   <data name="LeAudio_Switch" xml:space="preserve"><value>Switch to LE Audio</value></data>
   <data name="LeAudio_Restore" xml:space="preserve"><value>Restore Classic Bluetooth</value></data>
-  <data name="LeAudio_StatusLe" xml:space="preserve"><value>Current: LE Audio (LC3), both earbuds paired.</value></data>
+  <data name="LeAudio_StatusLe" xml:space="preserve"><value>Both earbuds have LE bonds; Windows manages the actual audio connection.</value></data>
+  <data name="LeAudio_StatusClassicEndpoint" xml:space="preserve"><value>Windows still exposes a Classic A2DP endpoint. Selecting "Headphones (OPPO Enco X4)" plays on one earbud only; choose the LE Audio "Speakers" endpoint.</value></data>
+  <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>The Windows audio endpoint state could not be confirmed; ACL/GATT readiness does not prove dual-ear playback.</value></data>
+  <data name="LeAudio_DisableClassic" xml:space="preserve"><value>Disable Classic audio endpoint</value></data>
+  <data name="LeAudio_EnableClassic" xml:space="preserve"><value>Restore Classic audio endpoint</value></data>
+  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>Disable headset microphone</value></data>
+  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>When an app opens the headset microphone, Windows switches LE Audio to a two-way call configuration and playback quality drops noticeably. While disabled, apps can only use other microphones and the earbuds keep media-quality playback. Turn it on again after re-pairing.</value></data>
+  <data name="LeAudio_MicFailed" xml:space="preserve"><value>Could not change the headset microphone: {0}</value></data>
+  <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>The Classic A2DP render endpoint was disabled. Choose the LE Audio "Speakers" endpoint in Sound settings.</value></data>
+  <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>The Classic A2DP endpoint is already disabled.</value></data>
+  <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>No Classic A2DP endpoint was found to disable.</value></data>
+  <data name="LeAudio_Endpoint_Enabled" xml:space="preserve"><value>The Classic audio endpoint was re-enabled.</value></data>
+  <data name="LeAudio_Endpoint_NothingToRestore" xml:space="preserve"><value>No Classic audio endpoint needs restoring.</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeLinks" xml:space="preserve"><value>Both LE links are not connected yet; no endpoint was changed.</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeAudioEndpointMissing" xml:space="preserve"><value>The LE Audio render endpoint was not found; the Classic endpoint was left untouched to avoid breaking LE Audio.</value></data>
+  <data name="LeAudio_Endpoint_Ambiguous" xml:space="preserve"><value>More than one possible LE Audio endpoint was found; nothing was changed.</value></data>
+  <data name="LeAudio_Endpoint_Failed" xml:space="preserve"><value>Endpoint operation failed: {0}</value></data>
+  <data name="Connection_LeAudioSingleEar" xml:space="preserve"><value>Only one LE earbud connected</value></data>
+  <data name="LeAudio_Stage_WaitingForLinks" xml:space="preserve"><value>Both earbuds paired. Waiting for both LE links…</value></data>
+  <data name="LeAudio_Result_PairedWaitingForLinks" xml:space="preserve"><value>Both LE bonds are ready, but both connections have not been confirmed. Take out both earbuds and wait for reconnection; there is no need to remove the bonds immediately.</value></data>
   <data name="LeAudio_StatusLeSingle" xml:space="preserve"><value>Current: LE Audio, but only one earbud is paired, so sound may play on one side only. Switch again to fix it.</value></data>
   <data name="LeAudio_StatusClassic" xml:space="preserve"><value>Current: Classic Bluetooth (A2DP).</value></data>
   <data name="LeAudio_StatusUnpaired" xml:space="preserve"><value>Current: these earbuds are not paired with this PC.</value></data>
   <data name="LeAudio_ConfirmTitle" xml:space="preserve"><value>Change how the earbuds connect?</value></data>
-  <data name="LeAudio_ConfirmSwitch" xml:space="preserve"><value>When asked, put the earbuds in the case, open the lid and hold the case button to enter pairing mode. Once pairing mode is detected, EncoDeck removes this PC's old pairing with the earbuds (your phone and other devices are not affected) and pairs both earbuds over LE Audio automatically; audio stops meanwhile.
+  <data name="LeAudio_ConfirmSwitch" xml:space="preserve"><value>EncoDeck first turns multipoint off and confirms the setting, so a phone cannot take over the connection. The earbuds will no longer connect to two devices simultaneously. If confirmation fails, the switch stops.
+
+When asked, put the earbuds in the case, open the lid and hold the case button to enter pairing mode. Once pairing mode is detected, EncoDeck removes this PC's old pairing with the earbuds (pairing records on your phone and other devices are kept) and pairs both earbuds over LE Audio automatically; audio stops meanwhile.
 
 Afterwards Windows lists two entries with the same name (one is the other earbud), and audio plays through "Speakers (earbud name)".</value></data>
   <data name="LeAudio_ConfirmRestore" xml:space="preserve"><value>EncoDeck will remove this PC's LE Audio and associated Classic Bluetooth pairings; audio will stop. After cleanup, put the earbuds in pairing mode and manually pair them using Add device in Windows Bluetooth settings.</value></data>
@@ -650,7 +720,13 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="LeAudio_Stage_WaitingForPairingMode" xml:space="preserve"><value>Put both earbuds in the case, open the lid and hold the case button until the light flashes (waiting up to 2 minutes)…</value></data>
   <data name="LeAudio_Stage_PairingPrimary" xml:space="preserve"><value>Pairing mode detected. Pairing the first earbud over LE Audio…</value></data>
   <data name="LeAudio_Stage_PairingSecondary" xml:space="preserve"><value>Pairing the other earbud…</value></data>
+  <data name="LeAudio_Stage_DisablingMultipoint" xml:space="preserve"><value>Turning multipoint off and confirming the earbud setting…</value></data>
+  <data name="Error_LeAudioMultipoint" xml:space="preserve"><value>Keep multipoint off while using LE Audio to reduce connection takeovers by a phone. Restore Classic Bluetooth before enabling multipoint.</value></data>
+  <data name="LeAudio_Result_MultipointDisableFailed" xml:space="preserve"><value>Multipoint could not be confirmed off. The switch was stopped and existing pairings were kept. Restore this PC's earbud control connection and retry.</value></data>
   <data name="LeAudio_Result_Paired" xml:space="preserve"><value>Switched to LE Audio. Put the earbuds on and choose "Speakers (earbud name)" as the output in Sound settings.</value></data>
+  <data name="LeAudio_Result_PairedWithClassicAudio" xml:space="preserve"><value>LE Audio is paired, but Windows still exposes a Classic A2DP endpoint. Disable it before playback, or select the LE Audio "Speakers" endpoint, otherwise sound may play on one earbud only.</value></data>
+  <data name="LeAudio_Result_PairedButLeAudioEndpointMissing" xml:space="preserve"><value>Both LE links are connected, but the LE Audio render endpoint was not found. The Classic endpoint was left untouched to avoid breaking LE Audio. Retry later or check diagnostics.</value></data>
+  <data name="LeAudio_Result_ClassicAudioEndpointRestoreFailed" xml:space="preserve"><value>The Classic audio endpoint could not be re-enabled, so the pairings were kept. Retry as administrator or enable it in Device Manager.</value></data>
   <data name="LeAudio_Result_PrimaryOnly" xml:space="preserve"><value>Only one earbud was paired, so sound may play on one side only. Enter pairing mode again and retry.</value></data>
   <data name="LeAudio_Result_Removed" xml:space="preserve"><value>This PC's earbud pairings have been removed. Put the earbuds in pairing mode, click Open Windows Bluetooth settings, then choose Add device → Bluetooth to manually pair them for Classic Bluetooth audio.</value></data>
   <data name="LeAudio_Result_PairingModeNotSeen" xml:space="preserve"><value>Pairing mode was not detected; the existing pairing is unchanged. Please retry.</value></data>
@@ -687,4 +763,141 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="Sennheiser_UnknownAction" xml:space="preserve"><value>Unknown action (0x{0})</value></data>
   <data name="Sennheiser_LowLatency" xml:space="preserve"><value>Low latency mode</value></data>
   <data name="Sennheiser_LowLatencyDescription" xml:space="preserve"><value>Reduce earbud audio delay for games and videos.</value></data>
+  <data name="NoiseLevel_TransparencyStandard" xml:space="preserve"><value>Standard transparency</value></data>
+  <data name="NoiseLevel_EnhancedVoices" xml:space="preserve"><value>Enhance voices</value></data>
+  <data name="NoiseSelector_TransparencyLevel" xml:space="preserve"><value>Transparency mode</value></data>
+  <data name="Toggle_AutoVolume" xml:space="preserve"><value>Smart volume</value></data>
+  <data name="Toggle_AutoVolume_Description" xml:space="preserve"><value>Automatically adjust playback volume as ambient noise changes</value></data>
+  <data name="Dual_ManagementUnavailable" xml:space="preserve"><value>This firmware can list devices but cannot remotely connect, disconnect, or remove them. Use Bluetooth settings on the corresponding device.</value></data>
+  <data name="Nav_About.Content" xml:space="preserve"><value>About</value></data>
+  <data name="About_Legal.Text" xml:space="preserve"><value>Legal</value></data>
+  <data name="About_Tagline.Text" xml:space="preserve"><value>Manage your earbuds on Windows — no more reaching for your phone just to switch noise cancelling.</value></data>
+  <data name="About_Compatibility.Content" xml:space="preserve"><value>Device compatibility</value></data>
+  <data name="About_Changelog.Content" xml:space="preserve"><value>Changelog</value></data>
+  <data name="About_Feedback.Text" xml:space="preserve"><value>Feedback</value></data>
+  <data name="About_FeedbackText.Text" xml:space="preserve"><value>If the earbuds will not connect, a setting has no effect or the model is recognised wrongly, open an issue with the earbud model, firmware version, Windows version and the steps you took. Test results for models not yet verified are welcome too.</value></data>
+  <data name="About_ReportIssue.Content" xml:space="preserve"><value>Report an issue</value></data>
+  <data name="About_Contributing.Content" xml:space="preserve"><value>Contributing</value></data>
+  <data name="About_Thanks.Text" xml:space="preserve"><value>Acknowledgements</value></data>
+  <data name="About_ThanksProtocol.Text" xml:space="preserve"><value>Earbud protocol and device support</value></data>
+  <data name="About_ThanksMoondrop.Text" xml:space="preserve"><value>MOONDROP model data, GAIA framing and commands</value></data>
+  <data name="About_ThanksLhdc.Text" xml:space="preserve"><value>LHDC V5 component</value></data>
+  <data name="About_ThanksTray.Text" xml:space="preserve"><value>Notification area icon</value></data>
+  <data name="About_LicenseLink.Content" xml:space="preserve"><value>License</value></data>
+  <data name="Error_SonyLeAudioControl" xml:space="preserve"><value>The headset is connected over LE Audio, and its control service cannot be opened in this mode right now. In Sony | Sound Connect on your phone, set “LE Audio connection setting” to “Classic Audio only”, or set “Bluetooth connection quality” to “Priority on sound quality” or “Priority on stable connection”, so the headset reconnects over Classic Bluetooth. EncoDeck tries again once it reconnects.</value></data>
+  <data name="Error_SonyClassicLinkDown" xml:space="preserve"><value>The headset has no Classic Bluetooth connection, so there is no control channel. Connect it in Windows Settings › Bluetooth &amp; devices (or play some audio to wake it), and if needed switch the headset to Classic Audio, then try again.</value></data>
+  <data name="Update_BadgeHint" xml:space="preserve"><value>A new version is available</value></data>
+  <data name="Samsung_AncLevel_1" xml:space="preserve"><value>Level 1</value></data>
+  <data name="Samsung_AncLevel_2" xml:space="preserve"><value>Level 2</value></data>
+  <data name="Samsung_AncLevel_3" xml:space="preserve"><value>Level 3</value></data>
+  <data name="Samsung_AncLevel_4" xml:space="preserve"><value>Level 4</value></data>
+  <data name="Samsung_AncLevel_5" xml:space="preserve"><value>Level 5</value></data>
+  <data name="Samsung_Eq_Normal" xml:space="preserve"><value>Normal</value></data>
+  <data name="Samsung_Eq_BassBoost" xml:space="preserve"><value>Bass boost</value></data>
+  <data name="Samsung_Eq_Soft" xml:space="preserve"><value>Soft</value></data>
+  <data name="Samsung_Eq_Dynamic" xml:space="preserve"><value>Dynamic</value></data>
+  <data name="Samsung_Eq_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="Samsung_Eq_TrebleBoost" xml:space="preserve"><value>Treble boost</value></data>
+  <data name="Google_Eq_Balanced" xml:space="preserve"><value>Balanced</value></data>
+  <data name="Google_Eq_HeavyBass" xml:space="preserve"><value>Heavy bass</value></data>
+  <data name="Google_Eq_VocalBoost" xml:space="preserve"><value>Vocal boost</value></data>
+  <data name="Google_Eq_TrebleBoost" xml:space="preserve"><value>Treble boost</value></data>
+  <data name="Google_Eq_LightBass" xml:space="preserve"><value>Light bass</value></data>
+  <data name="Nothing_Eq_Balanced" xml:space="preserve"><value>Balanced</value></data>
+  <data name="Nothing_Eq_Voice" xml:space="preserve"><value>Voice</value></data>
+  <data name="Nothing_Eq_MoreTreble" xml:space="preserve"><value>More treble</value></data>
+  <data name="Nothing_Eq_MoreBass" xml:space="preserve"><value>More bass</value></data>
+  <data name="Nothing_Eq_Rock" xml:space="preserve"><value>Rock</value></data>
+  <data name="Nothing_Eq_Electronic" xml:space="preserve"><value>Electronic</value></data>
+  <data name="Nothing_Eq_Pop" xml:space="preserve"><value>Pop</value></data>
+  <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>Enhance vocals</value></data>
+  <data name="Nothing_Eq_Classical" xml:space="preserve"><value>Classical</value></data>
+  <data name="Eq_DeviceCustom" xml:space="preserve"><value>Custom EQ</value></data>
+  <data name="Eq_DevicePreset" xml:space="preserve"><value>Preset {0}</value></data>
+  <data name="Sennheiser_EqOff" xml:space="preserve"><value>Off</value></data>
+  <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>Podcast</value></data>
+  <data name="Dual_ConnectOnly" xml:space="preserve"><value>You can connect a listed device here. To disconnect or remove a device, use Bluetooth settings on that device.</value></data>
+  <data name="Find_Loud_Message" xml:space="preserve"><value>The tone is very loud. Make sure the earbuds are not in anyone's ears, or it may damage hearing.</value></data>
+  <data name="Toggle_SpeakToChat" xml:space="preserve"><value>Speak-to-Chat</value></data>
+  <data name="Toggle_SpeakToChat_Description" xml:space="preserve"><value>Pause playback and let ambient sound in when you start talking.</value></data>
+  <data name="Toggle_Upscaling" xml:space="preserve"><value>DSEE</value></data>
+  <data name="Toggle_Upscaling_Description" xml:space="preserve"><value>Device-side upscaling of compressed music. May increase power consumption.</value></data>
+  <data name="Toggle_TouchControls" xml:space="preserve"><value>Touch controls</value></data>
+  <data name="Toggle_TouchControls_Description" xml:space="preserve"><value>Turn the touch panel or touch sensors on or off. Each gesture keeps its existing setting while touch is off.</value></data>
+  <data name="NoiseLevel_SonyAmbient" xml:space="preserve"><value>Standard</value></data>
+  <data name="NoiseLevel_SonyVoice" xml:space="preserve"><value>Focus on voice</value></data>
+  <data name="NoiseLevel_AkgAmbientAware" xml:space="preserve"><value>Ambient Aware</value></data>
+  <data name="NoiseLevel_AkgTalkThrough" xml:space="preserve"><value>TalkThru</value></data>
+  <data name="SonyOption_AmbientLevel" xml:space="preserve"><value>Ambient sound level</value></data>
+  <data name="SonyOption_Unknown" xml:space="preserve"><value>Unknown (0x{0})</value></data>
+  <data name="AutoOff_Title" xml:space="preserve"><value>Automatic power off</value></data>
+  <data name="AutoOff_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="AutoOff_WhenRemoved" xml:space="preserve"><value>When taken off</value></data>
+  <data name="SonyKey_Left" xml:space="preserve"><value>Left touch sensor</value></data>
+  <data name="SonyKey_Right" xml:space="preserve"><value>Right touch sensor</value></data>
+  <data name="SonyKey_Custom" xml:space="preserve"><value>Custom button</value></data>
+  <data name="SonyKey_NcAmbient" xml:space="preserve"><value>NC/Ambient button</value></data>
+  <data name="SonyKey_Other" xml:space="preserve"><value>Assignable control</value></data>
+  <data name="SonyPreset_00" xml:space="preserve"><value>Ambient sound control</value></data>
+  <data name="SonyPreset_10" xml:space="preserve"><value>Volume control</value></data>
+  <data name="SonyPreset_20" xml:space="preserve"><value>Playback control</value></data>
+  <data name="SonyPreset_21" xml:space="preserve"><value>Track control</value></data>
+  <data name="SonyPreset_30" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="SonyPreset_31" xml:space="preserve"><value>Google Assistant</value></data>
+  <data name="SonyPreset_32" xml:space="preserve"><value>Amazon Alexa</value></data>
+  <data name="SonyPreset_35" xml:space="preserve"><value>Ambient sound control / Quick Access</value></data>
+  <data name="SonyPreset_36" xml:space="preserve"><value>Quick Access</value></data>
+  <data name="SonyPreset_45" xml:space="preserve"><value>Ambient sound control (mic)</value></data>
+  <data name="SonyPreset_46" xml:space="preserve"><value>Listening mode / Quick Access</value></data>
+  <data name="SonyPreset_47" xml:space="preserve"><value>Ambient sound control / Listening mode</value></data>
+  <data name="SonyPreset_FF" xml:space="preserve"><value>No function</value></data>
+  <data name="SonyEq_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="SonyEq_Rock" xml:space="preserve"><value>Rock</value></data>
+  <data name="SonyEq_Pop" xml:space="preserve"><value>Pop</value></data>
+  <data name="SonyEq_Jazz" xml:space="preserve"><value>Jazz</value></data>
+  <data name="SonyEq_Dance" xml:space="preserve"><value>Dance</value></data>
+  <data name="SonyEq_Edm" xml:space="preserve"><value>EDM</value></data>
+  <data name="SonyEq_RnbHipHop" xml:space="preserve"><value>R&amp;B/Hip-Hop</value></data>
+  <data name="SonyEq_Acoustic" xml:space="preserve"><value>Acoustic</value></data>
+  <data name="SonyEq_Bright" xml:space="preserve"><value>Bright</value></data>
+  <data name="SonyEq_Excited" xml:space="preserve"><value>Excited</value></data>
+  <data name="SonyEq_Mellow" xml:space="preserve"><value>Mellow</value></data>
+  <data name="SonyEq_Relaxed" xml:space="preserve"><value>Relaxed</value></data>
+  <data name="SonyEq_Vocal" xml:space="preserve"><value>Vocal</value></data>
+  <data name="SonyEq_TrebleBoost" xml:space="preserve"><value>Treble Boost</value></data>
+  <data name="SonyEq_BassBoost" xml:space="preserve"><value>Bass Boost</value></data>
+  <data name="SonyEq_Speech" xml:space="preserve"><value>Speech</value></data>
+  <data name="SonyEq_Heavy" xml:space="preserve"><value>Heavy</value></data>
+  <data name="SonyEq_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="SonyEq_Hard" xml:space="preserve"><value>Hard</value></data>
+  <data name="SonyEq_Soft" xml:space="preserve"><value>Soft</value></data>
+  <data name="SonyEq_Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="AkgEq_Off" xml:space="preserve"><value>Off</value></data>
+  <data name="AkgEq_Jazz" xml:space="preserve"><value>Jazz</value></data>
+  <data name="AkgEq_Vocal" xml:space="preserve"><value>Vocal</value></data>
+  <data name="AkgEq_Bass" xml:space="preserve"><value>Bass</value></data>
+  <data name="AkgEq_User" xml:space="preserve"><value>User</value></data>
+  <data name="AkgEq_Rock" xml:space="preserve"><value>Rock</value></data>
+  <data name="AkgEq_Piano" xml:space="preserve"><value>Piano</value></data>
+  <data name="AkgEq_Club" xml:space="preserve"><value>Club</value></data>
+  <data name="AkgEq_Studio" xml:space="preserve"><value>Studio</value></data>
+  <data name="Settings_AkgExperimental.Header" xml:space="preserve"><value>Experimental AKG Hybrid features</value></data>
+  <data name="Settings_AkgExperimental.Description" xml:space="preserve"><value>Enable unverified noise-control commands for AKG N5 / N9 Hybrid. Off by default; use at your own risk. Reconnect to query newly enabled features.</value></data>
+  <data name="SonyEq_Game" xml:space="preserve"><value>Game</value></data>
+  <data name="SonyEq_Manual" xml:space="preserve"><value>Manual</value></data>
+  <data name="SonyEq_CustomN" xml:space="preserve"><value>Custom {0}</value></data>
+  <data name="SonyEq_UserSetting" xml:space="preserve"><value>User setting {0}</value></data>
+  <data name="PowerOff_Timer" xml:space="preserve"><value>Auto power-off</value></data>
+  <data name="PowerOff_Timer_Description" xml:space="preserve"><value>Turns the headphones off after the selected time.</value></data>
+  <data name="Settings_BrandExperimental.Header" xml:space="preserve"><value>Experimental features</value></data>
+  <data name="Settings_BrandExperimental.Description" xml:space="preserve"><value>Enable settings without hardware reports for this model (such as gestures, wear detection or game mode). Off by default; use at your own risk. Reconnect to query newly enabled features.</value></data>
+  <data name="Toggle_DoNotDisturb" xml:space="preserve"><value>Do not disturb</value></data>
+  <data name="Toggle_DoNotDisturb_Description" xml:space="preserve"><value>While on the 2.4 GHz wireless link, keep sound from the paired Bluetooth device from interrupting</value></data>
+  <data name="UsbEq_Default" xml:space="preserve"><value>Default</value></data>
+  <data name="UsbEq_Game" xml:space="preserve"><value>Game</value></data>
+  <data name="UsbEq_Music" xml:space="preserve"><value>Music</value></data>
+  <data name="UsbEq_Movie" xml:space="preserve"><value>Movie</value></data>
+  <data name="UsbEq_Custom" xml:space="preserve"><value>Custom</value></data>
+  <data name="AutoOff_Minutes" xml:space="preserve"><value>After {0} minutes</value></data>
+  <data name="AutoOff_IdleDescription" xml:space="preserve"><value>Turn the headset off after it has been idle for the selected time</value></data>
 </root>

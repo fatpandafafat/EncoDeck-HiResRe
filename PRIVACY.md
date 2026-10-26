@@ -4,7 +4,7 @@
 
 ## 中文
 
-EncoDeck 是一款非官方的开源 Windows 应用，用于控制兼容的 OPPO 蓝牙耳机。
+EncoDeck 是一款非官方的开源 Windows 应用，用于控制兼容的蓝牙耳机。
 
 - **不收集个人信息。** EncoDeck 没有账户系统，不包含广告、统计或遥测，不会把你的个人数据发送给开发者或任何第三方。
 - **蓝牙。** EncoDeck 通过蓝牙与你已配对的耳机通信，用于读取电量、切换降噪等功能。这些数据只在你的电脑本地处理。
@@ -15,7 +15,7 @@ EncoDeck 是一款非官方的开源 Windows 应用，用于控制兼容的 OPPO
 
 ## English
 
-EncoDeck is an unofficial, open-source Windows app for controlling compatible OPPO Bluetooth earbuds.
+EncoDeck is an unofficial, open-source Windows app for controlling compatible Bluetooth earbuds and headphones.
 
 - **No personal data is collected.** EncoDeck has no accounts, ads, analytics or telemetry, and sends no personal data to the developer or any third party.
 - **Bluetooth.** EncoDeck talks to your paired earbuds over Bluetooth to read battery levels, switch noise control, and so on. This data is processed locally on your PC.

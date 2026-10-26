@@ -14,6 +14,9 @@ public interface IDeviceCommandService
 
     Task<CommandResult> SetEqualizerPresetAsync(string presetId, CancellationToken cancellationToken = default);
 
+    /// <summary>Overwrites the band values (dB offsets, -6..+6) of the active editable preset.</summary>
+    Task<CommandResult> SetEqualizerBandsAsync(IReadOnlyList<int> bands, CancellationToken cancellationToken = default);
+
     Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken = default);
 
     /// <summary>Re-reads battery, noise control and other supported state from the device.</summary>

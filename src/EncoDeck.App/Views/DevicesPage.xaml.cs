@@ -36,10 +36,13 @@ public sealed partial class DevicesPage : Page
 
     private void OnMoondropExperimentalToggled(object sender, RoutedEventArgs e)
     {
-        if (_syncingSwitch || ViewModel.Profile is not EncoDeck.Protocol.Brands.Moondrop.MoondropProfile) return;
+        if (_syncingSwitch || !HasExperimentalSwitch(ViewModel.Profile)) return;
         bool on = MoondropExperimentalSwitch.IsOn;
         App.Instance.Host.Settings.Update(s => s with { EnableExperimentalFeatures = on });
     }
+
+    /// <summary>Brands whose unverified commands are gated by the shared experimental preference.</summary>
+    private static bool HasExperimentalSwitch(EncoDeck.Core.Profiles.IDeviceProfile? profile) => FeaturesViewModel.OffersExperimental(profile);
 
     private void OnDevicesChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(Build);
 
@@ -52,10 +55,18 @@ public sealed partial class DevicesPage : Page
 
     private void BuildCapabilities()
     {
-        bool moondrop = ViewModel.Profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile;
-        bool experimental = moondrop && App.Instance.Host.Settings.Current.EnableExperimentalFeatures;
-        MoondropCard.Visibility = moondrop ? Visibility.Visible : Visibility.Collapsed;
-        if (MoondropExperimentalSwitch.IsOn != experimental && moondrop)
+        bool optIn = HasExperimentalSwitch(ViewModel.Profile);
+        bool experimental = optIn && App.Instance.Host.Settings.Current.EnableExperimentalFeatures;
+        MoondropCard.Visibility = optIn ? Visibility.Visible : Visibility.Collapsed;
+        string key = ViewModel.Profile switch
+        {
+            EncoDeck.Protocol.Brands.Akg.AkgHybridProfile => "Settings_AkgExperimental",
+            EncoDeck.Protocol.Brands.Moondrop.MoondropProfile => "Settings_MoondropExperimental",
+            _ => "Settings_BrandExperimental", // vivo, EDIFIER
+        };
+        ExperimentalRow.Header = Loc.Get(key + "/Header");
+        ExperimentalRow.Description = Loc.Get(key + "/Description");
+        if (MoondropExperimentalSwitch.IsOn != experimental && optIn)
         {
             _syncingSwitch = true;
             try { MoondropExperimentalSwitch.IsOn = experimental; }
@@ -71,8 +82,11 @@ public sealed partial class DevicesPage : Page
                 DeviceCapability.BatteryLevel or DeviceCapability.NoiseCancellation or
                 DeviceCapability.AdaptiveNoiseCancellation or DeviceCapability.NoiseCancellationLevel or
                 DeviceCapability.PromptVolume or DeviceCapability.DualDeviceConnection or
+                DeviceCapability.SpatialAudio or DeviceCapability.HeadTracking or DeviceCapability.InEarDetection or
+                DeviceCapability.BassEngine or DeviceCapability.ChannelSwap or DeviceCapability.HiResCodec or
+                DeviceCapability.Ldac or DeviceCapability.Lc3 or
                 DeviceCapability.Gain or DeviceCapability.IndicatorLight or DeviceCapability.PromptTone or
-                DeviceCapability.TouchCustomization)) continue;
+                DeviceCapability.TouchCustomization or DeviceCapability.Equalizer or DeviceCapability.CustomEqualizer)) continue;
             // Experimental features read as supported once opted in, never as unsupported before.
             string support = entry.Support switch
             {

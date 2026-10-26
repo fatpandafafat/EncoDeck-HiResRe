@@ -6,6 +6,7 @@ using EncoDeck.App.ViewModels;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.State;
+using EncoDeck.Protocol.Brands;
 using EncoDeck.Protocol.Oppo.Models;
 using EncoDeck.Protocol.Brands.Sennheiser;
 using Microsoft.UI.Dispatching;
@@ -29,10 +30,17 @@ public sealed partial class ControlsPage : Page
     private readonly List<(EarSide Side, GestureAction Action, ComboBox Box, SettingRow Row)> _moondropGestures = [];
     private readonly List<(EarSide Side, GestureAction Action, ComboBox Box, SettingRow Row)> _sennheiserGestures = [];
     private bool _sennheiserGestureWrite;
+    private readonly List<(BrandGestureSlot Slot, ComboBox Box, SettingRow Row)> _brandGestures = [];
+    private bool _brandGestureWrite;
     private readonly HashSet<string> _moondropWrites = [];
     private readonly List<(uint Bit, CheckBox Box)> _cycleBoxes = [];
     private readonly List<byte[]?> _preferredItems = [];
     private DispatcherQueueTimer? _promptVolumeTimer;
+    private readonly List<(string Id, FrameworkElement Control, TextBlock? Value)> _optionControls = [];
+    private readonly HashSet<string> _optionWrites = [];
+    private string _optionSignature = string.Empty;
+    private DispatcherQueueTimer? _optionSliderTimer;
+    private (string Id, int Value)? _optionSliderTarget;
     private string? _builtFor;
     private string _sourceSignature = string.Empty;
     private bool _syncing;
@@ -62,6 +70,7 @@ public sealed partial class ControlsPage : Page
             Features.Changed -= OnFeaturesChanged;
             foreach (var (toggle, _, _) in _switches) toggle.PropertyChanged -= OnToggleChanged;
             _promptVolumeTimer?.Stop();
+            _optionSliderTimer?.Stop();
         };
     }
 
@@ -131,6 +140,7 @@ public sealed partial class ControlsPage : Page
         _gestureBoxes.Clear();
         _moondropGestures.Clear();
         _sennheiserGestures.Clear();
+        _brandGestures.Clear();
         GestureHost.Children.Clear();
         CallGestureHost.Children.Clear();
         foreach (var row in Features.GestureRows(callControls: false)) GestureHost.Children.Add(GestureRow(row));
@@ -187,6 +197,18 @@ public sealed partial class ControlsPage : Page
                 _moondropGestures.Add((side, action, box, row));
                 GestureHost.Children.Add(row);
             }
+        }
+        foreach (var slot in Features.BrandGestureSlots)
+        {
+            var box = new ComboBox { MinWidth = 200, Tag = slot };
+            foreach (var choice in slot.Choices)
+                box.Items.Add(new ComboBoxItem { Content = string.Join(" / ", choice.LabelKeys.Select(Loc.Get)), Tag = choice.Function });
+            box.Items.Add(new ComboBoxItem { IsEnabled = false }); // Shows a reported value outside the known choices.
+            box.SelectionChanged += OnBrandGestureChanged;
+            string side = slot.Side switch { EarSide.Left => $"{Loc.Get("Gesture_Left")} · ", EarSide.Right => $"{Loc.Get("Gesture_Right")} · ", _ => string.Empty };
+            var row = new SettingRow { Header = side + Loc.Get(slot.LabelKey), Action = box };
+            _brandGestures.Add((slot, box, row));
+            GestureHost.Children.Add(row);
         }
 
         _cycleBoxes.Clear();
@@ -249,8 +271,8 @@ public sealed partial class ControlsPage : Page
 
             foreach (var (toggle, sw, row) in _switches)
             {
-                bool moondropSetting = f.IsMoondrop && toggle.Toggle is DeviceToggle.IndicatorLight or DeviceToggle.PromptTone;
-                bool supported = !moondropSetting || f.Has(toggle.Toggle == DeviceToggle.IndicatorLight ? DeviceCapability.IndicatorLight : DeviceCapability.PromptTone);
+                bool moondropSetting = f.IsMoondrop && toggle.Toggle is not (DeviceToggle.DualDeviceConnection or DeviceToggle.HeadTracking);
+                bool supported = !moondropSetting || f.Has(EncoDeck.Protocol.Brands.Moondrop.MoondropProfile.ToggleCapability(toggle.Toggle));
                 row.Visibility = Show(!moondropSetting || (ready && toggle.IsKnown && f.HasSwitch(toggle.Toggle) && supported));
                 sw.IsOn = toggle.IsOn;
                 sw.IsEnabled = toggle.IsKnown && supported && !toggle.IsPending && !_moondropWrites.Contains($"toggle:{toggle.Toggle}")
@@ -262,6 +284,7 @@ public sealed partial class ControlsPage : Page
             GainBox.SelectedIndex = gain ? f.State.Gain!.Value : -1;
             GainBox.IsEnabled = gain && !f.IsPending("gain") && !_moondropWrites.Contains("gain");
 
+            SyncOptions(f, ready);
             SyncGame(f, ready);
             SyncDual(f, ready);
             SyncGestures(f, ready);
@@ -287,8 +310,8 @@ public sealed partial class ControlsPage : Page
         bool available = f.Has(DeviceCapability.GamingMode) && f.HasSwitch(DeviceToggle.GamingMode);
         GameCard.Visibility = Show(available);
         GameOptions.Visibility = Show(!f.IsSennheiserTw4);
-        GameTitle.Text = Loc.Get(f.IsSennheiserTw4 ? "Sennheiser_LowLatency" : "Game_Title.Text");
-        GameSummary.Text = Loc.Get(f.IsSennheiserTw4 ? "Sennheiser_LowLatencyDescription" : "Game_Summary.Text");
+        GameTitle.Text = Loc.Get(f.IsSennheiserTw4 ? "Sennheiser_LowLatency" : "Game_Title/Text");
+        GameSummary.Text = Loc.Get(f.IsSennheiserTw4 ? "Sennheiser_LowLatencyDescription" : "Game_Summary/Text");
         if (!available) return;
         bool? master = f.Toggle(DeviceToggle.GamingMode);
         bool busy = f.IsPending("toggle:") || f.IsPending("game-sound");
@@ -310,21 +333,28 @@ public sealed partial class ControlsPage : Page
 
     private void SyncDual(FeaturesViewModel f, bool ready)
     {
-        bool available = f.Has(DeviceCapability.DualDeviceConnection) && f.HasSwitch(DeviceToggle.DualDeviceConnection);
+        bool available = f.HasDualConnectionCard;
         DualCard.Visibility = Show(available);
         if (!available) return;
+        // vivo and Sennheiser report their source list without a device-side switch.
+        bool hasSwitch = f.HasSwitch(DeviceToggle.DualDeviceConnection);
+        DualSwitch.Visibility = Show(hasSwitch);
         bool? enabled = f.Toggle(DeviceToggle.DualDeviceConnection);
         DualSwitch.IsOn = enabled == true;
-        DualSwitch.IsEnabled = ready && enabled is not null && !f.IsPending("toggle:DualDeviceConnection");
+        DualSwitch.IsEnabled = hasSwitch && ready && enabled is not null && !f.IsPending("toggle:DualDeviceConnection");
 
         var devices = f.SourceDevices;
         string signature = string.Join('|', devices.Select(d => $"{d.AddressText}/{d.State}/{d.IsThisDevice}/{d.IsAudioActive}/{d.Name}"))
-            + $"#{ready}#{Convert.ToHexString(f.PreferredAddress ?? [])}#{f.IsPreferredKnown}";
+            + $"#{ready}#{f.AreSourceDevicesCached}#{f.CanManageSourceDevices}#{f.CanConnectSourceDevices}#{f.IsPending("multi-connect")}#{f.IsPending("preferred-device")}#{Convert.ToHexString(f.PreferredAddress ?? [])}#{f.IsPreferredKnown}";
         if (signature == _sourceSignature) return;
         _sourceSignature = signature;
 
         SourceHost.Children.Clear();
-        foreach (var device in devices) SourceHost.Children.Add(SourceRow(device, ready));
+        foreach (var device in devices) SourceHost.Children.Add(SourceRow(device, ready && !f.IsPending("multi-connect") && !f.AreSourceDevicesCached));
+        // Brands that report only the multipoint switch have no list to manage.
+        if (!f.CanManageSourceDevices && devices.Count > 0)
+            SourceHost.Children.Add(new TextBlock { Text = Loc.Get(f.CanConnectSourceDevices ? "Dual_ConnectOnly" : "Dual_ManagementUnavailable"), TextWrapping = TextWrapping.Wrap,
+                Style = (Style)Application.Current.Resources["SecondaryTextStyle"] });
 
         // Official options: auto select, the connected devices, and the current preferred device.
         _preferredItems.Clear();
@@ -340,8 +370,8 @@ public sealed partial class ControlsPage : Page
             ? _preferredItems.FindIndex(a => a is not null && a.AsSpan().SequenceEqual(preferred))
             : 0;
         PreferredBox.SelectedIndex = f.IsPreferredKnown ? selected : -1;
-        PreferredSection.Visibility = Show(f.IsPreferredKnown || devices.Count > 0);
-        PreferredBox.IsEnabled = ready && f.IsPreferredKnown && !f.IsPending("preferred-device");
+        PreferredSection.Visibility = Show(f.HasPreferredDevice && (f.IsPreferredKnown || devices.Count > 0));
+        PreferredBox.IsEnabled = ready && f.HasPreferredDevice && f.IsPreferredKnown && !f.IsPending("preferred-device");
     }
 
     private Grid SourceRow(SourceDevice device, bool ready)
@@ -357,7 +387,9 @@ public sealed partial class ControlsPage : Page
         text.Children.Add(new TextBlock { Text = DisplayName(device), TextTrimming = TextTrimming.CharacterEllipsis });
         text.Children.Add(new TextBlock
         {
-            Text = string.IsNullOrWhiteSpace(device.Name) ? DescribeSource(device) : $"{DescribeSource(device)} · {device.AddressText}",
+            // A list restored from last session carries no addresses.
+            // Index-only lists (Sennheiser) carry a one-byte key, not an address.
+            Text = string.IsNullOrWhiteSpace(device.Name) || device.Address.Length != 6 ? DescribeSource(device) : $"{DescribeSource(device)} · {device.AddressText}",
             Style = (Style)Application.Current.Resources["SecondaryTextStyle"],
             IsTextSelectionEnabled = true,
         });
@@ -366,12 +398,12 @@ public sealed partial class ControlsPage : Page
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         bool busy = device.State is 1 or 4;
-        if (!device.IsConnected && !busy)
+        if (Features.CanConnectSourceDevices && !device.IsConnected && !busy)
         {
             actions.Children.Add(ActionButton("Dual_Connect", device, ready, OnConnectSourceClick));
-            actions.Children.Add(ActionButton("Dual_Remove", device, ready, OnRemoveSourceClick));
+            if (Features.CanManageSourceDevices) actions.Children.Add(ActionButton("Dual_Remove", device, ready, OnRemoveSourceClick));
         }
-        else if (device.IsConnected && !device.IsThisDevice)
+        else if (Features.CanManageSourceDevices && device.IsConnected && !device.IsThisDevice)
         {
             // This PC disconnects through Windows, as the official client does for the phone.
             actions.Children.Add(ActionButton("Dual_Disconnect", device, ready, OnDisconnectSourceClick));
@@ -390,6 +422,35 @@ public sealed partial class ControlsPage : Page
 
     private void SyncGestures(FeaturesViewModel f, bool ready)
     {
+        if (_brandGestures.Count > 0)
+        {
+            // Rows appear once the device reported them; unknown values are shown, never written.
+            bool brandAvailable = f.Has(DeviceCapability.TouchCustomization) && _brandGestures.Any(g => f.BrandSlotApplies(g.Slot));
+            GestureCard.Visibility = Show(brandAvailable);
+            EarSelector.Visibility = CycleSection.Visibility = CallGestureTitle.Visibility = Visibility.Collapsed;
+            foreach (var (slot, box, row) in _brandGestures)
+            {
+                int? function = f.BrandFunction(slot);
+                bool applies = brandAvailable && f.BrandSlotApplies(slot);
+                row.Visibility = Show(applies);
+                var items = box.Items.Cast<ComboBoxItem>().ToList();
+                // A choice that needs a capability (e.g. noise control on hold) is offered only once it is confirmed.
+                foreach (var item in items)
+                {
+                    if (item.Tag is int code && slot.Choices.FirstOrDefault(c => c.Function == code) is { Requires: { } required })
+                        item.IsEnabled = f.Has(required);
+                }
+                int selected = items.FindIndex(item => item.Tag is int code && code == function);
+                if (function is int unknown && selected < 0)
+                {
+                    items[^1].Content = Loc.Format("Brand_UnknownValue", (unknown & 0xFF).ToString("X2"));
+                    selected = items.Count - 1;
+                }
+                box.SelectedIndex = selected;
+                box.IsEnabled = ready && applies && !f.IsPending("key-function") && !_brandGestureWrite;
+            }
+            return;
+        }
         if (f.IsSennheiserTw4)
         {
             bool tw4Available = f.Has(DeviceCapability.TouchCustomization)
@@ -455,6 +516,97 @@ public sealed partial class ControlsPage : Page
         }
     }
 
+    /// <summary>Device-reported options: a list or a slider per option, always showing the confirmed value.</summary>
+    private void SyncOptions(FeaturesViewModel f, bool ready)
+    {
+        var options = f.Options;
+        string signature = string.Join('|', options.Select(o =>
+            $"{o.Id}/{o.LabelKey}/{o.DescriptionKey}/{o.Minimum}/{o.Maximum}/{string.Join(',', o.Choices.Select(c => $"{c.Value}:{c.LabelKey}:{c.Argument}"))}"));
+        if (signature != _optionSignature)
+        {
+            _optionSignature = signature;
+            _optionControls.Clear();
+            OptionHost.Children.Clear();
+            foreach (var option in options)
+            {
+                FrameworkElement control;
+                TextBlock? valueText = null;
+                if (option.IsRange)
+                {
+                    var slider = new Slider
+                    {
+                        Width = (double)Application.Current.Resources["RowSliderWidth"], Minimum = option.Minimum, Maximum = option.Maximum,
+                        StepFrequency = 1, TickFrequency = 1, TickPlacement = Microsoft.UI.Xaml.Controls.Primitives.TickPlacement.BottomRight,
+                        VerticalAlignment = VerticalAlignment.Center, Tag = option.Id,
+                    };
+                    slider.ValueChanged += OnOptionSliderChanged;
+                    valueText = new TextBlock { MinWidth = 20, VerticalAlignment = VerticalAlignment.Center };
+                    var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+                    panel.Children.Add(slider);
+                    panel.Children.Add(valueText);
+                    control = slider;
+                    OptionHost.Children.Add(new SettingRow { Header = Loc.Get(option.LabelKey), Description = OptionDescription(option), Action = panel });
+                }
+                else
+                {
+                    var box = new ComboBox { MinWidth = 200, Tag = option.Id };
+                    foreach (var choice in option.Choices)
+                        box.Items.Add(new ComboBoxItem { Content = choice.Argument is null ? Loc.Get(choice.LabelKey) : Loc.Format(choice.LabelKey, choice.Argument), Tag = choice.Value });
+                    box.SelectionChanged += OnOptionChanged;
+                    control = box;
+                    OptionHost.Children.Add(new SettingRow { Header = Loc.Get(option.LabelKey), Description = OptionDescription(option), Action = box });
+                }
+                _optionControls.Add((option.Id, control, valueText));
+            }
+        }
+        foreach (var (id, control, valueText) in _optionControls)
+        {
+            var option = options.First(o => o.Id == id);
+            bool busy = _optionWrites.Contains(id);
+            if (control is Control enabled) enabled.IsEnabled = ready && !busy;
+            if (control is ComboBox box)
+                box.SelectedIndex = option.Choices.ToList().FindIndex(c => c.Value == option.Value);
+            else if (control is Slider slider && !busy && _optionSliderTarget?.Id != id)
+                slider.Value = option.Value;
+            if (valueText is not null && control is Slider shown)
+                valueText.Text = ((int)Math.Round(shown.Value)).ToString(System.Globalization.CultureInfo.CurrentCulture);
+        }
+    }
+
+    private static string? OptionDescription(DeviceOption option) => option.DescriptionKey is { } key ? Loc.Get(key) : null;
+
+    private async void OnOptionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncing || !IsLoaded || sender is not ComboBox { IsEnabled: true, Tag: string id, SelectedItem: ComboBoxItem { Tag: int value } }
+            || Features.Options.FirstOrDefault(o => o.Id == id) is not { } option || option.Value == value || !_optionWrites.Add(id)) return;
+        Sync(); // the device decides; snap back until it confirms
+        try { await Features.SetOptionAsync(id, value); }
+        finally { _optionWrites.Remove(id); Sync(); }
+    }
+
+    private void OnOptionSliderChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        if (_syncing || !IsLoaded || sender is not Slider { Tag: string id } slider) return;
+        if (_optionControls.FirstOrDefault(c => c.Id == id).Value is { } text)
+            text.Text = ((int)Math.Round(slider.Value)).ToString(System.Globalization.CultureInfo.CurrentCulture);
+        _optionSliderTarget = (id, (int)Math.Round(slider.Value));
+        // Written 500 ms after the slider stops, like the prompt volume.
+        _optionSliderTimer ??= CreateTimer(PromptVolumeDebounce, async () =>
+        {
+            if (_optionSliderTarget is not { } target) return;
+            if (Features.Options.FirstOrDefault(o => o.Id == target.Id) is not { } option || option.Value == target.Value || !_optionWrites.Add(target.Id))
+            {
+                _optionSliderTarget = null;
+                Sync();
+                return;
+            }
+            try { await Features.SetOptionAsync(target.Id, target.Value); }
+            finally { _optionWrites.Remove(target.Id); _optionSliderTarget = null; Sync(); }
+        });
+        _optionSliderTimer.Stop();
+        _optionSliderTimer.Start();
+    }
+
     private void SyncHead(FeaturesViewModel f, bool ready)
     {
         bool available = f.HasSwitch(DeviceToggle.HeadGestures);
@@ -491,9 +643,9 @@ public sealed partial class ControlsPage : Page
         if (_syncing || !IsLoaded || sender is not ToggleSwitch { Tag: DeviceToggleViewModel toggle } sw || !sw.IsEnabled) return;
         bool requested = sw.IsOn;
         string key = $"toggle:{toggle.Toggle}";
-        bool moondrop = Features.IsMoondrop && toggle.Toggle is DeviceToggle.IndicatorLight or DeviceToggle.PromptTone;
+        bool moondrop = Features.IsMoondrop && toggle.Toggle is not (DeviceToggle.DualDeviceConnection or DeviceToggle.HeadTracking);
         if (moondrop && (!Features.IsReady || !toggle.IsKnown || !Features.HasSwitch(toggle.Toggle)
-            || !Features.Has(toggle.Toggle == DeviceToggle.IndicatorLight ? DeviceCapability.IndicatorLight : DeviceCapability.PromptTone)
+            || !Features.Has(EncoDeck.Protocol.Brands.Moondrop.MoondropProfile.ToggleCapability(toggle.Toggle))
             || !_moondropWrites.Add(key))) return;
         Sync(); // the device decides; snap back until it confirms
         try { await ViewModel.SetToggleAsync(toggle.Toggle, requested); }
@@ -543,7 +695,8 @@ public sealed partial class ControlsPage : Page
     {
         if (sender is not Button { Tag: SourceDevice device }) return;
         // Official: with two devices already connected, connecting a third drops one of them.
-        if (Features.SourceDevices.Count(d => d.IsConnected) >= 2
+        // Connect-only lists (Sennheiser) refuse instead of dropping a device, so there is nothing to confirm.
+        if (Features.CanManageSourceDevices && Features.SourceDevices.Count(d => d.IsConnected) >= 2
             && !await ConfirmAsync("Dual_ConnectNew_Title", Loc.Format("Dual_ConnectNew_Message", DisplayName(device)), "Dual_Connect"))
         {
             return;
@@ -615,6 +768,19 @@ public sealed partial class ControlsPage : Page
         finally { _sennheiserGestureWrite = false; Sync(); }
     }
 
+    private async void OnBrandGestureChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var f = Features;
+        if (_syncing || !IsLoaded || sender is not ComboBox { IsEnabled: true, Tag: BrandGestureSlot slot,
+                SelectedItem: ComboBoxItem { IsEnabled: true, Tag: int function } }
+            || !f.IsReady || !f.Has(DeviceCapability.TouchCustomization) || !f.BrandSlotApplies(slot)
+            || f.BrandFunction(slot) == function || _brandGestureWrite) return;
+        _brandGestureWrite = true;
+        Sync();
+        try { await f.SetBrandGestureAsync(slot, function); }
+        finally { _brandGestureWrite = false; Sync(); }
+    }
+
     private async void OnMoondropGestureChanged(object sender, SelectionChangedEventArgs e)
     {
         var f = Features;
@@ -668,6 +834,11 @@ public sealed partial class ControlsPage : Page
         bool ring = !Features.State.IsFindingEarbuds;
         // Official in-ear safety check: playing the tone while worn can damage hearing.
         if (ring && Features.IsAnyEarbudInEar && !await ConfirmAsync("Find_InEar_Title", Loc.Get("Find_InEar_Message"), "Find_Play"))
+        {
+            return;
+        }
+        // TW4 reports no wear state and its ring is very loud: always ask first.
+        if (ring && Features.IsSennheiserTw4 && !Features.IsAnyEarbudInEar && !await ConfirmAsync("Find_InEar_Title", Loc.Get("Find_Loud_Message"), "Find_Play"))
         {
             return;
         }

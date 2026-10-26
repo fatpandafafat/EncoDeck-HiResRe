@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using EncoDeck.App.Services;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.Devices;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Brands;
+using EncoDeck.Protocol.Brands.Usb;
 using EncoDeck.Protocol.Oppo.Models;
 using EncoDeck.Platform.Settings;
 using Microsoft.UI.Dispatching;
@@ -55,9 +57,39 @@ public sealed class FeaturesViewModel
 
     public bool IsSennheiserTw4 => State.Profile is EncoDeck.Protocol.Brands.Sennheiser.SennheiserProfile { IsTw4: true };
 
-    public bool AllowExperimental => IsMoondrop && _settings.Current.EnableExperimentalFeatures;
+    public bool IsXiaomi => State.Profile is EncoDeck.Protocol.Brands.Xiaomi.XiaomiDeviceProfile;
 
-    public bool IsReady => State.Connection == DeviceConnectionState.ControlReady;
+    public bool IsVivo => State.Profile is EncoDeck.Protocol.Brands.Vivo.VivoDeviceProfile;
+
+    public bool IsEdifier => State.Profile is EncoDeck.Protocol.Brands.Edifier.EdifierProfile;
+
+    /// <summary>Brands whose controllers gate read-back-only settings behind the experimental switch.</summary>
+    public static bool OffersExperimental(EncoDeck.Core.Profiles.IDeviceProfile? profile) => profile
+        is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile
+        or EncoDeck.Protocol.Brands.Akg.AkgHybridProfile
+        or EncoDeck.Protocol.Brands.Vivo.VivoDeviceProfile
+        or EncoDeck.Protocol.Brands.Edifier.EdifierProfile;
+
+    public bool AllowExperimental => OffersExperimental(State.Profile) && _settings.Current.EnableExperimentalFeatures;
+
+    public bool IsReady => State.Connection == DeviceConnectionState.ControlReady || IsUsbSettingsReady(State);
+
+    /// <summary>
+    /// A USB headset (Barracuda X 1532:0550) is linked and at least one of its settings was read back. Other USB
+    /// receivers never get settings, so they stay read-only.
+    /// </summary>
+    public static bool IsUsbSettingsReady(DeviceState state) =>
+        state.Connection == DeviceConnectionState.UsbHeadsetConnected && state.Profile is UsbHeadsetProfile { Settings.Count: > 0 };
+
+    public bool IsUsbHeadset => State.Profile is UsbHeadsetProfile;
+
+    /// <summary>Sets the earbuds' LE/BR mode switch (0x0433) through the active controller.</summary>
+    public Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        _commands.SetLeBrSwitchAsync(enabled, cancellationToken);
+
+    /// <summary>Always writes and reads back multipoint off before attempting LE Audio.</summary>
+    public Task<CommandResult> DisableMultipointForLeAudioAsync(CancellationToken cancellationToken) =>
+        _basic.SetToggleAsync(DeviceToggle.DualDeviceConnection, false, cancellationToken);
 
     public bool Has(DeviceCapability capability) => State.Profile switch
     {
@@ -72,6 +104,7 @@ public sealed class FeaturesViewModel
     {
         OppoDeviceProfile => Model?.FeatureSwitches.Any(f => f.Toggle == toggle && f.Support == CapabilitySupport.Supported) == true,
         IControllableProfile profile => profile.Toggles.Contains(toggle),
+        UsbHeadsetProfile usb => usb.Toggles.Contains(toggle),
         _ => false,
     };
 
@@ -159,7 +192,7 @@ public sealed class FeaturesViewModel
     public bool IsHiResOn => Toggle(DeviceToggle.HiRes) == true;
 
     /// <summary>While Hi-Res is on the official page shows spatial audio as off.</summary>
-    public SpatialAudioMode? SpatialMode => State.Spatial is null ? null : IsHiResOn ? SpatialAudioMode.Off : State.Spatial.Value;
+    public SpatialAudioMode? SpatialMode => State.Spatial is null ? null : IsHiResOn && !IsMoondrop ? SpatialAudioMode.Off : State.Spatial.Value;
 
     public Task<CommandResult> SetSpatialAudioAsync(SpatialAudioMode mode) => Run(() => _commands.SetSpatialAudioAsync(mode));
 
@@ -170,6 +203,13 @@ public sealed class FeaturesViewModel
     public Task<CommandResult> SetGainAsync(int level) => Run(() => _commands.SetGainAsync(level));
 
     public Task<CommandResult> SetBassEngineLevelAsync(int level) => Run(() => _commands.SetBassEngineLevelAsync(level));
+
+    // ---- device-reported options (auto power off, button assignment, levels) -----------------------
+
+    /// <summary>Options the earbuds reported, in display order. Only present after a device readback.</summary>
+    public IReadOnlyList<DeviceOption> Options => State.Options.Values.Select(o => o.Value).OrderBy(o => o.Order).ThenBy(o => o.Id, StringComparer.Ordinal).ToArray();
+
+    public Task<CommandResult> SetOptionAsync(string id, int value) => Run(() => _commands.SetOptionAsync(id, value));
 
     // ---- gestures --------------------------------------------------------------------------------
 
@@ -207,6 +247,20 @@ public sealed class FeaturesViewModel
 
     public int? SennheiserFunction(EarSide side, GestureAction action) => State.KeyFunctions?.Value
         .FirstOrDefault(k => k.Side == side && k.Button == 0 && k.Action == action)?.Function;
+
+    /// <summary>Gesture-like rows a brand profile describes itself (vivo gestures, EDIFIER button control).</summary>
+    public IReadOnlyList<BrandGestureSlot> BrandGestureSlots => (State.Profile as IBrandGestureProfile)?.GestureSlots ?? [];
+
+    /// <summary>The value the device reported for a slot, or null before it reported one.</summary>
+    public int? BrandFunction(BrandGestureSlot slot) => State.KeyFunctions?.Value.FirstOrDefault(slot.Matches)?.Function;
+
+    /// <summary>A slot applies when it has a reported value and, if it depends on another slot, that one has the required value.</summary>
+    public bool BrandSlotApplies(BrandGestureSlot slot) =>
+        BrandFunction(slot) is not null
+        && (slot.ShownWhen is not { } when || State.KeyFunctions?.Value.Any(k => k == when) == true);
+
+    public Task<CommandResult> SetBrandGestureAsync(BrandGestureSlot slot, int function) =>
+        Run(() => _commands.SetKeyFunctionAsync(new KeyFunction(slot.Side, slot.Button, slot.Action, function)));
 
     public Task<CommandResult> SetSennheiserGestureAsync(EarSide side, GestureAction action, int function) =>
         Run(() => _commands.SetKeyFunctionAsync(new KeyFunction(side, 0, action, function)));
@@ -246,9 +300,29 @@ public sealed class FeaturesViewModel
     public IReadOnlyList<SourceDevice> SourceDevices =>
         State.SourceDevices?.Value.OrderByDescending(d => d.IsThisDevice).ThenByDescending(d => d.IsConnected).ToArray() ?? [];
 
+    /// <summary>The list is last session's (restored without addresses): shown, but not actionable until the earbuds report it.</summary>
+    public bool AreSourceDevicesCached => State.SourceDevices?.Source == StateSource.Cache;
+
     public byte[]? PreferredAddress => State.PreferredDevice?.Value.Address;
 
     public bool IsPreferredKnown => State.PreferredDevice is not null;
+
+    public bool CanManageSourceDevices => Model?.SupportsMultiConnectOperations == true || (IsVivo && Has(DeviceCapability.DualDeviceConnection));
+
+    /// <summary>Only the OPPO protocol has a preferred-device setting.</summary>
+    public bool HasPreferredDevice => Model?.SupportsMultiConnectOperations == true;
+
+    /// <summary>The dual connection card: a device switch (OPPO family) or a source list reported without one.</summary>
+    public bool HasDualConnectionCard => Has(DeviceCapability.DualDeviceConnection)
+        && (HasSwitch(DeviceToggle.DualDeviceConnection) || HasSourceListWithoutSwitch);
+
+    /// <summary>Sennheiser: listed hosts can be connected from here; disconnect / remove are never offered (they can clear pairings).</summary>
+    public bool CanConnectSourceDevices => CanManageSourceDevices
+        || State.Profile is EncoDeck.Protocol.Brands.Sennheiser.SennheiserProfile { CanConnectPairedDevices: true };
+
+    /// <summary>A paired-host list the device reports without a dual-connection switch (vivo, Sennheiser).</summary>
+    public bool HasSourceListWithoutSwitch => (IsVivo || State.Profile is EncoDeck.Protocol.Brands.Sennheiser.SennheiserProfile)
+        && State.SourceDevices is not null;
 
     public Task<CommandResult> MultiConnectAsync(MultiConnectOperation operation, SourceDevice device) =>
         Run(() => _commands.MultiConnectAsync(operation, device.Address));
@@ -258,6 +332,16 @@ public sealed class FeaturesViewModel
     // ---- custom EQ -------------------------------------------------------------------------------
 
     public OppoCustomEqualizerSpec? CustomEqualizerSpec => Has(DeviceCapability.CustomEqualizer) ? Model?.CustomEqualizer : null;
+
+    /// <summary>Other brands' single fixed user curve (gains in 0.1 dB); never added, renamed or deleted.</summary>
+    public EncoDeck.Core.Profiles.BandEqualizerSpec? BandEqualizer =>
+        State.Profile is OppoDeviceProfile || !Has(DeviceCapability.CustomEqualizer) ? null
+        : State.Profile is EncoDeck.Core.Profiles.IBandEqualizerProfile { BandEqualizer: { } spec } ? spec
+        // Xiaomi earbuds keep one custom curve in whole dB; its bands and range come from the earbuds' own readback.
+        : IsXiaomi && State.CustomEqualizers?.Value is [var curve] ? new(curve.MinGain, curve.MaxGain, GainScale: 1)
+        // The Barracuda X has one fixed custom slot in whole dB.
+        : IsUsbHeadset ? new(BarracudaXSettingValues.BandMin, BarracudaXSettingValues.BandMax, GainScale: 1)
+        : null;
 
     public IReadOnlyList<CustomEqualizer> CustomEqualizers => State.CustomEqualizers?.Value ?? [];
 

@@ -198,7 +198,10 @@ jobs:
           $pattern = '(?ms)^## \[' + [regex]::Escape($version) + '\][^\r\n]*\r?\n(.*?)(?=^## |\z)'
           $notes = [regex]::Match((Get-Content CHANGELOG.md -Raw), $pattern).Groups[1].Value.Trim()
           if (-not $notes) { throw "Release notes missing for $version." }
-          ./build/submit-store.ps1 -Package (Get-ChildItem artifacts/store/*.msixupload | Select-Object -First 1).FullName -ReleaseNotes $notes
+          # Store release notes are plain text: turn "### 新增" into "【新增】" and keep link text only.
+          $notes = $notes -replace '(?m)^### (.+?)\s*$', '【$1】' -replace '\[([^\]]+)\]\([^)]+\)', '$1' -replace '`', ''
+          ./build/submit-store.ps1 -Package (Get-ChildItem artifacts/store/*.msixupload | Select-Object -First 1).FullName -ReleaseNotes $notes `
+            -ReleaseNotesUrl "https://github.com/TIANLI0/EncoDeck/releases/tag/v$version" -ReplacePending
 
       - uses: actions/upload-artifact@v4
         if: env.STORE_TENANT_ID != ''

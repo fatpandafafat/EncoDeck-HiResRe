@@ -275,10 +275,10 @@ public partial class App : Application
         }
         if (Has(UpdateManager.RelaunchArgument))
         {
-            // Started by the installer after an update the user chose: back to the settings page,
+            // Started by the installer after an update the user chose: back to the About page (updates),
             // unless a game or presentation took over meanwhile (then only a notification).
             if (FullscreenDetector.GetState() == InterruptionState.Available)
-                Windows.ShowMain("Settings");
+                Windows.ShowMain("About");
             else
                 _tray?.Notify(Loc.Format("Notify_Updated_Title", Settings.Version), Loc.Get("Notify_Updated_Message"));
             return;

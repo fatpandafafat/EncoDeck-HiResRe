@@ -34,12 +34,16 @@ public enum DeviceConnectionState
 
     /// <summary>USB audio receiver is present; its presence does not prove a radio connection to the headset.</summary>
     UsbReceiverConnected,
+
+    /// <summary>The USB receiver returned a validated active wireless headset link.</summary>
+    UsbHeadsetConnected,
 }
 
 public static class DeviceConnectionStateExtensions
 {
     public static bool IsLinkUp(this DeviceConnectionState state) => state is
         DeviceConnectionState.AudioConnected or
+        DeviceConnectionState.UsbHeadsetConnected or
         DeviceConnectionState.ControlConnecting or
         DeviceConnectionState.ControlReady or
         DeviceConnectionState.ControlUnavailable or

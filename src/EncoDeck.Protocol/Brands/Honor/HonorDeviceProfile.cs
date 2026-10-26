@@ -8,13 +8,20 @@ using EncoDeck.Protocol.Transport;
 
 namespace EncoDeck.Protocol.Brands.Honor;
 
+/// <param name="Choice">
+/// HONOR CHOICE (BES) protocol variant: same <c>5A</c> framing, but empty battery / noise queries and a
+/// one-byte noise write <c>2B04 [mode]</c> (Nezerkill/honor-earbuds, tested on HONOR CHOICE Earbuds X5;
+/// TeskiOke/HonorEarbuds for X5 Pro). Battery and off / noise cancelling / transparency only.
+/// </param>
 public sealed record HonorModel(string ProductId, string DisplayName, string[] Aliases,
-    bool Mbb, bool Noise, bool Wear, bool Dual, bool Eq, bool AncLevels = false);
+    bool Mbb, bool Noise, bool Wear, bool Dual, bool Eq, bool AncLevels = false, bool Choice = false);
 
-/// <summary>Reviewed HONOR audio plugin 7.0.1.495; hardware validation is still required.</summary>
+/// <summary>Reviewed HONOR audio plugin 7.0.1.495 and community HONOR CHOICE notes; hardware validation is still required.</summary>
 public sealed class HonorDeviceProfile(HonorModel model, IReadOnlyList<byte>? reportedEq = null) : IControllableProfile
 {
-    private const string Evidence = "Official HONOR audio plugin 7.0.1.495; not hardware verified.";
+    private string Evidence => model.Choice
+        ? "Community HONOR CHOICE notes (Nezerkill/honor-earbuds, TeskiOke/HonorEarbuds); not verified by EncoDeck."
+        : "Official HONOR audio plugin 7.0.1.495; not hardware verified.";
     public HonorModel Model => model;
     public string Brand => "honor";
     public bool IsGeneric => model.ProductId == "generic";
@@ -84,6 +91,8 @@ public static class HonorProfiles
         new("L012", "HONOR Earbuds 3i", ["HONOR Earbuds 3i", "荣耀Earbuds 3i"], true, true, true, false, true),
         new("L013", "HONOR Earbuds X5", ["HONOR Earbuds X5", "荣耀Earbuds X5"], true, false, true, true, true),
         new("LE7P", "HONOR Earbuds 3i Premium", ["HONOR Earbuds 3i Premium", "荣耀Earbuds 3i 尊享版"], true, true, true, false, true),
+        new("CHOICE-X5", "HONOR CHOICE Earbuds X5", ["HONOR CHOICE Earbuds X5"], true, true, false, false, false, Choice: true),
+        new("CHOICE-X5-PRO", "HONOR CHOICE Earbuds X5 Pro", ["HONOR CHOICE Earbuds X5 Pro"], true, true, false, false, false, Choice: true),
     ];
     public static IReadOnlyList<IDeviceProfile> CreateBuiltIn() =>
     [.. Models.Select(m => new HonorDeviceProfile(m)), new HonorDeviceProfile(new("generic", "HONOR earbuds", [], false, false, false, false, false))];

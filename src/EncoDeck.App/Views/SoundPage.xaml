@@ -29,11 +29,21 @@
                 <StackPanel Spacing="10">
                     <TextBlock x:Uid="Sound_DeviceEq" Text="Earbud EQ" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <StackPanel x:Name="PresetHost" Spacing="4" />
+                    <!-- Bands the device reported for the active preset (Sony), drawn as vector graphics.
+                         The plot spans exactly the same width as the band faders below it, so every
+                         frequency tick sits above its fader. -->
+                    <Canvas x:Name="CurveChart" Height="318" HorizontalAlignment="Stretch"
+                            VerticalAlignment="Top" SizeChanged="OnCurveSizeChanged" Visibility="Collapsed" />
+                    <!-- Band faders for the headset-side manual and custom presets. -->
+                    <StackPanel x:Name="SonyBandEditor" Spacing="6" Visibility="Collapsed">
+                        <TextBlock x:Uid="Sound_BandEditor" Text="Custom curve" Style="{StaticResource SecondaryTextStyle}" />
+                        <Grid x:Name="SonyBandHost" ColumnSpacing="0" Margin="0,-4,0,0" />
+                    </StackPanel>
                     <StackPanel x:Name="CustomHost" Spacing="4" />
                     <Button x:Name="AddCustomButton" x:Uid="Eq_AddCustom" Content="Add custom EQ" Click="OnAddCustomClick" />
 
                     <StackPanel x:Name="CustomEditor" Spacing="10" Margin="0,6,0,0">
-                        <Grid ColumnSpacing="8">
+                        <Grid x:Name="CustomNameRow" ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -59,8 +69,8 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="2">
-                            <TextBlock x:Uid="Bass_Title" Text="BassWave dynamic bass" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <TextBlock x:Uid="Bass_Summary" Text="Strengthens low frequencies inside the earbuds." Style="{StaticResource SecondaryTextStyle}" />
+                            <TextBlock x:Name="BassTitle" x:Uid="Bass_Title" Text="BassWave dynamic bass" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock x:Name="BassSummary" x:Uid="Bass_Summary" Text="Strengthens low frequencies inside the earbuds." Style="{StaticResource SecondaryTextStyle}" />
                         </StackPanel>
                         <ToggleSwitch x:Name="BassSwitch" Grid.Column="1" Style="{StaticResource TrailingSwitchStyle}" Toggled="OnBassToggled" />
                     </Grid>
@@ -89,8 +99,6 @@
             </Border>
             </StackPanel>
             </Grid>
-            <controls:LeAudioSettings />
-            <controls:LhdcSettings />
         </StackPanel>
         </Grid>
     </ScrollViewer>

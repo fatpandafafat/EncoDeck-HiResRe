@@ -107,7 +107,7 @@ public sealed partial class NoiseModeCircles : UserControl
     private void Sync()
     {
         if (ViewModel is not { } vm) return;
-        bool enabled = vm.IsNoiseAvailable && !vm.IsNoisePending;
+        bool enabled = vm.CanSetNoise && !vm.IsNoisePending;
         int visible = 0;
         foreach (var (mode, button, cell) in _modes)
         {
@@ -176,7 +176,7 @@ public sealed partial class NoiseModeCircles : UserControl
     private void SyncLevels()
     {
         if (ViewModel is not { } vm) return;
-        bool enabled = vm.IsNoiseAvailable && !vm.IsNoisePending;
+        bool enabled = vm.CanSetNoise && !vm.IsNoisePending;
         foreach (var (level, button) in _levelButtons)
         {
             button.IsChecked = level.IsSelected;

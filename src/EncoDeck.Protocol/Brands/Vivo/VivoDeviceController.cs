@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Ported from OppoPodsManager (https://github.com/Zhaoyi-ya/OppoPodsManager), GPL-3.0-or-later.
+// Gestures, wear-detection switch and dual connection management ported from TWS-Pods-PC
+// (https://github.com/Zhaoyi-ya/TWS-Pods-PC, 3350f42) and vivopods-mac
+// (https://github.com/FxRayHughes/vivopods-mac, be25133), both GPL-3.0-only.
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.State;
@@ -12,7 +15,8 @@ namespace EncoDeck.Protocol.Brands.Vivo;
 /// Drives vivo / iQOO earbuds over the vivo GAIA RFCOMM channel: handshake, notification
 /// registration, battery / wear / noise / sound effect / game mode / firmware reads, and the
 /// writes the model declares. Writes are only reported successful once a device report shows the
-/// new value (a SET echo alone is not trusted); otherwise the value is re-queried.
+/// new value (a SET echo alone is not trusted); otherwise the value is re-queried. Gestures, the
+/// wear-detection switch and the dual connection list are offered only after the earbuds report them.
 /// </summary>
 public sealed class VivoDeviceController : BrandControllerBase
 {
@@ -20,18 +24,47 @@ public sealed class VivoDeviceController : BrandControllerBase
     private static readonly TimeSpan QueryTimeout = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan ConfirmTimeout = TimeSpan.FromSeconds(2);
 
+    /// <summary>Connecting a source device takes a Bluetooth page; give the pushed list time to change.</summary>
+    private static readonly TimeSpan SourceConnectTimeout = TimeSpan.FromSeconds(8);
+
     private readonly VivoDeviceProfile _profile;
     private readonly VivoFrameDecoder _decoder = new();
+
+    /// <summary>GATT messages carry no <c>FF</c> header: one bare <c>vendor cmd payload</c> per notification.</summary>
+    private readonly bool _gatt;
     private readonly Lock _waitersGate = new();
     private readonly List<Waiter> _waiters = [];
+    private readonly Lock _stateGate = new();
+    private readonly byte[]? _hostAddress;
+    private VivoConfirmed _confirmed;
+    private (byte Left, byte Right)? _doubleTap;
+    private byte? _longPress;
+    private (byte Left, byte Right)? _noiseCycle;
+    private IReadOnlyList<VivoSourceDevice>? _sources;
 
     public VivoDeviceController(IDuplexByteChannel channel, ControllerContext context, VivoDeviceProfile profile)
         : base(channel, context)
     {
         _profile = profile;
+        _gatt = channel.Description.Contains("GATT", StringComparison.OrdinalIgnoreCase);
+        _hostAddress = VivoParsers.TryParseHostAddress(context.Identity.DeviceId, out var host) ? host : null;
     }
 
     private VivoModel Model => _profile.Model;
+
+    /// <summary>The profile with what this session has confirmed (the one published to the store).</summary>
+    private VivoDeviceProfile CurrentProfile
+    {
+        get
+        {
+            VivoConfirmed confirmed;
+            lock (_stateGate) confirmed = _confirmed;
+            return _profile.WithConfirmed(confirmed, Context.AllowExperimental());
+        }
+    }
+
+    /// <summary>Gesture and wear-switch reports only mean that on earbuds from the catalog.</summary>
+    private bool HasEarbudSettings => !Model.Headphones && !_profile.IsGeneric;
 
     private sealed record Waiter(Func<VivoFrame, bool> Match, TaskCompletionSource<VivoFrame> Completion);
 
@@ -83,6 +116,34 @@ public sealed class VivoDeviceController : BrandControllerBase
         if (Store.Current.Firmware is null)
         {
             any |= await QueryAsync(VivoCommands.QueryFirmware, [], VivoCommands.ReportFirmware, ct).ConfigureAwait(false) is not null;
+        }
+        any |= await QuerySettingsAsync(ct).ConfigureAwait(false);
+        return any;
+    }
+
+    /// <summary>
+    /// Gesture and dual connection reads. The double-tap and wear-switch values arrive as answers to
+    /// the registration frames; the long-press reads follow only on earbuds that reported double-tap,
+    /// so models without these settings see no extra queries.
+    /// </summary>
+    private async Task<bool> QuerySettingsAsync(CancellationToken ct)
+    {
+        bool any = false;
+        VivoConfirmed confirmed;
+        lock (_stateGate) confirmed = _confirmed;
+        if (HasEarbudSettings && confirmed.HasFlag(VivoConfirmed.DoubleTap))
+        {
+            any |= await QueryAsync(VivoCommands.QueryLongPress, [], VivoCommands.ReportLongPress, ct).ConfigureAwait(false) is not null;
+            byte? longPress;
+            lock (_stateGate) longPress = _longPress;
+            if (longPress is not null)
+            {
+                any |= await QueryAsync(VivoCommands.QueryNoiseCycle, [VivoConstants.NoiseCycleSubCommand], VivoCommands.ReportNoiseCycle, ct).ConfigureAwait(false) is not null;
+            }
+        }
+        if (_profile.MayQuerySourceDevices(Context.AllowExperimental()))
+        {
+            any |= await QueryAsync(VivoCommands.QuerySourceDevices, [], VivoCommands.ReportSourceDevices, ct).ConfigureAwait(false) is not null;
         }
         return any;
     }
@@ -136,6 +197,7 @@ public sealed class VivoDeviceController : BrandControllerBase
 
     public override async Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken)
     {
+        if (toggle == DeviceToggle.InEarDetection) return await SetWearDetectionAsync(enabled, cancellationToken).ConfigureAwait(false);
         if (toggle != DeviceToggle.GamingMode || !Supported(DeviceCapability.GamingMode)) return NotSupported(toggle.ToString());
         byte value = enabled ? (byte)1 : (byte)0;
         var result = await WriteConfirmedAsync(
@@ -177,6 +239,188 @@ public sealed class VivoDeviceController : BrandControllerBase
         return result;
     }
 
+    /// <summary>Writes the wear-detection switch; confirmed by the <c>0x8203</c> report, not by the acknowledgement.</summary>
+    private async Task<CommandResult> SetWearDetectionAsync(bool enabled, CancellationToken ct)
+    {
+        if (!CurrentProfile.OffersWearDetectionSwitch) return NotSupported(nameof(DeviceToggle.InEarDetection));
+        byte value = enabled ? (byte)1 : (byte)0;
+        var result = await RunPendingAsync($"toggle:{DeviceToggle.InEarDetection}", c => WriteConfirmedAsync(
+            VivoCommands.SetWearDetection,
+            [value],
+            f => f.Command == VivoCommands.ReportWearDetection && VivoParsers.TryParseWearDetection(f.Payload, out bool on) && on == enabled,
+            VivoCommands.QueryWearDetection,
+            [],
+            VivoCommands.ReportWearDetection,
+            c), ct).ConfigureAwait(false);
+        if (result.IsSuccess)
+        {
+            Store.TryUpdate(DeviceId, s => s with { Toggles = s.Toggles.SetItem(DeviceToggle.InEarDetection, Observed.From(enabled, Now, StateSource.CommandConfirmation)), LastUpdateSource = StateSource.CommandConfirmation });
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Double-tap (per earbud), long-press function (both earbuds) and long-press noise cycle (per
+    /// earbud). Only values from the known code lists are written, and only for a slot the earbuds
+    /// reported; the cycle write repeats the other earbud's reported byte unchanged.
+    /// </summary>
+    public override async Task<CommandResult> SetKeyFunctionAsync(KeyFunction assignment, CancellationToken cancellationToken = default)
+    {
+        if (!HasEarbudSettings || !Supported(DeviceCapability.TouchCustomization)) return NotSupported("Gestures");
+        (byte Left, byte Right)? doubleTap, cycle;
+        byte? longPress;
+        lock (_stateGate)
+        {
+            doubleTap = _doubleTap;
+            longPress = _longPress;
+            cycle = _noiseCycle;
+        }
+        bool perEar = assignment.Side is EarSide.Left or EarSide.Right;
+
+        if (assignment is { Button: 0, Action: GestureAction.DoubleSqueeze } && perEar
+            && VivoGestures.DoubleTapCodes.Contains(assignment.Function) && doubleTap is not null)
+        {
+            bool right = assignment.Side == EarSide.Right;
+            byte code = (byte)(assignment.Function + (right ? VivoConstants.RightDoubleTapBase : 0));
+            return await RunPendingAsync("key-function", c => WriteConfirmedAsync(
+                VivoCommands.SetDoubleTap,
+                [code],
+                f => f.Command == VivoCommands.ReportDoubleTap && VivoParsers.TryParseDoubleTap(f.Payload, out byte l, out byte r) && (right ? r : l) == code,
+                VivoCommands.QueryDoubleTap,
+                [],
+                VivoCommands.ReportDoubleTap,
+                c), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (assignment is { Button: 0, Action: GestureAction.SqueezeAndHold, Side: EarSide.Both }
+            && assignment.Function is VivoGestures.LongPressNone or VivoGestures.LongPressNoiseControl or VivoGestures.LongPressDeclineCall
+            && longPress is not null)
+        {
+            byte function = (byte)assignment.Function;
+            return await RunPendingAsync("key-function", c => WriteConfirmedAsync(
+                VivoCommands.SetLongPress,
+                [VivoConstants.LongPressSubCommand, function],
+                f => f.Command == VivoCommands.ReportLongPress && VivoParsers.TryParseLongPress(f.Payload, out byte v) && v == function,
+                VivoCommands.QueryLongPress,
+                [],
+                VivoCommands.ReportLongPress,
+                c), cancellationToken).ConfigureAwait(false);
+        }
+
+        if (assignment is { Button: VivoGestures.CycleButton, Action: GestureAction.SqueezeAndHold } && perEar
+            && VivoGestures.CycleCodes.Contains(assignment.Function) && cycle is { } current
+            && longPress == VivoGestures.LongPressNoiseControl)
+        {
+            byte left = assignment.Side == EarSide.Left ? (byte)assignment.Function : current.Left;
+            byte right = assignment.Side == EarSide.Right ? (byte)assignment.Function : current.Right;
+            return await RunPendingAsync("key-function", c => WriteConfirmedAsync(
+                VivoCommands.SetNoiseCycle,
+                [VivoConstants.NoiseCycleSubCommand, left, right],
+                f => f.Command == VivoCommands.ReportNoiseCycle && VivoParsers.TryParseNoiseCycle(f.Payload, out byte l, out byte r) && l == left && r == right,
+                VivoCommands.QueryNoiseCycle,
+                [VivoConstants.NoiseCycleSubCommand],
+                VivoCommands.ReportNoiseCycle,
+                c), cancellationToken).ConfigureAwait(false);
+        }
+        return NotSupported("This gesture setting");
+    }
+
+    /// <summary>
+    /// Dual connection: connect / disconnect write the whole reported list with only the target's
+    /// state changed (others keep their reported state byte, so the playing device is not demoted);
+    /// remove names this PC's adapter address. Each is confirmed by the device list.
+    /// </summary>
+    public override async Task<CommandResult> MultiConnectAsync(MultiConnectOperation operation, byte[] address, CancellationToken cancellationToken = default)
+    {
+        if (!Supported(DeviceCapability.DualDeviceConnection)) return NotSupported("Dual connection");
+        if (address.Length != 6 || !Enum.IsDefined(operation)) return CommandResult.Unsupported("Invalid device operation.");
+        IReadOnlyList<VivoSourceDevice>? sources;
+        lock (_stateGate) sources = _sources;
+        var target = sources?.FirstOrDefault(d => d.Address.AsSpan().SequenceEqual(address));
+        if (sources is null || target is null) return CommandResult.Unsupported("Device is not in the current paired-device list.");
+        bool connected = target.State is VivoConstants.SourceConnected or VivoConstants.SourceActive;
+        bool isHost = _hostAddress is not null && address.AsSpan().SequenceEqual(_hostAddress);
+
+        byte[] payload;
+        ushort command;
+        Func<IReadOnlyList<VivoSourceDevice>, bool> done;
+        TimeSpan window = ConfirmTimeout;
+        switch (operation)
+        {
+            case MultiConnectOperation.Connect when target.State == VivoConstants.SourceDisconnected:
+                command = VivoCommands.SetSourceDevices;
+                payload = SourceTable(sources, target, VivoConstants.SourceActive);
+                done = list => Find(list)?.State is VivoConstants.SourceConnected or VivoConstants.SourceActive;
+                window = SourceConnectTimeout;
+                break;
+            case MultiConnectOperation.Disconnect when isHost:
+                return CommandResult.Unsupported("Disconnect this PC from Windows Bluetooth settings.");
+            case MultiConnectOperation.Disconnect when connected:
+                command = VivoCommands.SetSourceDevices;
+                payload = SourceTable(sources, target, VivoConstants.SourceDisconnected);
+                done = list => Find(list)?.State == VivoConstants.SourceDisconnected;
+                break;
+            case MultiConnectOperation.Remove when connected:
+                return new CommandResult(CommandStatus.Rejected, "remove-connected");
+            case MultiConnectOperation.Remove when target.State == VivoConstants.SourceDisconnected && _hostAddress is not null:
+                command = VivoCommands.RemoveSourceDevice;
+                payload = [.. address, .. _hostAddress];
+                done = list => Find(list) is null;
+                break;
+            default:
+                return CommandResult.Unsupported("This device operation is not available.");
+        }
+
+        return await RunPendingAsync("multi-connect", c => WriteConfirmedAsync(
+            command,
+            payload,
+            f => f.Command == VivoCommands.ReportSourceDevices && VivoParsers.TryParseSourceDevices(f.Payload, out var list) && done(list),
+            VivoCommands.QuerySourceDevices,
+            [],
+            VivoCommands.ReportSourceDevices,
+            c,
+            window), cancellationToken).ConfigureAwait(false);
+
+        VivoSourceDevice? Find(IReadOnlyList<VivoSourceDevice> list) => list.FirstOrDefault(d => d.Address.AsSpan().SequenceEqual(address));
+    }
+
+    /// <summary><c>[address][state]</c> for every reported device; only the target's state changes.</summary>
+    private static byte[] SourceTable(IReadOnlyList<VivoSourceDevice> sources, VivoSourceDevice target, byte state)
+    {
+        var table = new List<byte>(sources.Count * 7);
+        foreach (var device in sources)
+        {
+            table.AddRange(device.Address);
+            table.Add(ReferenceEquals(device, target) ? state : device.State);
+        }
+        return [.. table];
+    }
+
+    /// <summary>Marks a write as pending in the store and records a failure as the last error.</summary>
+    private async Task<CommandResult> RunPendingAsync(string description, Func<CancellationToken, Task<CommandResult>> action, CancellationToken ct)
+    {
+        if (Closed.IsCompleted) return CommandResult.NotConnected;
+        var pending = new PendingCommand(Guid.NewGuid(), description, Now);
+        Store.TryUpdate(DeviceId, s => s with { PendingCommands = s.PendingCommands.Add(pending), LastError = null });
+        CommandResult result;
+        try
+        {
+            result = await action(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            result = new CommandResult(CommandStatus.Cancelled);
+        }
+        Store.TryUpdate(DeviceId, s =>
+        {
+            var next = s with { PendingCommands = s.PendingCommands.RemoveAll(p => p.Id == pending.Id) };
+            return result.IsSuccess || result.Status == CommandStatus.Cancelled
+                ? next
+                : next with { LastError = new DeviceError(result.Detail ?? result.Status.ToString(), result.Status, Now) };
+        });
+        return result;
+    }
+
     /// <summary>
     /// Sends a write, then waits for a report that shows the new value; when none arrives, re-queries
     /// once. The device often reports the old value right after a write, so a mismatching read-back
@@ -189,13 +433,14 @@ public sealed class VivoDeviceController : BrandControllerBase
         ushort queryCommand,
         byte[] queryPayload,
         ushort reportCommand,
-        CancellationToken ct)
+        CancellationToken ct,
+        TimeSpan? window = null)
     {
         var waiter = Register(confirms);
         try
         {
             if (!await SendAsync(setCommand, payload, ct).ConfigureAwait(false)) return new CommandResult(CommandStatus.TransportError);
-            if (await AwaitAsync(waiter, ConfirmTimeout, ct).ConfigureAwait(false) is not null) return CommandResult.Ok;
+            if (await AwaitAsync(waiter, window ?? ConfirmTimeout, ct).ConfigureAwait(false) is not null) return CommandResult.Ok;
         }
         finally
         {
@@ -243,7 +488,7 @@ public sealed class VivoDeviceController : BrandControllerBase
     {
         var frame = new VivoFrame(command, payload);
         Logger.LogDebug("vivo TX {Frame}", frame);
-        return WriteAsync(frame.Encode(Model.GaiaVersion), ct);
+        return WriteAsync(_gatt ? frame.EncodeGatt(Model.GaiaVersion) : frame.Encode(Model.GaiaVersion), ct);
     }
 
     private Waiter Register(Func<VivoFrame, bool> match)
@@ -260,7 +505,9 @@ public sealed class VivoDeviceController : BrandControllerBase
 
     protected override void OnReceived(ReadOnlySpan<byte> data)
     {
-        var frames = _decoder.Feed(data);
+        IReadOnlyList<VivoFrame> frames = _gatt
+            ? VivoFrame.DecodeGatt(data) is { } message ? [message] : []
+            : _decoder.Feed(data);
         if (frames.Count == 0) return;
         Touch();
         foreach (var frame in frames)
@@ -310,10 +557,85 @@ public sealed class VivoDeviceController : BrandControllerBase
             case VivoCommands.PeerTimeRequest:
                 _ = AnswerTimeAsync();
                 break;
+            case VivoCommands.ReportWearDetection when HasEarbudSettings && VivoParsers.TryParseWearDetection(p, out bool wearSwitch):
+                Confirm(VivoConfirmed.WearDetectionSwitch);
+                Store.TryUpdate(DeviceId, s => s with { Toggles = s.Toggles.SetItem(DeviceToggle.InEarDetection, Observed.From(wearSwitch, now, source)), LastUpdateSource = source });
+                break;
+            case VivoCommands.ReportDoubleTap when HasEarbudSettings && VivoParsers.TryParseDoubleTap(p, out byte left, out byte right):
+                lock (_stateGate) _doubleTap = (left, right);
+                Confirm(VivoConfirmed.DoubleTap);
+                PublishGestures(now, source);
+                break;
+            case VivoCommands.ReportLongPress when HasEarbudSettings && VivoParsers.TryParseLongPress(p, out byte longPress):
+                lock (_stateGate) _longPress = longPress;
+                Confirm(VivoConfirmed.LongPress);
+                PublishGestures(now, source);
+                break;
+            case VivoCommands.ReportNoiseCycle when HasEarbudSettings && VivoParsers.TryParseNoiseCycle(p, out byte cycleLeft, out byte cycleRight):
+                lock (_stateGate) _noiseCycle = (cycleLeft, cycleRight);
+                Confirm(VivoConfirmed.NoiseCycle);
+                PublishGestures(now, source);
+                break;
+            case VivoCommands.ReportSourceDevices when Model.DualConnection && VivoParsers.TryParseSourceDevices(p, out var devices):
+                lock (_stateGate) _sources = devices;
+                Confirm(VivoConfirmed.SourceDevices);
+                var listed = devices.Select(ToSourceDevice).ToArray();
+                Store.TryUpdate(DeviceId, s => s with { SourceDevices = Observed.From<IReadOnlyList<SourceDevice>>(listed, now, source), LastUpdateSource = source });
+                break;
         }
 
         Observed<BatteryReading>? Wrap(BatteryReading? reading) => reading is null ? null : Observed.From(reading, now, source);
     }
+
+    /// <summary>Records a newly confirmed setting and publishes the profile that offers it.</summary>
+    private void Confirm(VivoConfirmed flag)
+    {
+        lock (_stateGate)
+        {
+            if (_confirmed.HasFlag(flag)) return;
+            _confirmed |= flag;
+        }
+        var profile = CurrentProfile;
+        Store.TryUpdate(DeviceId, s => s.Profile is VivoDeviceProfile current && current.ModelId == profile.ModelId ? s with { Profile = profile } : s);
+    }
+
+    /// <summary>Publishes every reported gesture setting as <see cref="KeyFunction"/> records.</summary>
+    private void PublishGestures(DateTimeOffset now, StateSource source)
+    {
+        var list = new List<KeyFunction>(5);
+        lock (_stateGate)
+        {
+            if (_doubleTap is { } tap)
+            {
+                list.Add(new KeyFunction(EarSide.Left, 0, GestureAction.DoubleSqueeze, VivoGestures.DoubleTapFunction(EarSide.Left, tap.Left)));
+                list.Add(new KeyFunction(EarSide.Right, 0, GestureAction.DoubleSqueeze, VivoGestures.DoubleTapFunction(EarSide.Right, tap.Right)));
+            }
+            if (_longPress is { } hold) list.Add(new KeyFunction(EarSide.Both, 0, GestureAction.SqueezeAndHold, hold));
+            if (_noiseCycle is { } cycle)
+            {
+                list.Add(new KeyFunction(EarSide.Left, VivoGestures.CycleButton, GestureAction.SqueezeAndHold, cycle.Left));
+                list.Add(new KeyFunction(EarSide.Right, VivoGestures.CycleButton, GestureAction.SqueezeAndHold, cycle.Right));
+            }
+        }
+        Store.TryUpdate(DeviceId, s => s with { KeyFunctions = Observed.From<IReadOnlyList<KeyFunction>>(list, now, source), LastUpdateSource = source });
+    }
+
+    /// <summary>
+    /// Shown state: connected (1) and playing (2) are both "connected"; an unknown state byte is shown
+    /// as busy so no action is offered for it (the raw byte is still repeated in list writes).
+    /// </summary>
+    private SourceDevice ToSourceDevice(VivoSourceDevice device) => new(
+        device.Address,
+        device.Name,
+        device.State switch
+        {
+            VivoConstants.SourceDisconnected => 0,
+            VivoConstants.SourceConnected or VivoConstants.SourceActive => 2,
+            _ => 4,
+        },
+        _hostAddress is not null && device.Address.AsSpan().SequenceEqual(_hostAddress),
+        device.State == VivoConstants.SourceActive,
+        VivoParsers.DeviceType(device.DeviceClass));
 
     /// <summary>The earbuds ask for the local time: <c>[century][year%100][month][day][hour][minute][second]</c>.</summary>
     private async Task AnswerTimeAsync()
@@ -331,5 +653,5 @@ public sealed class VivoDeviceController : BrandControllerBase
     }
 
     private bool Supported(DeviceCapability capability) =>
-        _profile.Capabilities.IsAvailable(capability, Context.AllowExperimental());
+        CurrentProfile.Capabilities.IsAvailable(capability, Context.AllowExperimental());
 }

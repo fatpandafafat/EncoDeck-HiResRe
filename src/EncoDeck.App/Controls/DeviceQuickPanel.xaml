@@ -23,6 +23,9 @@
                             x:Uid="Codec_LeAudio" ToolTipService.ToolTip="LE Audio (LC3)">
                         <TextBlock Text="LC3" Style="{StaticResource CodecBadgeTextStyle}" />
                     </Border>
+                    <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.HasClassicCodec, Mode=OneWay}" x:Uid="Codec_Classic">
+                        <TextBlock Text="{x:Bind ViewModel.ClassicCodec, Mode=OneWay}" Style="{StaticResource CodecBadgeTextStyle}" />
+                    </Border>
                 </StackPanel>
             </StackPanel>
             <Button Grid.Column="2" x:Uid="Panel_OpenApp" Click="OnOpenApp" Style="{StaticResource SubtleButtonStyle}" Padding="8" VerticalAlignment="Top"

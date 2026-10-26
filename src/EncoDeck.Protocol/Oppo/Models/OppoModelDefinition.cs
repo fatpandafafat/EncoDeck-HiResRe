@@ -55,6 +55,8 @@ public sealed record OppoCustomEqualizerSpec(IReadOnlyList<int> BandFrequencies,
 /// </summary>
 public sealed record OppoModelDefinition
 {
+    /// <summary>Offers experimental standard LE pairing for this exact model; does not assert host audio support.</summary>
+    public bool SupportsLeAudioPairing { get; init; }
     public required string ModelId { get; init; }
 
     public required string DisplayName { get; init; }
@@ -132,6 +134,9 @@ public sealed record OppoModelDefinition
     /// <summary>Official mutex: turning spatial audio on turns Hi-Res (feature 24) off.</summary>
     public bool SpatialHiResMutex { get; init; }
 
+    /// <summary>Remote connect/disconnect/remove and preferred-device commands (capability bit 59), separate from multipoint.</summary>
+    public bool SupportsMultiConnectOperations { get; init; } = true;
+
     /// <summary>Distinguishes definitions adapted to one pair of earbuds (see <see cref="Adapt"/>); part of <see cref="ProfileKey"/>.</summary>
     public string Variant { get; init; } = string.Empty;
 
@@ -161,6 +166,12 @@ public sealed record OppoModelDefinition
 
         if (capabilities is { } caps)
         {
+            if (FeatureSwitches.Any(f => f.Toggle == DeviceToggle.DualDeviceConnection)
+                && !caps.Allows(OppoCommand.OperateMultiConnect))
+            {
+                next = next with { SupportsMultiConnectOperations = false };
+                variant.Add("mc0");
+            }
             bool v2 = caps.Allows(OppoCommand.SetSpatialAudio);
             if (SpatialTypes.Count > 0 && v2 != HasSpatialAudioV2)
             {

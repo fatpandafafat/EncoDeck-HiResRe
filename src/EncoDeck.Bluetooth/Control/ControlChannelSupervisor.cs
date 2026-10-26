@@ -5,6 +5,7 @@ using EncoDeck.Core.Devices;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Oppo;
 using EncoDeck.Protocol.Brands;
+using EncoDeck.Protocol.Brands.Sony;
 using EncoDeck.Protocol.Transport;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -46,6 +47,7 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
     private bool _manualRetry;
     private Task? _loop;
     private IDeviceController? _controller;
+    private Guid? _preferredSonyService;
 
     public ControlChannelSupervisor(
         DeviceIdentity identity,
@@ -74,6 +76,7 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
         _linkSettleDelay = linkSettleDelay ?? DefaultLinkSettleDelay;
         _link.ConnectionChanged += OnLinkChanged;
         _link.TransportChanged += OnTransportChanged;
+        _link.LinkDetailsChanged += OnLinkDetailsChanged;
     }
 
     /// <summary>The controller while the channel is ready; null otherwise.</summary>
@@ -102,6 +105,21 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
     }
 
     private int _transportChanged;
+    private int _linkDetailsChanged;
+
+    private void OnLinkDetailsChanged(object? sender, EventArgs e)
+    {
+        UpdateTransport();
+        var links = _link.LeAudioLinks;
+        _logger.LogInformation("LE links: primary bonded={PrimaryBonded} connected={PrimaryConnected}; secondary bonded={SecondaryBonded} connected={SecondaryConnected}; audio streaming unverified",
+            links.PrimaryBonded, links.PrimaryConnected, links.SecondaryBonded, links.SecondaryConnected);
+        // A second ear returning should wake exhausted control, without tearing down healthy control.
+        if (Controller is null)
+        {
+            Interlocked.Exchange(ref _linkDetailsChanged, 1);
+            Wake();
+        }
+    }
 
     private void OnTransportChanged(object? sender, EventArgs e)
     {
@@ -113,8 +131,9 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
 
     private void UpdateTransport()
     {
-        bool leAudio = _link.IsLeAudio;
-        _store.TryUpdate(_identity.DeviceId, s => s.IsLeAudio == leAudio ? s : s with { IsLeAudio = leAudio });
+        bool leAudio = _link.IsLeAudio, bonded = _link.IsLeAudioBonded;
+        var links = _link.LeAudioLinks;
+        _store.TryUpdate(_identity.DeviceId, s => s.IsLeAudio == leAudio && s.IsLeAudioBonded == bonded && s.LeAudioLinks == links ? s : s with { IsLeAudio = leAudio, IsLeAudioBonded = bonded, LeAudioLinks = links });
     }
 
     private void OnLinkChanged(object? sender, bool connected)
@@ -164,7 +183,7 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
             }
             firstIteration = false;
 
-            if (TakeManualRetry() | Interlocked.Exchange(ref _transportChanged, 0) == 1)
+            if (TakeManualRetry() | Interlocked.Exchange(ref _transportChanged, 0) == 1 | Interlocked.Exchange(ref _linkDetailsChanged, 0) == 1)
             {
                 attempt = 0;
                 exhausted = false;
@@ -218,7 +237,10 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
         ChannelOpenResult open;
         try
         {
-            open = await _connector.OpenAsync(_identity.DeviceId, _profile.ControlServiceUuids, ct).ConfigureAwait(false);
+            var services = _profile.ControlServiceUuids;
+            if (_profile.Brand == "sony" && _preferredSonyService is { } preferred)
+                services = services.OrderBy(uuid => uuid == preferred ? 0 : 1).ToArray();
+            open = await _connector.OpenAsync(_identity.DeviceId, services, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -234,14 +256,14 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
         if (open.Status != ChannelOpenStatus.Opened || open.Channel is null)
         {
             _logger.LogInformation("Control channel not opened: {Status} {Detail}", open.Status, open.Detail);
-            SetError(open.Status switch
+            SetError(open.ResourceKey is not null ? open.Detail ?? "Could not open the control channel." : open.Status switch
             {
                 ChannelOpenStatus.ServiceNotFound => "The earbuds do not expose a supported control service.",
                 ChannelOpenStatus.AccessDenied => "Windows denied access to the Bluetooth device.",
                 ChannelOpenStatus.ControlEndpointNotFound => open.Detail ?? "The Bluetooth LE control endpoint was not found.",
                 ChannelOpenStatus.ClassicInsteadOfLeAudio => open.Detail ?? "The earbuds reconnected over Classic Bluetooth instead of LE Audio.",
                 _ => "Could not open the control channel.",
-            }, open.Status switch
+            }, open.ResourceKey ?? open.Status switch
             {
                 ChannelOpenStatus.ControlEndpointNotFound => "Error_ControlEndpointNotFound",
                 ChannelOpenStatus.ClassicInsteadOfLeAudio => "Error_LeAudioOnClassic",
@@ -265,18 +287,23 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
 
             if (!initialized)
             {
-                SetError("The earbuds did not answer the control handshake.");
+                AdvanceSonyService(open.ServiceUuid);
+                SetError(closed.IsCompleted
+                    ? "The control channel closed during the handshake."
+                    : "The earbuds did not answer the control handshake.");
                 return ServeOutcome.Failed;
             }
 
             if (!_link.IsConnected || ct.IsCancellationRequested || Volatile.Read(ref _transportChanged) != 0) return ServeOutcome.EndedByLinkOrUser;
             if (closed.IsCompleted)
             {
+                AdvanceSonyService(open.ServiceUuid);
                 SetError("The control channel closed during the handshake.");
                 return ServeOutcome.Failed;
             }
 
             lock (_gate) _controller = controller;
+            if (_profile.Brand == "sony") _preferredSonyService = open.ServiceUuid;
             SetConnection(DeviceConnectionState.ControlReady);
             _store.TryUpdate(_identity.DeviceId, s => s with { LastError = null });
 
@@ -302,6 +329,7 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
         }
         catch (Exception ex)
         {
+            if (_controller is null) AdvanceSonyService(open.ServiceUuid);
             _logger.LogWarning(ex, "Initializing or serving the control channel failed");
             SetError("The control handshake failed.");
             return ServeOutcome.Failed;
@@ -312,6 +340,13 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
             if (controller is not null) await controller.DisposeAsync().ConfigureAwait(false);
             else await open.Channel.DisposeAsync().ConfigureAwait(false);
         }
+    }
+
+    private void AdvanceSonyService(Guid? failed)
+    {
+        if (_profile.Brand != "sony" || failed is not { } uuid || !SonyAkgProfiles.IsControlService(uuid)) return;
+        _preferredSonyService = _profile.ControlServiceUuids.FirstOrDefault(candidate => candidate != uuid);
+        _logger.LogInformation("Sony handshake failed on {Service}; next attempt prefers {NextService}", uuid, _preferredSonyService);
     }
 
     private bool TakeManualRetry()
@@ -326,8 +361,9 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
 
     private void SetConnection(DeviceConnectionState state)
     {
-        bool leAudio = _link.IsLeAudio;
-        _store.TryUpdate(_identity.DeviceId, s => s.Connection == state && s.IsLeAudio == leAudio ? s : s with { Connection = state, IsLeAudio = leAudio });
+        bool leAudio = _link.IsLeAudio, bonded = _link.IsLeAudioBonded;
+        var links = _link.LeAudioLinks;
+        _store.TryUpdate(_identity.DeviceId, s => s.Connection == state && s.IsLeAudio == leAudio && s.IsLeAudioBonded == bonded && s.LeAudioLinks == links ? s : s with { Connection = state, IsLeAudio = leAudio, IsLeAudioBonded = bonded, LeAudioLinks = links });
     }
 
     private void SetError(string message, string? resourceKey = null)
@@ -364,6 +400,7 @@ public sealed class ControlChannelSupervisor : IAsyncDisposable
     {
         _link.ConnectionChanged -= OnLinkChanged;
         _link.TransportChanged -= OnTransportChanged;
+        _link.LinkDetailsChanged -= OnLinkDetailsChanged;
         _lifetime.Cancel();
         Wake();
         if (_loop is not null)

@@ -64,6 +64,7 @@ public sealed class DeviceManager : IDeviceManager
     private CancellationTokenSource? _usbStop;
     private Task? _usbPoll;
     private readonly SemaphoreSlim _usbReadGate = new(1, 1);
+    private UsbHeadsetSettingsController? _usbSettings;
     private string? _manualSelection;
     // The most recently connected device wins automatic selection over earlier choices.
     private readonly object _connectionGate = new();
@@ -214,6 +215,7 @@ public sealed class DeviceManager : IDeviceManager
 
             if (choice.Identity.Transport == DeviceTransport.Usb && choice.Profile is UsbHeadsetProfile usb)
             {
+                _logger.LogInformation("Active USB device: {Model}", usb.ModelId);
                 _usbIdentity = choice.Identity;
                 _usbStop = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
                 _store.Reset(DeviceState.Empty with { Device = choice.Identity, Profile = usb, Connection = DeviceConnectionState.UsbReceiverConnected });
@@ -244,7 +246,10 @@ public sealed class DeviceManager : IDeviceManager
                 }
             }
 
-            var link = await BluetoothLinkMonitor.CreateAsync(choice.Identity.DeviceId, cancellationToken).ConfigureAwait(false);
+            var link = await BluetoothLinkMonitor.CreateAsync(
+                choice.Identity.DeviceId,
+                profile.Form == DeviceForm.Headphones,
+                cancellationToken).ConfigureAwait(false);
             if (link is null)
             {
                 _logger.LogWarning("Could not open {Device} for link monitoring", choice.Identity);
@@ -287,18 +292,25 @@ public sealed class DeviceManager : IDeviceManager
         Controller is { } c ? c.SetNoiseControlAsync(target, cancellationToken) : Task.FromResult(CommandResult.NotConnected);
 
     public Task<CommandResult> SetEqualizerPresetAsync(string presetId, CancellationToken cancellationToken = default) =>
+        _usbSettings is { } usb ? usb.SetEqualizerPresetAsync(presetId, cancellationToken) :
         Controller is { } c ? c.SetEqualizerPresetAsync(presetId, cancellationToken) : Task.FromResult(CommandResult.NotConnected);
 
+    public Task<CommandResult> SetEqualizerBandsAsync(IReadOnlyList<int> bands, CancellationToken cancellationToken = default) =>
+        Controller is { } c ? c.SetEqualizerBandsAsync(bands, cancellationToken) : Task.FromResult(CommandResult.NotConnected);
+
     public Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken = default) =>
+        _usbSettings is { } usb ? usb.SetToggleAsync(toggle, enabled, cancellationToken) :
         Controller is { } c ? c.SetToggleAsync(toggle, enabled, cancellationToken) : Task.FromResult(CommandResult.NotConnected);
 
     public Task<CommandResult> RefreshAsync(CancellationToken cancellationToken = default) =>
-        _usbIdentity is not null ? RefreshUsbAsync(cancellationToken) : Controller is { } c ? c.RefreshAsync(cancellationToken) : Task.FromResult(CommandResult.NotConnected);
+        _usbIdentity is not null ? RefreshUsbAsync(cancellationToken, forceSettings: true) : Controller is { } c ? c.RefreshAsync(cancellationToken) : Task.FromResult(CommandResult.NotConnected);
 
     private Task<CommandResult> WithController(Func<IDeviceController, Task<CommandResult>> action) =>
         Controller is { } c ? action(c) : Task.FromResult(CommandResult.NotConnected);
 
     public Task<CommandResult> SetSpatialAudioAsync(SpatialAudioMode mode, CancellationToken cancellationToken = default) => WithController(c => c.SetSpatialAudioAsync(mode, cancellationToken));
+
+    public Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default) => WithController(c => c.SetLeBrSwitchAsync(enabled, cancellationToken));
 
     public Task<CommandResult> SetGameSoundAsync(int type, CancellationToken cancellationToken = default) => WithController(c => c.SetGameSoundAsync(type, cancellationToken));
 
@@ -324,17 +336,23 @@ public sealed class DeviceManager : IDeviceManager
 
     public Task<CommandResult> SetPreferredDeviceAsync(byte[]? address, CancellationToken cancellationToken = default) => WithController(c => c.SetPreferredDeviceAsync(address, cancellationToken));
 
-    public Task<CommandResult> SelectCustomEqualizerAsync(int id, CancellationToken cancellationToken = default) => WithController(c => c.SelectCustomEqualizerAsync(id, cancellationToken));
+    public Task<CommandResult> SelectCustomEqualizerAsync(int id, CancellationToken cancellationToken = default) =>
+        _usbSettings is { } usb ? usb.SelectCustomEqualizerAsync(id, cancellationToken) : WithController(c => c.SelectCustomEqualizerAsync(id, cancellationToken));
 
-    public Task<CommandResult> SaveCustomEqualizerAsync(CustomEqualizer preset, CancellationToken cancellationToken = default) => WithController(c => c.SaveCustomEqualizerAsync(preset, cancellationToken));
+    public Task<CommandResult> SaveCustomEqualizerAsync(CustomEqualizer preset, CancellationToken cancellationToken = default) =>
+        _usbSettings is { } usb ? usb.SaveCustomEqualizerAsync(preset, cancellationToken) : WithController(c => c.SaveCustomEqualizerAsync(preset, cancellationToken));
+
 
     public Task<CommandResult> AddCustomEqualizerAsync(CancellationToken cancellationToken = default) => WithController(c => c.AddCustomEqualizerAsync(cancellationToken));
 
     public Task<CommandResult> DeleteCustomEqualizerAsync(int id, CancellationToken cancellationToken = default) => WithController(c => c.DeleteCustomEqualizerAsync(id, cancellationToken));
 
+    public Task<CommandResult> SetOptionAsync(string id, int value, CancellationToken cancellationToken = default) =>
+        _usbSettings is { } usb ? usb.SetOptionAsync(id, value, cancellationToken) : WithController(c => c.SetOptionAsync(id, value, cancellationToken));
+
     public Task<CommandResult> ReconnectAsync(CancellationToken cancellationToken = default)
     {
-        if (_usbIdentity is not null) return RefreshUsbAsync(cancellationToken);
+        if (_usbIdentity is not null) return RefreshUsbAsync(cancellationToken, forceSettings: true);
         if (_active is null) return Task.FromResult(CommandResult.NotConnected);
         _active.Supervisor.RequestReconnect();
         return Task.FromResult(CommandResult.Ok);
@@ -366,34 +384,50 @@ public sealed class DeviceManager : IDeviceManager
     private async Task StopUsbAsync()
     {
         _usbIdentity = null;
+        // Queued settings writes see the headset as gone and send nothing.
+        _usbSettings?.Clear();
+        _usbSettings = null;
         if (_usbStop is null) return;
         await _usbStop.CancelAsync().ConfigureAwait(false);
         if (_usbPoll is not null) await _usbPoll.ConfigureAwait(false);
         _usbStop.Dispose(); _usbStop = null; _usbPoll = null;
     }
 
-    private async Task<CommandResult> RefreshUsbAsync(CancellationToken ct)
+    private async Task<CommandResult> RefreshUsbAsync(CancellationToken ct, bool forceSettings = false)
     {
         var identity = _usbIdentity;
         if (identity is null || _usbWatcher.Container(identity.DeviceId) is not { } container) return CommandResult.NotConnected;
-        void ClearBattery() => _store.TryUpdate(identity.DeviceId, s => s with
+        void ClearBattery()
         {
-            Profile = s.Profile is UsbHeadsetProfile profile ? profile.WithBattery(false) : s.Profile,
-            Battery = BatteryStatus.Unknown,
-            LastResponseAt = null,
-        });
+            _usbSettings?.Clear();
+            _store.TryUpdate(identity.DeviceId, s => s with
+            {
+                Connection = DeviceConnectionState.UsbReceiverConnected,
+                Profile = s.Profile is UsbHeadsetProfile profile ? profile.WithBattery(false) : s.Profile,
+                Battery = BatteryStatus.Unknown,
+                LastResponseAt = null,
+            });
+        }
         await _usbReadGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             using var bounded = CancellationTokenSource.CreateLinkedTokenSource(ct, _lifetime.Token);
             bounded.CancelAfter(TimeSpan.FromSeconds(8));
-            int? level = await UsbHidBattery.ReadAsync(container, bounded.Token).ConfigureAwait(false);
+            var status = await UsbHidBattery.ReadStatusAsync(container, bounded.Token, _logger).ConfigureAwait(false);
+            _logger.LogInformation("USB headset status: battery={Battery}, cable={Cable}, radio={Radio}", status.Level, status.IsCharging, status.IsConnected);
+            int? level = status.Level;
             _store.TryUpdate(identity.DeviceId, s => s with
             {
+                Connection = status.IsConnected == true ? DeviceConnectionState.UsbHeadsetConnected : DeviceConnectionState.UsbReceiverConnected,
                 Profile = s.Profile is UsbHeadsetProfile profile ? profile.WithBattery(level.HasValue) : s.Profile,
-                Battery = level.HasValue ? new(Observed.From(new BatteryReading(level, null), DateTimeOffset.UtcNow, StateSource.QueryResponse), null, null) : BatteryStatus.Unknown,
-                LastResponseAt = level.HasValue ? DateTimeOffset.UtcNow : null,
+                Battery = level.HasValue || status.IsCharging.HasValue ? new(Observed.From(new BatteryReading(level, status.IsCharging), DateTimeOffset.UtcNow, StateSource.QueryResponse), null, null) : BatteryStatus.Unknown,
+                LastResponseAt = level.HasValue || status.IsConnected.HasValue ? DateTimeOffset.UtcNow : null,
             });
+            // Barracuda X 1532:0550 only: its settings are read in their own session, still under the battery
+            // gate, once the headset has just answered over the radio link. Other receivers never get here.
+            if (status.Product == RazerPaSettings.BarracudaX && _usbStop is { } stop) _usbSettings ??= CreateUsbSettings(identity.DeviceId, container, stop.Token);
+            if (_usbSettings is { } settings)
+                await settings.SyncAsync(status.Product == RazerPaSettings.BarracudaX && status.IsConnected == true && level.HasValue, forceSettings, ct).ConfigureAwait(false);
             return level.HasValue ? CommandResult.Ok : CommandResult.Unsupported("No valid battery reply from a documented receiver query or standard HID percentage report.");
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested && !_lifetime.IsCancellationRequested)
@@ -405,6 +439,21 @@ public sealed class DeviceManager : IDeviceManager
             return new(CommandStatus.TransportError, "USB battery access is unavailable.");
         }
         finally { _usbReadGate.Release(); }
+    }
+
+    private UsbHeadsetSettingsController CreateUsbSettings(string deviceId, Guid container, CancellationToken stop)
+    {
+        // Each session opens and closes its own HID handle, bounded like the battery read.
+        async Task<T> Bounded<T>(Func<CancellationToken, Task<T>> action, CancellationToken token)
+        {
+            using var bounded = CancellationTokenSource.CreateLinkedTokenSource(token, stop, _lifetime.Token);
+            bounded.CancelAfter(TimeSpan.FromSeconds(12));
+            return await action(bounded.Token).ConfigureAwait(false);
+        }
+        return new UsbHeadsetSettingsController(deviceId, _store, _usbReadGate,
+            (settings, token) => Bounded(t => UsbHeadsetSettings.ReadAsync(container, RazerPaSettings.BarracudaX, settings, t), token),
+            (setting, values, token) => Bounded(t => UsbHeadsetSettings.WriteAsync(container, RazerPaSettings.BarracudaX, setting, values, t), token),
+            _logger);
     }
 
     private async Task PollUsbAsync(CancellationToken ct)

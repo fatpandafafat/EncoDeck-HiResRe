@@ -148,6 +148,8 @@
                 <StackPanel Spacing="12">
                     <TextBlock x:Uid="Controls_Settings" Text="More settings" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <StackPanel x:Name="ToggleHost" Spacing="12" />
+                    <!-- Multi-value settings the earbuds report (auto power off, button assignment, levels). -->
+                    <StackPanel x:Name="OptionHost" Spacing="12" />
                     <controls:SettingRow x:Name="GainSection" x:Uid="Moondrop_Gain" Header="Gain">
                         <ComboBox x:Name="GainBox" MinWidth="200" SelectionChanged="OnGainChanged" />
                     </controls:SettingRow>

@@ -11,6 +11,7 @@ using EncoDeck.Core.Resources;
 using EncoDeck.Core.State;
 using EncoDeck.Platform.Settings;
 using EncoDeck.Protocol.Brands;
+using EncoDeck.Protocol.Brands.Usb;
 using EncoDeck.Protocol.Oppo;
 using EncoDeck.Protocol.Oppo.Models;
 using Microsoft.UI.Dispatching;
@@ -87,6 +88,7 @@ public sealed partial class DeviceViewModel : ObservableObject
 
     public ObservableCollection<NoiseLevelViewModel> NoiseLevels { get; } = [];
     public ObservableCollection<NoiseLevelViewModel> AdaptiveLevels { get; } = [];
+    public ObservableCollection<NoiseLevelViewModel> TransparencyLevels { get; } = [];
     public ObservableCollection<EqualizerPresetViewModel> EqualizerPresets { get; } = [];
     public ObservableCollection<DeviceToggleViewModel> Toggles { get; } = [];
 
@@ -107,6 +109,9 @@ public sealed partial class DeviceViewModel : ObservableObject
 
     /// <summary>The audio runs over LE Audio (shown as an "LC3" tag next to the status).</summary>
     [ObservableProperty] public partial bool IsLeAudio { get; set; }
+    /// <summary>Classic (A2DP) codec the earbuds report, shown as a tag like "LC3" (null when unknown or on LE Audio).</summary>
+    [ObservableProperty] public partial string? ClassicCodec { get; set; }
+    [ObservableProperty] public partial bool HasClassicCodec { get; set; }
     [ObservableProperty] public partial string? DeviceImagePath { get; set; }
     [ObservableProperty] public partial string? LeftArtworkPath { get; set; }
     [ObservableProperty] public partial string? RightArtworkPath { get; set; }
@@ -134,6 +139,11 @@ public sealed partial class DeviceViewModel : ObservableObject
     public DeviceResourceKey? ResourceKey { get; private set; }
 
     [ObservableProperty] public partial bool IsNoiseAvailable { get; set; }
+    /// <summary>
+    /// Noise control is shown but cannot be changed: over LE Audio the X4 refuses every noise-mode
+    /// change (status 0x01) once it settled in LE mode, so the controls stay greyed out.
+    /// </summary>
+    [ObservableProperty] public partial bool CanSetNoise { get; set; }
     [ObservableProperty] public partial bool IsNoisePending { get; set; }
     [ObservableProperty] public partial bool IsOffSelected { get; set; }
     [ObservableProperty] public partial bool IsAncSelected { get; set; }
@@ -145,10 +155,17 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial bool HasAncMode { get; set; }
     [ObservableProperty] public partial bool HasTransparencyMode { get; set; }
     [ObservableProperty] public partial bool ShowNoiseLevels { get; set; }
+    [ObservableProperty] public partial bool ShowTransparencyLevels { get; set; }
     [ObservableProperty] public partial string NoiseText { get; set; } = string.Empty;
 
     [ObservableProperty] public partial bool IsEqualizerAvailable { get; set; }
     [ObservableProperty] public partial string EqualizerText { get; set; } = string.Empty;
+
+    /// <summary>Band values (dB offsets, -6..+6) the device reported for the active preset.</summary>
+    [ObservableProperty] public partial IReadOnlyList<int> EqualizerBands { get; set; } = [];
+
+    /// <summary>True when the active preset's band values can be overwritten (Sony manual / custom slots).</summary>
+    [ObservableProperty] public partial bool CanEditEqualizerBands { get; set; }
 
     [ObservableProperty] public partial string FirmwareText { get; set; } = string.Empty;
     [ObservableProperty] public partial string LastUpdatedText { get; set; } = string.Empty;
@@ -180,6 +197,12 @@ public sealed partial class DeviceViewModel : ObservableObject
     private async Task SetEqualizerAsync(string presetId)
     {
         await RunAsync(() => _commands.SetEqualizerPresetAsync(presetId));
+    }
+
+    /// <summary>Pushes edited band values (dB offsets) for the active manual/custom preset.</summary>
+    public async Task SetEqualizerBandsAsync(IReadOnlyList<int> bands)
+    {
+        await RunAsync(() => _commands.SetEqualizerBandsAsync(bands));
     }
 
     public async Task SetToggleAsync(DeviceToggle toggle, bool enabled)
@@ -229,10 +252,12 @@ public sealed partial class DeviceViewModel : ObservableObject
         // Reasons the official client reports with its own message.
         (CommandStatus.Rejected, OppoDeviceController.WearRequiredDetail) => Loc.Get("Error_WearRequired"),
         (CommandStatus.Rejected, "busy-other-device") => Loc.Get("Error_BusyOtherDevice"),
+        (CommandStatus.Rejected, EncoDeck.Protocol.Brands.Xiaomi.XiaomiProtocol.FindWornDetail) => Loc.Get("Error_FindWhileWorn"),
         (CommandStatus.Rejected, "battery-low") => Loc.Get("Error_BatteryLow"),
         (CommandStatus.Rejected, "at-least-two") => Loc.Get("Error_CycleAtLeastTwo"),
         (CommandStatus.Rejected, "at-least-one") => Loc.Get("Error_CycleAtLeastOne"),
         (CommandStatus.Rejected, "remove-connected") => Loc.Get("Error_RemoveConnected"),
+        (CommandStatus.Rejected, "le-audio-multipoint") => Loc.Get("Error_LeAudioMultipoint"),
         (CommandStatus.Rejected, "max-presets") => Loc.Get("Error_MaxPresets"),
         (CommandStatus.Rejected, "invalid-name") => Loc.Get("Error_InvalidName"),
         (CommandStatus.Timeout, _) => Loc.Get("Error_Timeout"),
@@ -284,6 +309,27 @@ public sealed partial class DeviceViewModel : ObservableObject
         IsControlUnavailable = state.Connection == DeviceConnectionState.ControlUnavailable;
         IsLinkDown = state.Connection is DeviceConnectionState.PairedNotConnected or DeviceConnectionState.Disconnected;
         IsLeAudio = state.IsLeAudio && !IsLinkDown;
+        ClassicCodec = state.IsLeAudio || IsLinkDown ? null : state.Codec?.Value switch
+        {
+            AudioCodec.Sbc => "SBC",
+            AudioCodec.Aac => "AAC",
+            AudioCodec.Ldac => "LDAC",
+            AudioCodec.AptX => "aptX",
+            AudioCodec.AptXHd => "aptX HD",
+            AudioCodec.AptXAdaptive => "aptX Adaptive",
+            AudioCodec.Lhdc => "LHDC",
+            _ => null,
+        };
+        HasClassicCodec = ClassicCodec is not null;
+        // A single-body LC3 headset has only the one LE identity, so one link is all of it. Warn
+        // only for a pair whose other earbud is bonded, or earbuds whose other half was never found.
+        if (state.IsLeAudio && state.LeAudioLinks.ConnectedEarbuds == 1 && profile?.Form != DeviceForm.Headphones
+            && (state.LeAudioLinks.SecondaryBonded || profile is OppoDeviceProfile))
+            ConnectionText = Loc.Get("Connection_LeAudioSingleEar");
+        // Switched to LE Audio but LC3 is not up (e.g. after the case reopened): the earbuds only come
+        // back over LE once they advertise; EncoDeck keeps the existing bond ready to reconnect.
+        if (state.IsLeAudioBonded && !state.IsLeAudio && state.Connection != DeviceConnectionState.ControlReady)
+            ConnectionText = Loc.Get("Connection_WaitingForLeAudio");
         // Until the earbuds connect and report their ids, use the ones remembered from last time
         // (restored by the device cache) or the model's own product id, so the art shows at once.
         uint? productId = state.ProductId;
@@ -320,15 +366,17 @@ public sealed partial class DeviceViewModel : ObservableObject
         }
 
         foreach (var item in new[] { Left, Right, Case }) item.SetSingleBattery(IsHeadphones);
-        bool batteryReady = IsReady || (state.Connection == DeviceConnectionState.UsbReceiverConnected && state.LastResponseAt is not null);
+        bool batteryReady = IsReady || (state.Connection is DeviceConnectionState.UsbReceiverConnected or DeviceConnectionState.UsbHeadsetConnected && state.LastResponseAt is not null);
         Left.Apply(state.Battery.Left, batteryReady, now);
         Right.Apply(state.Battery.Right, batteryReady, now);
         Case.Apply(state.Battery.Case, batteryReady, now);
 
         RebuildOptionsIfNeeded(profile);
         ApplyNoise(state, profile);
-        ApplyEqualizer(state, profile);
-        ApplyToggles(state);
+        // A Barracuda X on its USB receiver has no control channel; its read-back settings make it controllable.
+        bool controlReady = IsReady || FeaturesViewModel.IsUsbSettingsReady(state);
+        ApplyEqualizer(state, profile, controlReady);
+        ApplyToggles(state, controlReady);
 
         FirmwareText = state.Firmware?.Value is { } fw ? DescribeFirmware(fw, profile) : string.Empty;
         var newest = new[] { state.Battery.Left?.Timestamp, state.Battery.Right?.Timestamp, state.NoiseControl?.Timestamp, state.LastResponseAt }.Max();
@@ -353,7 +401,12 @@ public sealed partial class DeviceViewModel : ObservableObject
         string.Concat(Enum.GetValues<DeviceCapability>().Select(c => (char)('0' + (int)profile.Capabilities.Get(c).Support))),
         string.Join(',', profile.NoiseControlOptions.Select(o => $"{o.Mode}/{o.LevelId}/{o.Support}")),
         string.Join(',', profile.EqualizerPresets.Select(p => $"{p.Id}/{p.Support}")),
-        profile is IControllableProfile controllable ? string.Join(',', controllable.Toggles.Order()) : string.Empty);
+        profile switch
+        {
+            IControllableProfile controllable => string.Join(',', controllable.Toggles.Order()),
+            UsbHeadsetProfile usb => $"{string.Join(',', usb.Toggles)}/{string.Join(',', usb.AutoPowerOffMinutes)}",
+            _ => string.Empty,
+        });
 
     private void RebuildOptionsIfNeeded(IDeviceProfile? profile)
     {
@@ -363,6 +416,7 @@ public sealed partial class DeviceViewModel : ObservableObject
 
         NoiseLevels.Clear();
         AdaptiveLevels.Clear();
+        TransparencyLevels.Clear();
         EqualizerPresets.Clear();
         Toggles.Clear();
         if (profile is null) return;
@@ -375,6 +429,8 @@ public sealed partial class DeviceViewModel : ObservableObject
         {
             AdaptiveLevels.Add(new NoiseLevelViewModel(option.LevelId!, Text(option.ResourceKey, option.DisplayName)));
         }
+        foreach (var option in profile.NoiseControlOptions.Where(o => o.Mode == NoiseControlMode.Transparency && o.LevelId is not null && IsAllowed(o.Support)))
+            TransparencyLevels.Add(new NoiseLevelViewModel(option.LevelId!, Text(option.ResourceKey, option.DisplayName)));
         if (profile.Capabilities.IsAvailable(DeviceCapability.Equalizer, allowExperimental: false))
         {
             foreach (var preset in profile.EqualizerPresets.Where(p => IsAllowed(p.Support)))
@@ -385,14 +441,23 @@ public sealed partial class DeviceViewModel : ObservableObject
         // "More settings" switches; game mode, dual connection, head gestures and the bass engine
         // have their own sections, as in the official client.
         AddToggle(profile, DeviceToggle.InEarDetection);
+        if (profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile) AddToggle(profile, DeviceToggle.ChannelSwap);
+        AddToggle(profile, DeviceToggle.AutoVolume);
+        AddToggle(profile, DeviceToggle.AutoAnswerCalls);
         AddToggle(profile, DeviceToggle.SleepDetection);
         AddToggle(profile, DeviceToggle.SwiftPair);
         AddToggle(profile, DeviceToggle.VoiceCommands);
-        if (profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile { LhdcSupport: CapabilitySupport.Supported }) AddToggle(profile, DeviceToggle.HiRes);
+        AddToggle(profile, DeviceToggle.SpeakToChat);
+        AddToggle(profile, DeviceToggle.Upscaling);
+        AddToggle(profile, DeviceToggle.TouchControls);
+        AddToggle(profile, DeviceToggle.DoNotDisturb);
         if (profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile)
         {
-            if (profile.Capabilities.IsAvailable(DeviceCapability.IndicatorLight, _settings.Current.EnableExperimentalFeatures)) AddToggle(profile, DeviceToggle.IndicatorLight);
-            if (profile.Capabilities.IsAvailable(DeviceCapability.PromptTone, _settings.Current.EnableExperimentalFeatures)) AddToggle(profile, DeviceToggle.PromptTone);
+            AddToggle(profile, DeviceToggle.HiRes);
+            AddToggle(profile, DeviceToggle.Ldac);
+            AddToggle(profile, DeviceToggle.Lc3);
+            AddToggle(profile, DeviceToggle.IndicatorLight);
+            AddToggle(profile, DeviceToggle.PromptTone);
         }
 
         bool Has(NoiseControlMode mode) => profile.NoiseControlOptions.Any(o => o.Mode == mode && IsAllowed(o.Support));
@@ -406,7 +471,10 @@ public sealed partial class DeviceViewModel : ObservableObject
     {
         bool offered = profile is OppoDeviceProfile { Definition: var model }
             ? model.FeatureSwitches.Any(f => f.Toggle == toggle && f.Support == CapabilitySupport.Supported)
-            : profile is IControllableProfile other && other.Toggles.Contains(toggle);
+            : profile is IControllableProfile other ? other.Toggles.Contains(toggle)
+                && (other is not EncoDeck.Protocol.Brands.Moondrop.MoondropProfile moondrop
+                    || moondrop.Capabilities.IsAvailable(EncoDeck.Protocol.Brands.Moondrop.MoondropProfile.ToggleCapability(toggle), _settings.Current.EnableExperimentalFeatures))
+            : profile is UsbHeadsetProfile usb && usb.Toggles.Contains(toggle);
         if (!offered) return;
         Toggles.Add(new DeviceToggleViewModel(toggle, Loc.Get($"Toggle_{toggle}"), Loc.Get($"Toggle_{toggle}_Description")));
     }
@@ -414,6 +482,7 @@ public sealed partial class DeviceViewModel : ObservableObject
     private void ApplyNoise(DeviceState state, IDeviceProfile? profile)
     {
         IsNoiseAvailable = IsReady && profile is not null && profile.Capabilities.IsAvailable(DeviceCapability.NoiseCancellation, allowExperimental: false);
+        CanSetNoise = IsNoiseAvailable && !state.IsLeAudio;
         IsNoisePending = state.IsPending("noise-control");
         var noise = state.NoiseControl?.Value;
         IsOffSelected = noise?.Mode == NoiseControlMode.Off;
@@ -422,8 +491,10 @@ public sealed partial class DeviceViewModel : ObservableObject
         IsTransparencySelected = noise?.Mode == NoiseControlMode.Transparency;
         ShowNoiseLevels = IsAncSelected && NoiseLevels.Count > 0 && IsNoiseAvailable;
         ShowAdaptiveLevels = IsAdaptiveSelected && AdaptiveLevels.Count > 1 && IsNoiseAvailable;
+        ShowTransparencyLevels = IsTransparencySelected && TransparencyLevels.Count > 1 && IsNoiseAvailable;
         foreach (var level in NoiseLevels) level.IsSelected = IsAncSelected && level.Id == noise?.LevelId;
         foreach (var level in AdaptiveLevels) level.IsSelected = IsAdaptiveSelected && level.Id == noise?.LevelId;
+        foreach (var level in TransparencyLevels) level.IsSelected = IsTransparencySelected && level.Id == noise?.LevelId;
 
         if (noise is null)
         {
@@ -442,14 +513,15 @@ public sealed partial class DeviceViewModel : ObservableObject
         return option.LevelId is null ? mode : $"{mode} · {Text(option.ResourceKey, option.DisplayName)}";
     }
 
-    private void ApplyEqualizer(DeviceState state, IDeviceProfile? profile)
+    private void ApplyEqualizer(DeviceState state, IDeviceProfile? profile, bool controlReady)
     {
-        IsEqualizerAvailable = IsReady && EqualizerPresets.Count > 0;
+        IsEqualizerAvailable = controlReady && EqualizerPresets.Count > 0;
         var eq = state.Equalizer?.Value;
         foreach (var preset in EqualizerPresets) preset.IsSelected = eq?.ActivePresetId == preset.Id;
         if (state.CustomEqualizers?.Value.FirstOrDefault(p => p.IsSelected) is { } custom)
         {
-            EqualizerText = custom.Name;
+            // A fixed device curve (non-OPPO brands) carries no name of its own.
+            EqualizerText = custom.Name.Length == 0 ? Loc.Get("Eq_DeviceCustom") : custom.Name;
         }
         else if (eq is null)
         {
@@ -460,14 +532,20 @@ public sealed partial class DeviceViewModel : ObservableObject
             var preset = profile?.EqualizerPresets.FirstOrDefault(p => p.Id == eq.ActivePresetId);
             EqualizerText = preset is not null ? Text(preset.ResourceKey, preset.DisplayName) : Loc.Format("Eq_UnknownPreset", eq.RawPresetValue);
         }
+
+        // The band values the device reported for the active preset (none: no curve is drawn). The
+        // faders are the ten 31 Hz-16 kHz bands, so other layouts are shown but never written.
+        EqualizerBands = eq?.Bands ?? [];
+        CanEditEqualizerBands = IsReady && IsEqualizerAvailable && EqualizerBands.Count == 10
+            && profile?.EqualizerPresets.FirstOrDefault(p => p.Id == eq?.ActivePresetId)?.EditableBands == true;
     }
 
-    private void ApplyToggles(DeviceState state)
+    private void ApplyToggles(DeviceState state, bool controlReady)
     {
         foreach (var toggle in Toggles)
         {
             bool known = state.Toggles.TryGetValue(toggle.Toggle, out var value);
-            toggle.IsKnown = known && IsReady;
+            toggle.IsKnown = known && controlReady;
             toggle.IsOn = known && value!.Value;
             toggle.IsPending = state.IsPending("toggle:" + toggle.Toggle);
         }
@@ -506,9 +584,16 @@ public sealed partial class DeviceViewModel : ObservableObject
 
     private static bool IsAllowed(CapabilitySupport support) => support == CapabilitySupport.Supported;
 
+    /// <summary>
+    /// Localized text for a profile resource key, or <paramref name="fallback"/> when the key is unknown.
+    /// A key of the form <c>Name:argument</c> names a format string with one argument (e.g. <c>Eq_DevicePreset:6</c>).
+    /// </summary>
     private static string Text(string key, string fallback)
     {
-        string value = Loc.Get(key);
-        return value == key ? fallback : value;
+        int colon = key.IndexOf(':');
+        string name = colon < 0 ? key : key[..colon];
+        string value = Loc.Get(name);
+        if (value == name) return fallback;
+        return colon < 0 ? value : string.Format(System.Globalization.CultureInfo.CurrentCulture, value, key[(colon + 1)..]);
     }
 }

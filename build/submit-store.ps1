@@ -17,8 +17,22 @@ param(
     [Parameter(Mandatory)] [string] $Package,
     [string] $AppId = "9PN6D8G1K9WZ",
     [string] $ReleaseNotes,
-    [string] $DescriptionDirectory = (Join-Path $PSScriptRoot "..\packaging\store")
+    [string] $DescriptionDirectory = (Join-Path $PSScriptRoot "..\packaging\store"),
+    # Delete a pending (uncommitted) submission first, e.g. the draft left behind by a failed run.
+    [switch] $ReplacePending,
+    [string] $ReleaseNotesUrl = "https://github.com/TIANLI0/EncoDeck/releases"
 )
+
+# Partner Center rejects release notes over 1500 characters; cut at a line and point to the full notes.
+$maxNotes = 1500
+if ($ReleaseNotes -and $ReleaseNotes.Length -gt $maxNotes) {
+    $tail = "`n…`n完整更新说明 / Full release notes: $ReleaseNotesUrl"
+    $cut = $ReleaseNotes.Substring(0, $maxNotes - $tail.Length)
+    $lineEnd = $cut.LastIndexOf("`n")
+    if ($lineEnd -gt 0) { $cut = $cut.Substring(0, $lineEnd) }
+    $ReleaseNotes = $cut.TrimEnd() + $tail
+    Write-Host "Release notes shortened to $($ReleaseNotes.Length) characters."
+}
 
 $ErrorActionPreference = "Stop"
 foreach ($name in "STORE_TENANT_ID", "STORE_CLIENT_ID", "STORE_CLIENT_SECRET") {
@@ -36,7 +50,15 @@ $token = (Invoke-RestMethod -Method Post "https://login.microsoftonline.com/$env
 $headers = @{ Authorization = "Bearer $token" }
 
 $app = Invoke-RestMethod "$api" -Headers $headers
-if ($app.pendingApplicationSubmission) {
+if ($app.pendingApplicationSubmission -and $ReplacePending) {
+    $pending = Invoke-RestMethod "$api/submissions/$($app.pendingApplicationSubmission.id)" -Headers $headers
+    if ($pending.status -ne "PendingCommit") {
+        throw "Submission $($pending.id) is $($pending.status) in Partner Center; it can no longer be replaced."
+    }
+    Invoke-RestMethod -Method Delete "$api/submissions/$($pending.id)" -Headers $headers | Out-Null
+    Write-Host "Deleted pending submission $($pending.id)"
+}
+elseif ($app.pendingApplicationSubmission) {
     throw "Submission $($app.pendingApplicationSubmission.id) is still pending in Partner Center; finish or delete it first."
 }
 

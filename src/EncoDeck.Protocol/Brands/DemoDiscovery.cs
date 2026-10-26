@@ -28,11 +28,14 @@ public static class DemoDiscovery
 
     public static IDeviceProfile AfterSession(IDeviceProfile profile, string deviceName) => profile switch
     {
-        SennheiserProfile { IsTw4: true } tw4 => tw4.WithControls(true, true, true, true, true),
+        SennheiserProfile { IsTw4: true } tw4 => tw4.WithLive(new(Noise: true, StatusNoise: true, Wind: true, SmartPause: true, LowLatency: true, Gestures: true)),
         SonyAkgProfile sony => sony.WithNoiseSupport(true).WithWearDetection(sony.Form == DeviceForm.Earbuds)
             .WithEqualizers(sony.Brand == "sony" ? SonyPresets : []),
-        XiaomiDeviceProfile xiaomi => new ushort[] { 4, 7, 11, 29, 47, 161 }
-            .Aggregate(xiaomi.ForDevice(deviceName), (p, id) => p.WithConfig(id)),
+        XiaomiDeviceProfile xiaomi => new[]
+            {
+                XiaomiConfig.DualConnection, XiaomiConfig.EqualizerPreset, XiaomiConfig.Noise, XiaomiConfig.Spatial, XiaomiConfig.LowLatency,
+                XiaomiConfig.PromptVolume, XiaomiConfig.Gestures, XiaomiConfig.AutoAnswer, XiaomiConfig.WearState, XiaomiConfig.WearDetectionSwitch,
+            }.Aggregate(xiaomi.ForDevice(deviceName), (p, id) => p.WithConfig(id)),
         HuaweiDeviceProfile huawei => huawei.WithSpatial(),
         MoondropProfile moondrop => moondrop.WithFeatures(moondrop.CatalogFeatures()),
         _ => profile,

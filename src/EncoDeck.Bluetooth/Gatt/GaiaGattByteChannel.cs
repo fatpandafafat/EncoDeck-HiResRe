@@ -12,11 +12,16 @@ using Windows.Storage.Streams;
 
 namespace EncoDeck.Bluetooth.Gatt;
 
-/// <summary>GAIA GATT carries one unframed message per characteristic notification.</summary>
+/// <summary>
+/// GAIA GATT carries one unframed message per characteristic notification. The Qualcomm GAIA v1
+/// service is shared by several brands (MOONDROP, vivo), so the channel is named after the brand
+/// that opened it; Sennheiser uses its own GAIA v3 service.
+/// </summary>
 internal sealed class GaiaGattByteChannel : IDuplexByteChannel
 {
     private readonly BluetoothLEDevice _device;
     private readonly bool _sennheiser;
+    private readonly string _label;
     private readonly GattDeviceService _service;
     private readonly GattCharacteristic _command;
     private readonly GattCharacteristic _response;
@@ -35,10 +40,11 @@ internal sealed class GaiaGattByteChannel : IDuplexByteChannel
     private int _disposed;
 
     private GaiaGattByteChannel(BluetoothLEDevice device, GattDeviceService service,
-        GattCharacteristic command, GattCharacteristic response, GattCharacteristic data, bool sennheiser)
+        GattCharacteristic command, GattCharacteristic response, GattCharacteristic data, bool sennheiser, string label)
     {
         _device = device;
         _sennheiser = sennheiser;
+        _label = label;
         _service = service;
         _command = command;
         _response = response;
@@ -51,13 +57,16 @@ internal sealed class GaiaGattByteChannel : IDuplexByteChannel
         _device.ConnectionStatusChanged += OnConnectionStatusChanged;
     }
 
-    public string Description => _sennheiser ? "Sennheiser GAIA v3 GATT" : "Moondrop GAIA GATT";
+    public string Description => _label;
 
-    internal static Task<ChannelOpenResult> OpenAsync(ulong bluetoothAddress, CancellationToken cancellationToken) => OpenAsync(bluetoothAddress, false, cancellationToken);
+    /// <summary>Opens the shared GAIA v1 service; <paramref name="brand"/> names the channel in logs (e.g. "MOONDROP", "vivo").</summary>
+    internal static Task<ChannelOpenResult> OpenAsync(ulong bluetoothAddress, string brand, CancellationToken cancellationToken) =>
+        OpenAsync(bluetoothAddress, false, $"{brand} GAIA GATT", cancellationToken);
 
-    internal static Task<ChannelOpenResult> OpenSennheiserAsync(ulong bluetoothAddress, CancellationToken cancellationToken) => OpenAsync(bluetoothAddress, true, cancellationToken);
+    internal static Task<ChannelOpenResult> OpenSennheiserAsync(ulong bluetoothAddress, CancellationToken cancellationToken) =>
+        OpenAsync(bluetoothAddress, true, "Sennheiser GAIA v3 GATT", cancellationToken);
 
-    private static async Task<ChannelOpenResult> OpenAsync(ulong bluetoothAddress, bool sennheiser, CancellationToken cancellationToken)
+    private static async Task<ChannelOpenResult> OpenAsync(ulong bluetoothAddress, bool sennheiser, string label, CancellationToken cancellationToken)
     {
         var serviceId = sennheiser ? SennheiserProfile.GattServiceId : MoondropConstants.GattServiceId;
         var commandId = sennheiser ? new Guid("6333133b-23c1-11e5-b696-feff819cdc9f") : MoondropConstants.GattCommandId;
@@ -104,7 +113,7 @@ internal sealed class GaiaGattByteChannel : IDuplexByteChannel
             if ((command.CharacteristicProperties & (GattCharacteristicProperties.Write | GattCharacteristicProperties.WriteWithoutResponse)) == 0)
                 return ChannelOpenResult.Failed(ChannelOpenStatus.ConnectFailed, "GAIA command characteristic is not writable.");
 
-            channel = new GaiaGattByteChannel(device, service, command, response, data, sennheiser);
+            channel = new GaiaGattByteChannel(device, service, command, response, data, sennheiser, label);
             device = null;
             service = null;
             using var connected = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, channel._shutdownToken);

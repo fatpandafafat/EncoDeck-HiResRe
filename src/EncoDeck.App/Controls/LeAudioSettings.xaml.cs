@@ -3,6 +3,8 @@ using EncoDeck.App.Services;
 using EncoDeck.App.ViewModels;
 using EncoDeck.Bluetooth.LeAudio;
 using EncoDeck.Core.Devices;
+using EncoDeck.Core.Commands;
+using EncoDeck.Core.State;
 using EncoDeck.Protocol.Oppo.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -17,10 +19,14 @@ public sealed partial class LeAudioSettings : UserControl
 {
     private CancellationTokenSource? _operation;
     private LeAudioBondState? _bond;
+    private LeAudioMicrophoneInspection? _mic;
+    private bool _syncingMic;
     private string? _deviceId;
     private ulong _address;
     private bool _busy;
     private bool _dialogOpen;
+    private long _bondRequest;
+    private LeAudioLinkState? _lastLinks;
 
     public LeAudioSettings()
     {
@@ -29,6 +35,8 @@ public sealed partial class LeAudioSettings : UserControl
         {
             Switch.Content = Loc.Get("LeAudio_Switch");
             Restore.Content = Loc.Get("LeAudio_Restore");
+            DisableClassic.Content = Loc.Get("LeAudio_DisableClassic");
+            EnableClassic.Content = Loc.Get("LeAudio_EnableClassic");
             Cancel.Content = Loc.Get("Common_Cancel");
             Features.Changed += OnChanged;
             _deviceId = null;
@@ -59,24 +67,45 @@ public sealed partial class LeAudioSettings : UserControl
             _deviceId = device.DeviceId;
             _address = device.Address.Value;
             _bond = null;
+            _mic = null;
+            _lastLinks = state.LeAudioLinks;
             _ = LoadBondAsync();
         }
-        Visibility = state.LeAudioSwitch is not null || _bond?.PrimaryBonded == true ? Visibility.Visible : Visibility.Collapsed;
+        else if (_lastLinks != state.LeAudioLinks)
+        {
+            _lastLinks = state.LeAudioLinks;
+            _ = LoadBondAsync();
+        }
+        Visibility = state.LeAudioSwitch is not null || _bond?.PrimaryBonded == true
+            || state.Profile is OppoDeviceProfile { Definition.SupportsLeAudioPairing: true } ? Visibility.Visible : Visibility.Collapsed;
         Sync();
     }
 
     private async Task LoadBondAsync()
     {
         ulong address = _address;
+        long request = ++_bondRequest;
         try
         {
             var bond = await LeAudioPairing.GetStateAsync(address);
-            if (address != _address) return;
+            if (address != _address || request != _bondRequest) return;
             _bond = bond;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            if (address != _address || request != _bondRequest) return;
             _bond = null;
+        }
+        try
+        {
+            var mic = await LeAudioMicrophone.InspectAsync(address);
+            if (address != _address || request != _bondRequest) return;
+            _mic = mic;
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            if (address != _address || request != _bondRequest) return;
+            _mic = null;
         }
         if (!_busy) Refresh();
     }
@@ -87,27 +116,133 @@ public sealed partial class LeAudioSettings : UserControl
         bool both = le && _bond!.SecondaryBonded;
         // Nothing bonded (e.g. an earlier attempt failed): offer both ways back.
         bool unpaired = _bond is { PrimaryBonded: false, ClassicBonded: false };
-        Status.Text = _bond is null ? "" : Loc.Get(unpaired ? "LeAudio_StatusUnpaired" : both ? "LeAudio_StatusLe" : le ? "LeAudio_StatusLeSingle" : "LeAudio_StatusClassic");
+        var endpoints = _bond?.AudioEndpoints;
+        bool residualClassic = endpoints?.HasResidualClassicAudio == true;
+        bool classicDisabled = endpoints?.ClassicA2dpDisabled == true;
+        bool bothLinks = _bond is { PrimaryConnected: true, SecondaryConnected: true };
+
+        bool endpointUnknown = _bond is not null && endpoints is { State: LeAudioAudioEndpointState.Unknown };
+        string key = unpaired ? "LeAudio_StatusUnpaired" : both ? "LeAudio_StatusLe" : le ? "LeAudio_StatusLeSingle" : "LeAudio_StatusClassic";
+        Status.Text = _bond is null ? "" : Loc.Get(key)
+            + (residualClassic ? " " + Loc.Get("LeAudio_StatusClassicEndpoint") : "")
+            + (endpointUnknown ? " " + Loc.Get("LeAudio_StatusEndpointUnknown") : "");
         Switch.Visibility = both ? Visibility.Collapsed : Visibility.Visible;
         Restore.Visibility = le || unpaired ? Visibility.Visible : Visibility.Collapsed;
+        // Disabling is only offered for an A2DP render endpoint, after both LE links were observed.
+        DisableClassic.Visibility = endpoints?.ClassicA2dpPresent == true && bothLinks && !_busy && !_dialogOpen
+            ? Visibility.Visible : Visibility.Collapsed;
+        EnableClassic.Visibility = classicDisabled && !_busy && !_dialogOpen ? Visibility.Visible : Visibility.Collapsed;
         Switch.IsEnabled = Restore.IsEnabled = !_busy && !_dialogOpen && _bond is not null;
+        DisableClassic.IsEnabled = EnableClassic.IsEnabled = !_busy && !_dialogOpen;
         OpenBluetooth.IsEnabled = !_busy && !_dialogOpen;
+        MicPanel.Visibility = _mic?.Present == true ? Visibility.Visible : Visibility.Collapsed;
+        MicOff.IsEnabled = !_busy && !_dialogOpen && _mic?.StateKnown == true;
+        if (!_busy && _mic is not null)
+        {
+            // Toggled also fires for programmatic changes.
+            _syncingMic = true;
+            MicOff.IsOn = _mic.Disabled;
+            _syncingMic = false;
+        }
         Progress.Visibility = Cancel.Visibility = _busy ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnSwitch(object sender, RoutedEventArgs e)
     {
-        if (await ConfirmAsync("LeAudio_ConfirmSwitch", "LeAudio_Switch"))
-            await RunAsync(LeAudioPairing.SwitchToLeAudioAsync);
+        ulong target = _address;
+        if (await ConfirmAsync("LeAudio_ConfirmSwitch", "LeAudio_Switch") && target == _address)
+            await RunAsync((address, progress, ct) => LeAudioPairing.SwitchToLeAudioAsync(address, progress, ct,
+                (on, token) => Features.State.Device?.Address.Value == address ? Features.SetLeBrSwitchAsync(on, token) : Task.FromResult(CommandResult.NotConnected),
+                token => Features.State.Device?.Address.Value == address ? Features.DisableMultipointForLeAudioAsync(token) : Task.FromResult(CommandResult.NotConnected)));
     }
 
     private async void OnRestore(object sender, RoutedEventArgs e)
     {
-        if (await ConfirmAsync("LeAudio_ConfirmRestore", "LeAudio_Restore"))
-            await RunAsync(LeAudioPairing.RemoveLeAudioAsync);
+        ulong target = _address;
+        if (await ConfirmAsync("LeAudio_ConfirmRestore", "LeAudio_Restore") && target == _address)
+            await RunAsync((address, progress, ct) => LeAudioPairing.RemoveLeAudioAsync(address, progress, ct,
+                (on, token) => Features.State.Device?.Address.Value == address ? Features.SetLeBrSwitchAsync(on, token) : Task.FromResult(CommandResult.NotConnected)));
     }
 
     private void OnCancel(object sender, RoutedEventArgs e) => _operation?.Cancel();
+
+    private async void OnDisableClassic(object sender, RoutedEventArgs e)
+    {
+        ulong address = _address;
+        await RunEndpointAsync(async ct =>
+        {
+            // Re-read both LE links instead of trusting the last UI snapshot.
+            var bond = await LeAudioPairing.GetStateAsync(address, ct);
+            return await LeAudioClassicAudioEndpoint.SuppressAsync(
+                address, bond.PrimaryConnected && bond.SecondaryConnected, ct);
+        });
+    }
+
+    private async void OnEnableClassic(object sender, RoutedEventArgs e) =>
+        await RunEndpointAsync(ct => LeAudioClassicAudioEndpoint.RestoreAsync(_address, ct));
+
+    private async void OnMicToggled(object sender, RoutedEventArgs e)
+    {
+        if (_syncingMic || _busy || _mic is null || MicOff.IsOn == _mic.Disabled) return;
+        bool enable = !MicOff.IsOn;
+        ulong address = _address;
+        _busy = true;
+        Sync();
+        try
+        {
+            var result = await LeAudioMicrophone.SetEnabledAsync(address, enable);
+            // Show what Windows reports, not what was requested.
+            if (address == _address) _mic = await LeAudioMicrophone.InspectAsync(address);
+            if (!result.Success)
+            {
+                Message.Text = Loc.Format("LeAudio_MicFailed", result.Detail ?? "");
+                Message.Visibility = Visibility.Visible;
+            }
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Message.Text = Loc.Format("LeAudio_MicFailed", ex.Message);
+            Message.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _busy = false;
+            Sync();
+        }
+    }
+
+    private async Task RunEndpointAsync(Func<CancellationToken, Task<LeAudioEndpointResult>> operation)
+    {
+        if (_busy) return;
+        _busy = true;
+        using var cancellation = new CancellationTokenSource();
+        _operation = cancellation;
+        Message.Visibility = Visibility.Visible;
+        Sync();
+        try
+        {
+            var result = await operation(cancellation.Token);
+            Message.Text = result.Outcome == LeAudioEndpointOutcome.Failed
+                ? Loc.Format("LeAudio_Endpoint_Failed", result.Detail ?? "")
+                : Loc.Get($"LeAudio_Endpoint_{result.Outcome}") + (result.Detail is { } detail ? $" ({detail})" : "");
+        }
+        catch (OperationCanceledException)
+        {
+            Message.Text = Loc.Get("LeAudio_Cancelled");
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            Message.Text = Loc.Format("LeAudio_Error", ex.Message);
+        }
+        finally
+        {
+            _operation = null;
+            _busy = false;
+            _bond = null;
+            Sync();
+            _ = LoadBondAsync();
+        }
+    }
 
     private async Task RunAsync(Func<ulong, IProgress<LeAudioPairingStage>, CancellationToken, Task<LeAudioPairingResult>> operation)
     {

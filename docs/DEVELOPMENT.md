@@ -62,7 +62,8 @@ tests/EncoDeck.Tests     单元测试（含 X4 实测抓包回归）
 12. **设置文件里缺少的 `init` 属性读成类型默认值**（`false` / `0`），不是声明里的默认值：默认开启的新开关要用 `bool?` 并在 `Normalize()` 补回（见 `ShowAboveQuickSettings`、`PopupScale`）。
 13. **Windows 11 快速设置没有扩展 API**（`QuickSettingsWatcher`）：在 26H2 build 26340 上实测，它是 `ShellHost.exe` 的 `ControlCenterWindow`，窗口和工作区一样高且透明，只有窗口区域（`GetWindowRgnBox`，卡片加 12 DIP 外边距）可见、能点击；UIA 读不到内部元素。它一失去前台就开始约 300 ms 的关闭动画然后才 HIDE，所以面板在前台切走时就退场。面板必须 `WS_EX_NOACTIVATE`，否则一点它快速设置就关闭。更早的 Windows 11 版本若不是这个窗口类，功能静默不生效。面板高度会随降噪档位行出现而变化，上方放不下时改放在卡片旁边（`PopupPlacement.PlaceAboveQuickSettings`）。
 14. **WinUI `RadioButtons` 在同一轮里重建 `Items` 再设 `SelectedIndex`，选中状态不显示**（`--ui-snapshot` 可复现）：设备状态驱动的单选一律用普通 `RadioButton` + `GroupName`，每次同步直接设 `IsChecked`（音效页 EQ、空间音频）。
-15. **全局快捷键**（`GlobalHotkeys`）：`RegisterHotKey` 注册到 UI 线程上的 message-only 窗口，WinUI 的消息循环会派发 `WM_HOTKEY`；同一组合只能注册一次（`ERROR_HOTKEY_ALREADY_REGISTERED` = 被占用）。录制新组合时要先注销已有快捷键，否则按下已设置的组合会直接触发而不是被录到。
+15. **H.NotifyIcon 内置 `TrayPopup` 需要已有窗口**：EncoDeck 自己实现托盘面板，用 `Shell_NotifyIconGetRect` 定位（图标在溢出区时返回 `^` 按钮位置）。
+16. **全局快捷键**（`GlobalHotkeys`）：`RegisterHotKey` 注册到 UI 线程上的 message-only 窗口，WinUI 的消息循环会派发 `WM_HOTKEY`；同一组合只能注册一次（`ERROR_HOTKEY_ALREADY_REGISTERED` = 被占用）。录制新组合时要先注销已有快捷键，否则按下已设置的组合会直接触发而不是被录到。
 
 ## 部署说明（unpackaged）
 
@@ -71,6 +72,7 @@ tests/EncoDeck.Tests     单元测试（含 X4 实测抓包回归）
 - 已在本机验证发布版：`--background` 启动 → 发现 X4 → `--exit` 正常退出（退出码 0）。**尚未**在“干净”的、从未安装过开发工具的机器上验证；发布前请在虚拟机中复测。
 - 单文件发布会解压到 `%TEMP%`，不推荐；用户数据始终写入 `%LOCALAPPDATA%\EncoDeck`。
 - ARM64：项目已配置 `win-arm64`，但尚未构建测试，CI 只发布 x64。
+- 资源占用（实测）：安装包约 48 MB；托盘常驻空闲时 60 秒窗口 CPU ≈ 0.18% / 单核，工作集约 128 MB。
 
 ## 命令行参数
 
@@ -80,12 +82,12 @@ tests/EncoDeck.Tests     单元测试（含 X4 实测抓包回归）
 | `--exit` | 让已运行的实例干净退出（移除托盘图标、关闭控制通道） |
 | `--popup-preview <boot.mp4> <输出目录> [--theme light\|dark] [--name 名称] [--levels 80,75,60] [--at 0.3,1,2.5,4] [--offscreen]` | 诊断：不连耳机，用任意资源包视频（自动找上级 `config.json`）和示例电量显示连接弹窗，在指定秒数截图（屏幕 + PrintWindow）并写 `<前缀>.json` 后退出；不启动蓝牙、不写设置、不抢焦点，有全屏应用时自动改为屏幕外 |
 | `--brand-demo <models.json> [--demo-brand 品牌] [--demo-check [--demo-exit]]` | 手动演示：不启动蓝牙，按清单（`brand`、`name`、`directory`，可选 `profileId`、`popup`、`model`、`motion`）逐型号模拟一次成功会话（`DemoDiscovery` 补齐需设备应答的功能），所有写入命令只改演示状态。`--demo-check` 在屏幕外截取每个型号的首页、音效、控制、弹窗、托盘，并把各页实际显示的功能区写入 `session/previews/results.json`；加 `--demo-exit` 则检查完直接退出、不弹出选择窗口 |
-| `--updated` | 由安装程序在应用内更新完成后传入：无全屏应用时打开设置页，否则只发托盘通知 |
+| `--updated` | 由安装程序在应用内更新完成后传入：无全屏应用时打开“关于”页，否则只发托盘通知 |
 | 再次启动 | 唤醒已运行实例的主窗口（单实例） |
 
 ## 数据位置
 
-`%LOCALAPPDATA%\EncoDeck\`：`settings.json`、`device-cache.json`（哈希键，无地址）、`logs\encodeck-yyyyMMdd.log`（JSON Lines，保留 7 天，已脱敏）、`diagnostics\`、`Resources\`（设备素材缓存，见 [RESOURCES.md](RESOURCES.md)）、`Updates\`（应用内更新下载的安装包、`last-check.txt`、`install.log`）。
+`%LOCALAPPDATA%\EncoDeck\`：`settings.json`、`device-cache.json`（哈希键，无地址）、`logs\encodeck-yyyyMMdd.log`（JSON Lines，保留 7 天，已脱敏）、`diagnostics\`、`Resources\`（设备素材缓存，见 [架构说明](ARCHITECTURE.md#设备资源)）、`Updates\`（应用内更新下载的安装包、`last-check.txt`、`install.log`）。
 
 ## 应用内更新
 
@@ -94,7 +96,7 @@ tests/EncoDeck.Tests     单元测试（含 X4 实测抓包回归）
 ## 新增设备型号
 
 1. 用 Probe 收集证据（`services`、`query`、`watch`），见 [TESTING.md](TESTING.md)。
-2. 欢律型号列表中的型号由 `python -I tools/assets/make_models.py <whitelist.json> src/EncoDeck.Protocol/Oppo/Models/OppoCatalog.g.cs` 生成（只写互操作事实），解读规则在 `OppoCatalog.cs`；有真机证据的型号可以像 X4 一样在 `OppoModels.cs` 中手写定义，并用测试保证与配置生成的结果一致。
+2. 内置型号列表由 `python -I tools/assets/make_models.py <whitelist.json> src/EncoDeck.Protocol/Oppo/Models/OppoCatalog.g.cs` 生成（只写互操作事实），解读规则在 `OppoCatalog.cs`；有真机证据的型号可以像 X4 一样在 `OppoModels.cs` 中手写定义，并用测试保证与配置生成的结果一致。
 3. 把实测抓包（去除事件 06 等敏感数据）加入测试。
 4. 更新 COMPATIBILITY.md 与 PROTOCOL_FINDINGS.md。
 
@@ -104,3 +106,10 @@ tests/EncoDeck.Tests     单元测试（含 X4 实测抓包回归）
 - 协议解析器必须严格：格式不符返回 false，而不是猜测。
 - 任何写命令都要：能力门控 → 确认 → 回读 → 失败回滚。
 - 日志中不得出现完整蓝牙地址；涉及设备列表的帧用 `OppoRedaction`。
+
+## 待验证事项
+
+- 逐项真机验证已有写入功能（见 [设备兼容性](COMPATIBILITY.md#enco-x4-验证状态)），补齐多品牌自定义 EQ、手势、查找耳机等功能。
+- 手动走查 UI：连接弹窗动画、托盘面板多屏 / DPI、无障碍。
+- 真机走一遍安装 → 覆盖升级 → 卸载流程，并在干净环境验证自包含发布版。
+- 明确不做：OTA 固件刷写；依赖手机的功能（听力增强测试、耳机专注、对话感知、AI 摘要、翻译等）。BLE 开盒弹窗需先实测广播格式（见 [PROTOCOL_FINDINGS.md](PROTOCOL_FINDINGS.md) §6）。

@@ -314,6 +314,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] public partial Uri? ReleaseNotesUrl { get; set; }
     [ObservableProperty] public partial bool HasReleaseNotes { get; set; }
 
+    /// <summary>
+    /// A newer version was found (a GitHub release, or the Store's update): the About entry shows a red
+    /// dot until it is installed.
+    /// </summary>
+    [ObservableProperty] public partial bool IsUpdateAvailable { get; set; }
+
     /// <summary>The offered release's notes from GitHub, as plain text; empty when none is offered.</summary>
     [ObservableProperty] public partial string UpdateReleaseNotes { get; set; } = string.Empty;
 
@@ -352,6 +358,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         // A failed download keeps its release, so the same button retries it.
         bool canDownload = status.Release is not null && status.Stage is UpdateStage.Available or UpdateStage.Failed;
         IsUpdateActionVisible = canDownload || status.Stage == UpdateStage.Ready;
+        // Kept while a later check runs, so the dot does not blink; a failed download still offers the release.
+        if (HasSelfUpdate && status.Stage != UpdateStage.Checking)
+            IsUpdateAvailable = status.Release is not null
+                && status.Stage is UpdateStage.Available or UpdateStage.Downloading or UpdateStage.Ready or UpdateStage.Installing or UpdateStage.Failed;
         UpdateActionText = Loc.Get(status.Stage == UpdateStage.Ready ? "Update_InstallNow" : "Update_DownloadAndInstall");
         ReleaseNotesUrl = status.Release?.NotesUrl;
         HasReleaseNotes = ReleaseNotesUrl is not null;
@@ -387,6 +397,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] public partial string StoreUpdateStatus { get; set; } = Loc.Get("Update_NeverChecked");
     [ObservableProperty] public partial bool IsStoreUpdateAvailable { get; set; }
+
+    partial void OnIsStoreUpdateAvailableChanged(bool value)
+    {
+        if (!HasSelfUpdate) IsUpdateAvailable = value;
+    }
 
     /// <summary>The listing's "What's new" text while an update is available; empty otherwise.</summary>
     [ObservableProperty] public partial string StoreReleaseNotes { get; set; } = string.Empty;

@@ -6,7 +6,10 @@ using EncoDeck.Protocol.Transport;
 
 namespace EncoDeck.Protocol.Brands.Honor;
 
-/// <summary>HONOR MBB commands from the official plugin. Only the frame codec is shared with HUAWEI.</summary>
+/// <summary>
+/// HONOR MBB commands from the official plugin, plus the HONOR CHOICE variant from community notes.
+/// Only the frame codec and the result-code convention are shared with HUAWEI.
+/// </summary>
 internal sealed class HonorDeviceController(IDuplexByteChannel channel, ControllerContext context, HonorDeviceProfile profile)
     : RequestReplyController(channel, context)
 {
@@ -80,6 +83,13 @@ internal sealed class HonorDeviceController(IDuplexByteChannel channel, Controll
 
     private NoiseControlState? ParseNoise(Dictionary<byte, byte[]> fields)
     {
+        // HONOR CHOICE reports the mode in the last byte of TLV 1 (one byte, or [sub, mode]); no levels.
+        if (_profile.Model.Choice)
+        {
+            return fields.TryGetValue(1, out var c) && c.Length is 1 or 2
+                ? c[^1] switch { 0 => new(NoiseControlMode.Off), 1 => new(NoiseControlMode.NoiseCancellation), 2 => new(NoiseControlMode.Transparency), _ => null }
+                : null;
+        }
         if (!fields.TryGetValue(1, out var v) || v.Length != 2) return null;
         string? level = _profile.Model.AncLevels ? v[0] switch { 0 => "cozy", 1 => "general", 2 => "ultra", 3 => "dynamic", _ => null } : null;
         return v[1] switch
@@ -92,8 +102,13 @@ internal sealed class HonorDeviceController(IDuplexByteChannel channel, Controll
     }
 
     private Task<BrandPacket?> Query(ushort command, CancellationToken ct) =>
-        ExchangeAsync(_codec.Encode(command, command == Battery ? new byte[] { 1, 0, 2, 0, 3, 0 }
-            : command == EqGet ? new byte[] { 1, 0, 1, 0 } : EmptyQuery), p => p.Command == command, ct);
+        ExchangeAsync(_codec.Encode(command, _profile.Model.Choice && command is Battery or AncGet ? []
+            : command == Battery ? new byte[] { 1, 0, 2, 0, 3, 0 }
+            : command == EqGet ? new byte[] { 1, 0, 1, 0 } : EmptyQuery), p => p.Command == command && !IsAck(p), ct);
+
+    /// <summary>Write acknowledgement <c>7F 04 00 01 86 A0</c> (result 100000), as on HUAWEI firmware.</summary>
+    private static bool IsAck(BrandPacket packet) =>
+        HuaweiWire.TryParseTlv(packet.Payload, out var fields) && HuaweiWire.IsSuccessAck(fields);
 
     private static bool Fields(BrandPacket? packet, out Dictionary<byte, byte[]> fields)
     {
@@ -147,8 +162,9 @@ internal sealed class HonorDeviceController(IDuplexByteChannel channel, Controll
         Func<Dictionary<byte, byte[]>, bool> matches, CancellationToken ct)
     {
         // Do not publish an optimistic setting. Only a fresh, matching read-back confirms the write.
+        // The plugin acknowledges with TLV 1 = 0; HUAWEI-derived firmware with result code 100000.
         var ack = await ExchangeAsync(_codec.Encode(set, value), p => p.Command == set, ct).ConfigureAwait(false);
-        if (ack is not null && (!Fields(ack, out var ackFields)
+        if (ack is not null && !IsAck(ack) && (!Fields(ack, out var ackFields)
             || ackFields.TryGetValue(1, out var result) && result.Any(b => b != 0))) return Failure(ack);
         var response = await Query(get, ct).ConfigureAwait(false);
         if (Store.Current.Device?.DeviceId != DeviceId) return CommandResult.NotConnected;
@@ -158,10 +174,16 @@ internal sealed class HonorDeviceController(IDuplexByteChannel channel, Controll
 
     public override Task<CommandResult> SetNoiseControlAsync(NoiseControlState target, CancellationToken cancellationToken)
     {
-        if (!_profile.NoiseControlOptions.Any(o => o.Matches(target))) return Task.FromResult(NotSupported("Noise control"));
+        // A mode without a level (the mode button) is allowed whenever the mode itself is offered.
+        if (!_profile.NoiseControlOptions.Any(o => o.Matches(target) || (target.LevelId is null && o.Mode == target.Mode)))
+            return Task.FromResult(NotSupported("Noise control"));
         byte mode = target.Mode switch { NoiseControlMode.Off => 0, NoiseControlMode.NoiseCancellation => 1, _ => 2 };
-        byte sub = target.LevelId switch { "cozy" => 0, "general" => 1, "ultra" => 2, "dynamic" => 3, _ => 0 };
-        return Serialized(ct => Confirm(AncSet, [1, 2, mode, sub], AncGet, f => ParseNoise(f) is { } n && n.Mode == target.Mode && n.LevelId == target.LevelId, ct), cancellationToken);
+        // 0xFF keeps the current level, as on HUAWEI firmware (OpenFreebuds' FreeBuds 4i profile drives Earbuds 2 SE this way).
+        byte sub = target.Mode == NoiseControlMode.Off ? (byte)0
+            : (byte)(target.LevelId switch { "cozy" => 0, "general" => 1, "ultra" => 2, "dynamic" => 3, _ => 0xFF });
+        byte[] write = _profile.Model.Choice ? [1, 1, mode] : [1, 2, mode, sub];
+        return Serialized(ct => Confirm(AncSet, write, AncGet,
+            f => ParseNoise(f) is { } n && n.Mode == target.Mode && (target.LevelId is null || n.LevelId == target.LevelId), ct), cancellationToken);
     }
 
     public override Task<CommandResult> SetToggleAsync(DeviceToggle toggle, bool enabled, CancellationToken cancellationToken)

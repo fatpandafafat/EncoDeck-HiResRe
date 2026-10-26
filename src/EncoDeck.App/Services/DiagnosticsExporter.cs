@@ -30,6 +30,7 @@ internal static class DiagnosticsExporter
             device = state.Device is { } d ? new { name = d.Name, address = d.Address.ToRedactedString() } : null,
             model = state.Profile?.ModelId,
             connection = state.Connection.ToString(),
+            leAudio = new { state.IsLeAudioBonded, links = state.LeAudioLinks, audioStreamingVerified = false },
             firmware = state.Firmware?.Value.Extra,
             battery = new
             {

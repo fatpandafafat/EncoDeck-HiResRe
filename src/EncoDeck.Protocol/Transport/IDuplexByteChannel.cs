@@ -10,6 +10,12 @@ public interface IDuplexByteChannel : IAsyncDisposable
     /// <summary>Human-readable description for logs (must not contain a full device address).</summary>
     string Description { get; }
 
+    /// <summary>
+    /// Set when the peer can go silent without closing the channel (e.g. a GATT earbud that lost
+    /// the control role): the controller should query this often so a write notices.
+    /// </summary>
+    TimeSpan? KeepAliveInterval => null;
+
     ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
 
     /// <summary>Reads at least one byte, or returns 0 when the remote side closed the channel.</summary>
@@ -44,5 +50,11 @@ public enum ChannelOpenStatus
 
 public sealed record ChannelOpenResult(ChannelOpenStatus Status, IDuplexByteChannel? Channel, Guid? ServiceUuid, string? Detail)
 {
+    /// <summary>
+    /// Resource key of a localized explanation the UI shows instead of the generic failure, when the
+    /// connector knows what the user can do about it. <see cref="Detail"/> stays the English log text.
+    /// </summary>
+    public string? ResourceKey { get; init; }
+
     public static ChannelOpenResult Failed(ChannelOpenStatus status, string detail) => new(status, null, null, detail);
 }

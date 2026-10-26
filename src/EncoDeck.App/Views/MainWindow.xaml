@@ -54,8 +54,22 @@
                         <FontIcon Glyph="&#xE772;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem x:Uid="Nav_Labs" Content="Labs" Tag="Labs">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xF196;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Name="AboutItem" x:Uid="Nav_About" Content="About" Tag="About">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE946;" />
+                    </NavigationViewItem.Icon>
+                    <!-- Red dot while a newer version is available (SettingsViewModel.IsUpdateAvailable). -->
+                    <NavigationViewItem.InfoBadge>
+                        <InfoBadge x:Name="UpdateBadge" Style="{ThemeResource CriticalDotInfoBadgeStyle}" Width="8" Height="8" Background="#E81123" Visibility="Collapsed" />
+                    </NavigationViewItem.InfoBadge>
+                </NavigationViewItem>
                 <NavigationViewItem x:Uid="Nav_Settings" Content="Settings" Tag="Settings">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE713;" />

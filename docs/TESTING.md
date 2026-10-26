@@ -18,7 +18,7 @@ dotnet test tests/EncoDeck.Tests -c Debug
 | 重连状态机 | 链路断开等待、链路循环、通道掉线重连、有界重试→不可用→手动重试、无服务不重试、释放 |
 | 其他 | 状态存储、能力过滤、弹窗冷却/全屏抑制、低电量迟滞、弹窗定位（四边/多屏/负坐标）、日志脱敏、设置持久化、缓存恢复、SDP 解析 |
 
-`FakeByteChannel` / `FakeOppoDevice` 用于测试；应用另有显式启用的品牌 UI 演示模式，演示不运行真实蓝牙会话，不能用作实机兼容证据。
+`FakeByteChannel` / `FakeOppoDevice` 用于测试；应用另有显式启用的品牌 UI 演示模式，演示不运行真实蓝牙会话，不能用作真机兼容证据。
 
 多品牌回归可单独运行：
 
@@ -26,7 +26,7 @@ dotnet test tests/EncoDeck.Tests -c Debug
 dotnet test tests/EncoDeck.Tests --filter "FullyQualifiedName~Xiaomi|FullyQualifiedName~Huawei|FullyQualifiedName~SonyAkg"
 ```
 
-`XiaomiFeaturesTests` 覆盖官方配置报文、写后回读、拒绝写入、通知 ACK 和未知型号；`HuaweiDeviceControllerTests` 覆盖独立空间音频、错误应答和非法 TLV；`SonyAkgTests` 覆盖 MDR v1/v2、EQ 能力及 BES 自动播放/暂停。协议模拟器通过不代表全部型号实机可用。
+`XiaomiFeaturesTests` 覆盖型号配置报文、写后回读、拒绝写入、通知 ACK 和未知型号；`HuaweiDeviceControllerTests` 覆盖独立空间音频、写入应答 / 结果码、无应答与延迟回读、佩戴状态、设备列表、耳机列出的 EQ 预设、智能音量与点头 / 摇头、5i 连接握手、错误应答和非法 TLV，部分报文取自社区项目公开的真机记录；`HonorTests` 覆盖 HONOR CHOICE 报文差异；`SonyAkgTests` 覆盖 MDR v1/v2、EQ 能力及 BES 自动播放/暂停。协议模拟器通过不代表全部型号真机可用。
 
 ### MOONDROP 控制通道回归
 
@@ -36,13 +36,13 @@ dotnet test tests/EncoDeck.Tests -c Debug --filter "FullyQualifiedName~ControlCh
 
 2026-10-24：43 项控制通道 / MOONDROP 定向测试和全套 516 项测试通过；新增 EDGE 四字节 ANC 回包与写后回读回归，覆盖 GATT 和 RFCOMM。其他控制器生命周期、错误释放和手动恢复覆盖保留。
 
+2026-10-25：新增 GAIA LDAC / LC3 独立发现、入耳检测、空间音频 / 头部跟踪联合回读、动态低音和左右声道交换的模拟设备回归；覆盖 feature 缺失、无有效回读、写入拒绝与回滚。WinUI `--ui-snapshot --profile moondrop-edge` 验证实验性开启后控件可见、写入中禁用；关闭实验性或 feature 缺失时隐藏，空间音频状态未知时隐藏、动态低音无有效值时禁用；证据在 `artifacts/verification/moondrop-expanded/`，是合成状态，不连接蓝牙。`Moondrop` / `DemoDiscovery` 定向测试 51 项、全套 623 项测试通过。新增设置均为实验性功能，尚未在真机验证。当日 `Probe monitor --seconds 15` 只读运行识别到 EDGE，但设备未连接（`PairedNotConnected`），无法取得新增设置的真实回包。
+
 Windows EDGE 优先通过公共 Winsock `AF_BTH/SOCK_STREAM/BTHPROTO_RFCOMM` 打开所选经典蓝牙地址的已验证通道 1。`Socket.ConnectAsync` 使用的 ConnectEx 被蓝牙提供程序拒绝，因此使用线程池上的普通 `Socket.Connect`，10 秒超时 / 取消时释放 socket。连接后以 GAIA 应用版本、能力与实际状态响应判定就绪；不扫描通道、不按附近同名 BLE 猜测、不改配对或音频连接。其他型号保留 WinRT SDP / GATT 路径。
 
 支持页面仅显示本地化二元标签，隐藏未知项及未移植 MOONDROP 功能，但不修改协议能力与写入门控。UI 状态检查需区分控制就绪、音频已连接但控制不可用、以及未选择设备；隔离状态诊断不能证明真实蓝牙已连接。
 
-真实 EDGE 固件 1.3.0 场景见 `artifacts/verification/windows-control-channel.txt`：实际生产 supervisor 约 4.39 秒进入 `ControlReady`，二次刷新成功，读到电量 40%、降噪关闭、增益低、双设备关闭。现有 `EncoDeck.Probe monitor --seconds 15 --verbose` 同样自动选中并进入控制就绪。设置写入数为 0，经典音频链路保持已连接。其他型号与 BLE 不同地址端点的跨协议绑定未验证。
-
-最终发布版正常启动后，真实 EDGE 主页可见“已连接”、单个 40% 电量以及降噪 / 通透 / 关闭入口；UI Automation 确认无左右耳标记，控制页可见增益与双设备入口，未点击任何设置写入控件。截图为 `artifacts/verification/windows-live-edge-home-fixed.png`。同一发布版的隔离 OPPO 页面仍显示左 / 右 / 盒三组电量，见 `artifacts/verification/windows-published-oppo/Home-0.png`；该 OPPO 检查不是真机验证。
+EDGE 固件 1.3.0 真机：生产 supervisor 约 4.4 秒进入 `ControlReady`，二次刷新成功，可读到电量、降噪、增益和双设备状态；`EncoDeck.Probe monitor --seconds 15 --verbose` 同样进入控制就绪。验证期间未发送设置写入，经典音频链路保持连接；主页、控制页显示正常。其他型号与 BLE 不同地址端点的跨协议绑定未验证。
 
 以下 Probe 命令示例主要面向 OPPO。其他品牌的 `monitor` 可用于观察统一设备运行时，不能把 OPPO 专用写入命令直接用于其他品牌。
 
@@ -113,4 +113,4 @@ Start-Sleep 180; $c1 = (Get-Process -Id $p.Id).TotalProcessorTime
 Start-Process EncoDeck.exe -ArgumentList '--exit'
 ```
 
-实测结果记录在 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)。
+实测结果记录在 [设备兼容性](COMPATIBILITY.md) 与 [PROTOCOL_FINDINGS.md](PROTOCOL_FINDINGS.md)。

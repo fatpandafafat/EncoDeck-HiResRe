@@ -1,0 +1,1023 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from one table so zh-CN and en-US stay in sync. SPDX-License-Identifier: GPL-3.0-only -->
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Battery_Left" xml:space="preserve"><value>左</value></data>
+  <data name="Battery_Headphones" xml:space="preserve"><value>ヘッドホン</value></data>
+  <data name="Battery_Right" xml:space="preserve"><value>右</value></data>
+  <data name="Battery_Case" xml:space="preserve"><value>ケース</value></data>
+  <data name="Battery_Unknown" xml:space="preserve"><value>不明</value></data>
+  <data name="Battery_LastRead" xml:space="preserve"><value>最終取得 {0}</value></data>
+  <data name="Battery_Charging" xml:space="preserve"><value>充電中</value></data>
+  <data name="Device_None" xml:space="preserve"><value>イヤホンなし</value></data>
+  <data name="Connection_NotDetected" xml:space="preserve"><value>対応イヤホンが見つかりません</value></data>
+  <data name="Connection_PairedNotConnected" xml:space="preserve"><value>ペアリング済み、未接続</value></data>
+  <data name="Connection_AudioConnected" xml:space="preserve"><value>接続済み、コントロールを準備中</value></data>
+  <data name="Connection_UsbReceiverConnected" xml:space="preserve"><value>USB レシーバー接続済み</value></data>
+  <data name="Connection_UsbHeadsetConnected" xml:space="preserve"><value>USB レシーバー経由でヘッドホンがワイヤレス接続されています</value></data>
+  <data name="Connection_ControlConnecting" xml:space="preserve"><value>コントロールに接続中…</value></data>
+  <data name="Connection_ControlReady" xml:space="preserve"><value>接続済み</value></data>
+  <data name="Connection_ControlUnavailable" xml:space="preserve"><value>オーディオ接続済み · コントロール利用不可</value></data>
+  <data name="Connection_Reconnecting" xml:space="preserve"><value>再接続中…</value></data>
+  <data name="Connection_Disconnected" xml:space="preserve"><value>未接続</value></data>
+  <data name="Error_Timeout" xml:space="preserve"><value>イヤホンが応答しませんでした。設定は変更されていません。</value></data>
+  <data name="Error_Transport" xml:space="preserve"><value>コントロール接続に失敗しました。もう一度お試しください。</value></data>
+  <data name="Error_Rejected" xml:space="preserve"><value>イヤホンがこの設定を拒否しました。</value></data>
+  <data name="Error_Unsupported" xml:space="preserve"><value>このイヤホンはこの機能に対応していません。</value></data>
+  <data name="Error_NotConnected" xml:space="preserve"><value>イヤホンのコントロールチャネルが接続されていません。</value></data>
+  <data name="Error_LeAudioOnClassic" xml:space="preserve"><value>LE Audio のコントロールチャネルの準備ができていません。しばらくしてから再試行するか、イヤホンをケースに戻してから再度取り出してください。LC3 オーディオの中断を避けるため、EncoDeck はクラシック Bluetooth によるコントロールを試行しません。</value></data>
+  <data name="Error_ControlEndpointNotFound" xml:space="preserve"><value>ヘッドホンの Bluetooth LE コントロールが見つかりません。ヘッドホンを検出可能な状態にしてから再試行してください。オーディオは接続したままで構いません。</value></data>
+  <data name="Status_UpdatedAt" xml:space="preserve"><value>更新 {0}</value></data>
+  <data name="Noise_Unknown" xml:space="preserve"><value>ノイズコントロール不明</value></data>
+  <data name="NoiseMode_Off" xml:space="preserve"><value>オフ</value></data>
+  <data name="NoiseMode_NoiseCancellation" xml:space="preserve"><value>ノイズキャンセリング</value></data>
+  <data name="NoiseMode_Transparency" xml:space="preserve"><value>外音取り込み</value></data>
+  <data name="NoiseMode_Adaptive" xml:space="preserve"><value>適応型</value></data>
+  <data name="NoiseLevel_Smart" xml:space="preserve"><value>自動</value></data>
+  <data name="NoiseLevel_Deep" xml:space="preserve"><value>強</value></data>
+  <data name="NoiseLevel_Medium" xml:space="preserve"><value>中</value></data>
+  <data name="NoiseLevel_Light" xml:space="preserve"><value>弱</value></data>
+  <data name="NoiseLevel_AntiWind" xml:space="preserve"><value>風切り音低減</value></data>
+  <data name="NoiseLevel_AdaptiveLess" xml:space="preserve"><value>ノイズ少なめ</value></data>
+  <data name="NoiseLevel_AdaptiveStandard" xml:space="preserve"><value>標準</value></data>
+  <data name="NoiseLevel_AdaptiveMore" xml:space="preserve"><value>ノイズ多め</value></data>
+  <data name="NoiseSelector_Level" xml:space="preserve"><value>ノイズキャンセリングの強さ</value></data>
+  <data name="NoiseSelector_AdaptiveLevel" xml:space="preserve"><value>適応型の設定</value></data>
+  <data name="Eq_DynaudioOriginal" xml:space="preserve"><value>Dynaudio オリジナルサウンド</value></data>
+  <data name="Eq_DynaudioHiRes" xml:space="preserve"><value>Dynaudio ハイレゾ</value></data>
+  <data name="Eq_PureVocals" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_CrispHighs" xml:space="preserve"><value>クリアな高音</value></data>
+  <data name="Eq_ThunderingBass" xml:space="preserve"><value>迫力の低音</value></data>
+  <data name="Eq_UnknownPreset" xml:space="preserve"><value>プリセット {0}</value></data>
+  <data name="Toggle_InEarDetection" xml:space="preserve"><value>装着検出</value></data>
+  <data name="Toggle_InEarDetection_Description" xml:space="preserve"><value>どちらかのイヤホンを外すと再生を一時停止するか別のチャネルに切り替え、再度装着すると再生を再開します。</value></data>
+  <data name="Toggle_HiRes" xml:space="preserve"><value>LHDC</value></data>
+  <data name="Toggle_HiRes_Description" xml:space="preserve"><value>デバイス側の LHDC スイッチです。LHDC とデュアル接続は、一方をオンにするともう一方がオフになります。Windows に LHDC エンコーダーをインストールするものではありません。</value></data>
+  <data name="Cap_BatteryLevel" xml:space="preserve"><value>バッテリー残量</value></data>
+  <data name="Cap_ChargingStatus" xml:space="preserve"><value>充電状態</value></data>
+  <data name="Cap_NoiseCancellation" xml:space="preserve"><value>ノイズコントロール</value></data>
+  <data name="Cap_AdaptiveNoiseCancellation" xml:space="preserve"><value>スマート / 適応型 ANC</value></data>
+  <data name="Cap_NoiseCancellationLevel" xml:space="preserve"><value>ノイズキャンセリングの強さ</value></data>
+  <data name="Cap_Equalizer" xml:space="preserve"><value>デバイスのイコライザープリセット</value></data>
+  <data name="Cap_CustomEqualizer" xml:space="preserve"><value>カスタムイコライザー</value></data>
+  <data name="Cap_SpatialAudio" xml:space="preserve"><value>空間オーディオ</value></data>
+  <data name="Cap_HeadTracking" xml:space="preserve"><value>ヘッドトラッキング</value></data>
+  <data name="Cap_GamingMode" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="Cap_InEarDetection" xml:space="preserve"><value>装着検出</value></data>
+  <data name="Cap_TouchCustomization" xml:space="preserve"><value>タッチ操作</value></data>
+  <data name="Cap_DualDeviceConnection" xml:space="preserve"><value>2 台同時接続</value></data>
+  <data name="Cap_FindMyEarbuds" xml:space="preserve"><value>イヤホンを探す</value></data>
+  <data name="Home_FirmwareLabel" xml:space="preserve"><value>ファームウェア</value></data>
+  <data name="Cap_FirmwareInformation" xml:space="preserve"><value>ファームウェア情報</value></data>
+  <data name="Support_Supported" xml:space="preserve"><value>対応</value></data>
+  <data name="Support_Experimental" xml:space="preserve"><value>試験的（オフ）</value></data>
+  <data name="Support_Unknown" xml:space="preserve"><value>不明</value></data>
+  <data name="Support_Unsupported" xml:space="preserve"><value>非対応</value></data>
+  <data name="Devices_StatusConnected" xml:space="preserve"><value>接続済み</value></data>
+  <data name="Devices_StatusNotConnected" xml:space="preserve"><value>未接続</value></data>
+  <data name="Devices_Active" xml:space="preserve"><value>現在のデバイス</value></data>
+  <data name="Devices_UseThis" xml:space="preserve"><value>このデバイスを使用</value></data>
+  <data name="Devices_ExportDone" xml:space="preserve"><value>エクスポートしました: {0}</value></data>
+  <data name="Devices_ExportFailed" xml:space="preserve"><value>エクスポートに失敗しました: {0}</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>EncoDeck を開く</value></data>
+  <data name="Tray_NoiseControl" xml:space="preserve"><value>ノイズコントロール</value></data>
+  <data name="Tray_ConnectionPopup" xml:space="preserve"><value>接続ポップアップ</value></data>
+  <data name="Tray_Settings" xml:space="preserve"><value>設定</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>終了</value></data>
+  <data name="Popup_Announcement" xml:space="preserve"><value>{0} が接続されました</value></data>
+  <data name="Popup_ConnectedTitle" xml:space="preserve"><value>{0} に接続済み</value></data>
+  <data name="Notify_LowBattery_Title" xml:space="preserve"><value>{0} のバッテリー残量低下</value></data>
+  <data name="Nav_Home.Content" xml:space="preserve"><value>ホーム</value></data>
+  <data name="Nav_Sound.Content" xml:space="preserve"><value>サウンド</value></data>
+  <data name="Nav_Controls.Content" xml:space="preserve"><value>操作</value></data>
+  <data name="Nav_Devices.Content" xml:space="preserve"><value>デバイス</value></data>
+  <data name="Nav_Settings.Content" xml:space="preserve"><value>設定</value></data>
+  <data name="Nav_Labs.Content" xml:space="preserve"><value>Labs</value></data>
+  <data name="Labs_Summary.Text" xml:space="preserve"><value>試験的なオーディオ機能です。Windows の Bluetooth やオーディオの設定を変更するため、すべてのデバイスでの動作は保証されません。</value></data>
+  <data name="Home_GenericModel.Title" xml:space="preserve"><value>認識できないモデル</value></data>
+  <data name="Home_NoDevice_Title.Text" xml:space="preserve"><value>対応イヤホンが見つかりません</value></data>
+  <data name="Home_NoDevice_Body.Text" xml:space="preserve"><value>まず Windows の Bluetooth 設定でイヤホンをペアリングしてください。ペアリング済みのイヤホンは EncoDeck が自動的に検出します。</value></data>
+  <data name="Home_NoDevice_OpenSettings.Content" xml:space="preserve"><value>Bluetooth 設定を開く</value></data>
+  <data name="Home_Unavailable_Title.Text" xml:space="preserve"><value>イヤホンのコントロールを利用できません</value></data>
+  <data name="Home_Unavailable_Body.Text" xml:space="preserve"><value>オーディオは動作している可能性がありますが、EncoDeck はイヤホンのコントロールチャネルを開けませんでした。</value></data>
+  <data name="Home_Reconnect2.Content" xml:space="preserve"><value>再試行</value></data>
+  <data name="Home_Diagnostics.Content" xml:space="preserve"><value>診断</value></data>
+  <data name="Home_NoiseControl.Text" xml:space="preserve"><value>ノイズコントロール</value></data>
+  <data name="NoiseSelector_Off.Text" xml:space="preserve"><value>オフ</value></data>
+  <data name="NoiseSelector_Anc.Text" xml:space="preserve"><value>ノイズキャンセリング</value></data>
+  <data name="NoiseSelector_Adaptive.Text" xml:space="preserve"><value>適応型</value></data>
+  <data name="NoiseSelector_Transparency.Text" xml:space="preserve"><value>外音取り込み</value></data>
+  <data name="Sound_Title.Text" xml:space="preserve"><value>サウンド</value></data>
+  <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>イヤホンのイコライザー</value></data>
+  <data name="Sound_BandEditor.Text" xml:space="preserve"><value>カスタムカーブ</value></data>
+  <data name="Sound_Spatial.Text" xml:space="preserve"><value>空間オーディオ</value></data>
+  <data name="Controls_Title.Text" xml:space="preserve"><value>操作</value></data>
+  <data name="Controls_Settings.Text" xml:space="preserve"><value>その他の設定</value></data>
+  <data name="Devices_Capabilities.Text" xml:space="preserve"><value>機能の対応状況</value></data>
+  <data name="Devices_Title.Text" xml:space="preserve"><value>デバイス</value></data>
+  <data name="Devices_Paired.Text" xml:space="preserve"><value>ペアリング済みのイヤホン</value></data>
+  <data name="Devices_None.Text" xml:space="preserve"><value>EncoDeck が対応しているペアリング済みのイヤホンがありません。Windows の Bluetooth 設定でペアリングしてください。</value></data>
+  <data name="Devices_OpenBluetooth.Content" xml:space="preserve"><value>Bluetooth 設定を開く</value></data>
+  <data name="Devices_Diagnostics.Text" xml:space="preserve"><value>診断</value></data>
+  <data name="Devices_Diagnostics_Note.Text" xml:space="preserve"><value>診断データにはログと設定が含まれ、Bluetooth アドレスは伏せられます。詳しい分析には EncoDeck.Probe を使用してください（docs/TESTING.md を参照）。</value></data>
+  <data name="Devices_Reconnect.Content" xml:space="preserve"><value>コントロールチャネルを再接続</value></data>
+  <data name="Devices_Export.Content" xml:space="preserve"><value>診断データをエクスポート</value></data>
+  <data name="Devices_OpenLogs.Content" xml:space="preserve"><value>ログフォルダーを開く</value></data>
+  <data name="Settings_Title.Text" xml:space="preserve"><value>設定</value></data>
+  <data name="Settings_General.Text" xml:space="preserve"><value>全般</value></data>
+  <data name="Settings_StartWithWindows.Header" xml:space="preserve"><value>Windows の起動時に開始</value></data>
+  <data name="Settings_KeepInTray.Header" xml:space="preserve"><value>ウィンドウを閉じても通知領域で実行を続ける</value></data>
+  <data name="Settings_QuickSettingsPanel.Header" xml:space="preserve"><value>クイック設定の上にイヤホンパネルを表示</value></data>
+  <data name="Settings_QuickSettingsPanel.Description" xml:space="preserve"><value>Windows 11 24H2 以降が必要です。クイック設定（Win+A）と連動して開閉します。</value></data>
+  <data name="Settings_QuickSettingsBluetoothOff.Header" xml:space="preserve"><value>Bluetooth がオフのときはイヤホンパネルを表示しない</value></data>
+  <data name="Settings_QuickSettingsBluetoothOff.Description" xml:space="preserve"><value>Bluetooth がオフのときは、クイック設定（Win+A）をイヤホンパネルなしで開きます。</value></data>
+  <data name="Settings_QuickSettingsTheme.Header" xml:space="preserve"><value>クイック設定パネルのテーマ</value></data>
+  <data name="Settings_QuickSettingsTheme.Description" xml:space="preserve"><value>アプリのテーマとは別に設定でき、パネルをクイック設定の外観に合わせられます。</value></data>
+  <data name="Settings_Hotkeys.Text" xml:space="preserve"><value>ホットキー</value></data>
+  <data name="Settings_HotkeysSummary.Text" xml:space="preserve"><value>どのアプリからでもノイズコントロールを切り替えられます。ボックスをクリックしてからキーを押してください。</value></data>
+  <data name="Settings_HotkeyToggle.Header" xml:space="preserve"><value>ノイズキャンセリング / 外音取り込み</value></data>
+  <data name="Settings_HotkeyToggle.Description" xml:space="preserve"><value>2 つのモードを切り替えます。その他のモードからはノイズキャンセリングに切り替わります。</value></data>
+  <data name="Settings_HotkeyCycle.Header" xml:space="preserve"><value>次のモード</value></data>
+  <data name="Settings_HotkeyCycle.Description" xml:space="preserve"><value>ノイズキャンセリング → 適応型 → 外音取り込み → オフ の順に切り替えます。イヤホンにないモードはスキップします。</value></data>
+  <data name="Settings_HotkeyAnc.Header" xml:space="preserve"><value>ノイズキャンセリング</value></data>
+  <data name="Settings_HotkeyAdaptive.Header" xml:space="preserve"><value>適応型</value></data>
+  <data name="Settings_HotkeyTransparency.Header" xml:space="preserve"><value>外音取り込み</value></data>
+  <data name="Settings_HotkeyOff.Header" xml:space="preserve"><value>ノイズコントロールをオフ</value></data>
+  <data name="Hotkey_None" xml:space="preserve"><value>未設定</value></data>
+  <data name="Hotkey_Recording" xml:space="preserve"><value>キーを押してください…</value></data>
+  <data name="Hotkey_InUse" xml:space="preserve"><value>この組み合わせは他のアプリまたは Windows で既に使用されています。別の組み合わせを選んでください。</value></data>
+  <data name="Hotkey_Invalid" xml:space="preserve"><value>この組み合わせは使用できません。</value></data>
+  <data name="Hotkey_NeedsModifier" xml:space="preserve"><value>Ctrl、Alt、Shift、Win のいずれかを押しながらキーを押してください（F1–F24 は単独でも使用できます）。Esc でキャンセルします。</value></data>
+  <data name="Hotkey_Clear.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>ホットキーを削除</value></data>
+  <data name="Hotkey_Clear.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>ホットキーを削除</value></data>
+  <data name="Settings_Theme.Header" xml:space="preserve"><value>テーマ</value></data>
+  <data name="Settings_Theme_System.Content" xml:space="preserve"><value>システム設定を使用</value></data>
+  <data name="Settings_Theme_Light.Content" xml:space="preserve"><value>ライト</value></data>
+  <data name="Settings_Theme_Dark.Content" xml:space="preserve"><value>ダーク</value></data>
+  <data name="Settings_Language.Header" xml:space="preserve"><value>言語</value></data>
+  <data name="Settings_Language_System.Content" xml:space="preserve"><value>システムの言語を使用</value></data>
+  <data name="Settings_Popup.Text" xml:space="preserve"><value>接続ポップアップ</value></data>
+  <data name="Settings_ShowPopup.Header" xml:space="preserve"><value>イヤホンの接続時にポップアップを表示</value></data>
+  <data name="Settings_PopupDuration.Header" xml:space="preserve"><value>表示時間（秒）</value></data>
+  <data name="Settings_SuppressFullscreen.Header" xml:space="preserve"><value>全画面のアプリやゲームが前面にあるときは表示しない</value></data>
+  <data name="Settings_Notifications.Text" xml:space="preserve"><value>通知</value></data>
+  <data name="Settings_LowBattery.Header" xml:space="preserve"><value>イヤホンのバッテリー残量が少なくなったら通知</value></data>
+  <data name="Settings_LowBatteryThreshold.Header" xml:space="preserve"><value>バッテリー残量低下のしきい値（%）</value></data>
+  <data name="Settings_Advanced.Text" xml:space="preserve"><value>詳細設定</value></data>
+  <data name="Settings_RawLogging.Header" xml:space="preserve"><value>コントロールチャネルの通信をログに記録（診断）</value></data>
+  <data name="Settings_About.Text" xml:space="preserve"><value>バージョン情報</value></data>
+  <data name="Settings_Disclaimer.Text" xml:space="preserve"><value>EncoDeck は非公式のオープンソースプロジェクトであり、対応するイヤホンのブランドやそのメーカーとの提携、協力、承認関係は一切ありません。ブランド名および製品名は互換性を説明する目的でのみ使用しています。</value></data>
+  <data name="Settings_License.Text" xml:space="preserve"><value>GNU General Public License v3.0 only（GPL-3.0-only）の下でライセンスされています。サードパーティの通知はアプリに同梱されています。</value></data>
+  <data name="Settings_Source.Content" xml:space="preserve"><value>ソースコード</value></data>
+  <data name="Settings_Notices.Content" xml:space="preserve"><value>サードパーティの通知</value></data>
+  <data name="Panel_OpenApp.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>EncoDeck を開く</value></data>
+  <data name="Panel_OpenApp.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>EncoDeck を開く</value></data>
+  <data name="Panel_Noise.Text" xml:space="preserve"><value>ノイズコントロール</value></data>
+  <data name="Panel_NoDevice.Text" xml:space="preserve"><value>ペアリング済みの対応イヤホンがありません。</value></data>
+  <data name="Panel_Reconnect.Content" xml:space="preserve"><value>再接続</value></data>
+  <data name="Popup_Close.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>閉じる</value></data>
+  <data name="Error_WearRequired" xml:space="preserve"><value>この機能を使用するにはイヤホンを装着してください。</value></data>
+  <data name="Error_BusyOtherDevice" xml:space="preserve"><value>イヤホンがビジー状態か、他のデバイスで使用中です。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Error_BatteryLow" xml:space="preserve"><value>イヤホンのバッテリー残量が不足しています。充電してからもう一度お試しください。</value></data>
+  <data name="Error_CycleAtLeastTwo" xml:space="preserve"><value>2 つ以上の項目を選択する必要があります</value></data>
+  <data name="Error_RemoveConnected" xml:space="preserve"><value>削除できるのは未接続のデバイスのみです</value></data>
+  <data name="Error_MaxPresets" xml:space="preserve"><value>カスタムイコライザーの上限に達しました</value></data>
+  <data name="Error_InvalidName" xml:space="preserve"><value>名前は空にできず、重複不可、42 文字以内にしてください</value></data>
+  <data name="Common_Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Common_OK" xml:space="preserve"><value>OK</value></data>
+  <data name="Common_TurnOn" xml:space="preserve"><value>オンにする</value></data>
+  <data name="Toggle_SleepDetection" xml:space="preserve"><value>睡眠時に音楽の再生を一時停止</value></data>
+  <data name="Toggle_SleepDetection_Description" xml:space="preserve"><value>イヤホンが睡眠を検出すると再生を一時停止します。</value></data>
+  <data name="Toggle_SwiftPair" xml:space="preserve"><value>Swift Pair</value></data>
+  <data name="Toggle_SwiftPair_Description" xml:space="preserve"><value>イヤホンがペアリングモードのとき、近くの Windows PC にクイックペアリングの通知が表示されます。</value></data>
+  <data name="Toggle_VoiceCommands" xml:space="preserve"><value>音声コマンド</value></data>
+  <data name="Toggle_VoiceCommands_Description" xml:space="preserve"><value>ウェイクワードなしで、再生、一時停止、次の曲、ノイズキャンセリングなどのコマンドを話しかけて操作できます（中国語のみ）。</value></data>
+  <data name="Cap_FitTest" xml:space="preserve"><value>イヤホンのフィットテスト</value></data>
+  <data name="Cap_PromptVolume" xml:space="preserve"><value>通知音の音量</value></data>
+  <data name="Cap_BassEngine" xml:space="preserve"><value>BassWave ダイナミックベース</value></data>
+  <data name="Controls_NotReady.Message" xml:space="preserve"><value>これらの設定を変更するにはイヤホンを接続してください。</value></data>
+  <data name="Game_Title.Text" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="Game_Summary.Text" xml:space="preserve"><value>ゲーム向けにオーディオの遅延を減らし、サウンド効果を強化します。</value></data>
+  <data name="Game_LowLatency.Text" xml:space="preserve"><value>ゲーム低遅延</value></data>
+  <data name="Game_LowLatency_Summary.Text" xml:space="preserve"><value>オーディオの遅延を減らし、より快適なゲーム体験を実現します。</value></data>
+  <data name="Game_Sound.Text" xml:space="preserve"><value>サウンド効果の強化</value></data>
+  <data name="GameSound_0" xml:space="preserve"><value>オフ</value></data>
+  <data name="GameSound_3" xml:space="preserve"><value>シューティングゲーム向けサウンド</value></data>
+  <data name="Mutex_GameSound_Title" xml:space="preserve"><value>イコライザーモードを切り替えますか？</value></data>
+  <data name="Mutex_GameSound_Message" xml:space="preserve"><value>サウンド効果の強化はオフになります。</value></data>
+  <data name="Dual_Title.Text" xml:space="preserve"><value>デュアル接続</value></data>
+  <data name="Dual_Summary.Text" xml:space="preserve"><value>Bluetooth で 2 台のデバイスに同時に接続し、自由に切り替えられます。</value></data>
+  <data name="Dual_Paired.Text" xml:space="preserve"><value>ペアリング済みのデバイス</value></data>
+  <data name="Dual_AutoSelect" xml:space="preserve"><value>自動選択</value></data>
+  <data name="Dual_Connect" xml:space="preserve"><value>接続</value></data>
+  <data name="Dual_Disconnect" xml:space="preserve"><value>切断</value></data>
+  <data name="Dual_Remove" xml:space="preserve"><value>削除</value></data>
+  <data name="Dual_ConnectNew_Title" xml:space="preserve"><value>新しいデバイスに接続</value></data>
+  <data name="Dual_ConnectNew_Message" xml:space="preserve"><value>"{0}" に接続すると、別のデバイスが切断されます。</value></data>
+  <data name="Dual_Disconnect_Title" xml:space="preserve"><value>デバイスの切断</value></data>
+  <data name="Dual_Disconnect_Message" xml:space="preserve"><value>"{0}" を切断します。</value></data>
+  <data name="Dual_Remove_Title" xml:space="preserve"><value>このデバイスを削除しますか？</value></data>
+  <data name="Dual_Connecting" xml:space="preserve"><value>接続中</value></data>
+  <data name="Dual_InUseThis" xml:space="preserve"><value>使用中（このデバイス）</value></data>
+  <data name="Dual_ConnectedThis" xml:space="preserve"><value>接続済み（このデバイス）</value></data>
+  <data name="Dual_This" xml:space="preserve"><value>このデバイス</value></data>
+  <data name="Dual_InUse" xml:space="preserve"><value>使用中</value></data>
+  <data name="Dual_Connected" xml:space="preserve"><value>接続済み</value></data>
+  <data name="Dual_NotConnected" xml:space="preserve"><value>未接続</value></data>
+  <data name="Gesture_Title.Text" xml:space="preserve"><value>イヤホンの操作</value></data>
+  <data name="Gesture_Left" xml:space="preserve"><value>左</value></data>
+  <data name="Gesture_Right" xml:space="preserve"><value>右</value></data>
+  <data name="Gesture_Single" xml:space="preserve"><value>1 回つまむ</value></data>
+  <data name="Gesture_Double" xml:space="preserve"><value>2 回つまむ</value></data>
+  <data name="Gesture_Triple" xml:space="preserve"><value>3 回つまむ</value></data>
+  <data name="Gesture_Slide" xml:space="preserve"><value>スライド操作</value></data>
+  <data name="Gesture_Hold" xml:space="preserve"><value>長くつまむ</value></data>
+  <data name="Gesture_CallSingle" xml:space="preserve"><value>1 回つまむ</value></data>
+  <data name="Gesture_CallDouble" xml:space="preserve"><value>2 回つまむ</value></data>
+  <data name="Gesture_CallTitle.Text" xml:space="preserve"><value>通話中</value></data>
+  <data name="Function_0" xml:space="preserve"><value>なし</value></data>
+  <data name="Function_1" xml:space="preserve"><value>再生/一時停止</value></data>
+  <data name="Function_3" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="Function_5" xml:space="preserve"><value>前の曲</value></data>
+  <data name="Function_6" xml:space="preserve"><value>次の曲</value></data>
+  <data name="Function_7" xml:space="preserve"><value>音量調整</value></data>
+  <data name="Function_8" xml:space="preserve"><value>ノイズコントロール</value></data>
+  <data name="Function_10" xml:space="preserve"><value>曲の切り替え</value></data>
+  <data name="Function_17" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="Function_28" xml:space="preserve"><value>着信拒否/通話終了</value></data>
+  <data name="Function_29" xml:space="preserve"><value>応答/通話終了</value></data>
+  <data name="Head_Title.Text" xml:space="preserve"><value>うなずき/首振り操作</value></data>
+  <data name="Head_Summary.Text" xml:space="preserve"><value>うなずくか首を横に振ることで、着信に応答または拒否できます。</value></data>
+  <data name="Head_NodAnswers" xml:space="preserve"><value>うなずいて応答、首を振って拒否</value></data>
+  <data name="Head_ShakeAnswers" xml:space="preserve"><value>首を振って応答、うなずいて拒否</value></data>
+  <data name="Find_Title.Text" xml:space="preserve"><value>イヤホンを探す</value></data>
+  <data name="Find_Summary.Text" xml:space="preserve"><value>イヤホンから音を鳴らします。50 秒後、またはケースに戻すと停止します。</value></data>
+  <data name="Find_Play" xml:space="preserve"><value>音を鳴らす</value></data>
+  <data name="Find_Stop" xml:space="preserve"><value>停止</value></data>
+  <data name="Find_InEar_Title" xml:space="preserve"><value>イヤホンを探すために音を鳴らしますか？</value></data>
+  <data name="Find_InEar_Message" xml:space="preserve"><value>イヤホンが装着されています。聴覚への影響を防ぐため、音を鳴らす前にイヤホンを耳から外してください。</value></data>
+  <data name="Find_InCase" xml:space="preserve"><value>イヤホンは充電ケースの中にあります</value></data>
+  <data name="Fit_Title.Text" xml:space="preserve"><value>フィットテスト</value></data>
+  <data name="Fit_Summary.Text" xml:space="preserve"><value>両方のイヤホンを装着し、テスト音の再生中は静かにしてください。</value></data>
+  <data name="Fit_Start.Content" xml:space="preserve"><value>テスト開始</value></data>
+  <data name="Fit_Running" xml:space="preserve"><value>テスト中…</value></data>
+  <data name="Fit_Perfect" xml:space="preserve"><value>フィットは良好です</value></data>
+  <data name="Fit_Adjust" xml:space="preserve"><value>イヤホンの位置を調整してください</value></data>
+  <data name="Fit_Failed" xml:space="preserve"><value>テストに失敗しました。もう一度お試しください。</value></data>
+  <data name="Fit_Good" xml:space="preserve"><value>良好</value></data>
+  <data name="Fit_Average" xml:space="preserve"><value>普通</value></data>
+  <data name="Fit_Poor" xml:space="preserve"><value>不良</value></data>
+  <data name="Fit_Unknown" xml:space="preserve"><value>不明</value></data>
+  <data name="Fit_Failed_Short" xml:space="preserve"><value>失敗</value></data>
+  <data name="Eq_AddCustom.Content" xml:space="preserve"><value>カスタム EQ を追加</value></data>
+  <data name="Eq_Rename.Content" xml:space="preserve"><value>名前の変更</value></data>
+  <data name="Eq_Delete.Content" xml:space="preserve"><value>削除</value></data>
+  <data name="Eq_Delete_Title" xml:space="preserve"><value>このカスタム EQ を削除しますか？</value></data>
+  <data name="Eq_Delete_Confirm" xml:space="preserve"><value>削除</value></data>
+  <data name="Bass_Title.Text" xml:space="preserve"><value>BassWave™ ダイナミックバス</value></data>
+  <data name="Bass_Summary.Text" xml:space="preserve"><value>イヤホン内で低音域を強化します。</value></data>
+  <data name="Bass_Weak.Text" xml:space="preserve"><value>弱</value></data>
+  <data name="Bass_Strong.Text" xml:space="preserve"><value>強</value></data>
+  <data name="Spatial_Off" xml:space="preserve"><value>オフ</value></data>
+  <data name="Spatial_Fixed" xml:space="preserve"><value>固定</value></data>
+  <data name="Spatial_HeadTracking" xml:space="preserve"><value>ヘッドトラッキング</value></data>
+  <data name="Spatial_HiResNote.Text" xml:space="preserve"><value>Hi-Res モードがオンのため、空間オーディオはオフになっています。空間オーディオをオンにすると Hi-Res モードはオフになります。</value></data>
+  <data name="Spatial_HiRes_Title" xml:space="preserve"><value>空間オーディオをオンにしますか？</value></data>
+  <data name="Spatial_HiRes_Message" xml:space="preserve"><value>最適なサウンド体験のため、オンにすると Hi-Res モードがオフになります。</value></data>
+  <data name="Settings_Language.Description" xml:space="preserve"><value>EncoDeck の再起動後に反映されます。</value></data>
+  <data name="Settings_PopupDuration.Description" xml:space="preserve"><value>タイミング情報を持つアニメーションは独自の再生時間を使用します。この設定はその他の画像と動画に適用されます。</value></data>
+  <data name="Settings_SuppressFullscreen.Description" xml:space="preserve"><value>オフにすると、全画面のアプリやゲームの上にもポップアップがクリック透過のオーバーレイとして表示され、クリックはすべてゲームに送られます。排他的全画面のゲームでは表示されません。</value></data>
+  <data name="Settings_RawLogging.Description" xml:space="preserve"><value>プロトコルフレームをログに書き込みます。他のデバイスの名前やアドレスを含むフレームはマスクされます。</value></data>
+  <data name="Prompt_Title.Header" xml:space="preserve"><value>通知音の音量</value></data>
+  <data name="Dual_Preferred.Header" xml:space="preserve"><value>優先デバイス</value></data>
+  <data name="Dual_Preferred.Description" xml:space="preserve"><value>優先デバイスが接続範囲内にある場合、イヤホンはそのデバイスに優先して接続します。</value></data>
+  <data name="Settings_PopupPosition.Header" xml:space="preserve"><value>位置</value></data>
+  <data name="Settings_PopupPosition_NearTray.Content" xml:space="preserve"><value>通知領域の横（既定）</value></data>
+  <data name="Settings_PopupPosition_BottomRight.Content" xml:space="preserve"><value>右下</value></data>
+  <data name="Settings_PopupPosition_BottomCenter.Content" xml:space="preserve"><value>下中央</value></data>
+  <data name="Settings_PopupPosition_BottomLeft.Content" xml:space="preserve"><value>左下</value></data>
+  <data name="Settings_PopupPosition_TopLeft.Content" xml:space="preserve"><value>左上</value></data>
+  <data name="Settings_PopupPosition_TopCenter.Content" xml:space="preserve"><value>上中央</value></data>
+  <data name="Settings_PopupPosition_TopRight.Content" xml:space="preserve"><value>右上</value></data>
+  <data name="Settings_PopupScale.Header" xml:space="preserve"><value>サイズ</value></data>
+  <data name="Settings_PopupPreview.Header" xml:space="preserve"><value>プレビュー</value></data>
+  <data name="Settings_PopupPreview.Description" xml:space="preserve"><value>現在の位置とサイズで接続ポップアップを 1 回表示します。</value></data>
+  <data name="Settings_PopupPreviewButton.Content" xml:space="preserve"><value>今すぐ表示</value></data>
+  <data name="Home_Devices.Text" xml:space="preserve"><value>デバイス管理</value></data>
+  <data name="Home_DevicesMore.Content" xml:space="preserve"><value>その他</value></data>
+  <data name="Home_SoundCard.Text" xml:space="preserve"><value>サウンド</value></data>
+  <data name="Home_Eq.Text" xml:space="preserve"><value>イヤホンの EQ</value></data>
+  <data name="Home_Spatial.Text" xml:space="preserve"><value>空間オーディオ</value></data>
+  <data name="Home_GameMode.Header" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="Home_Model_Name" xml:space="preserve"><value>イヤホンの 3D モデル。ドラッグまたは矢印キーで回転します</value></data>
+  <data name="Home_GenericModel_Message" xml:space="preserve"><value>このイヤホン（製品 ID {0}）はモデル一覧にないため、バッテリーとファームウェアの情報のみ表示します。</value></data>
+  <data name="Error_CycleAtLeastOne" xml:space="preserve"><value>1 つ以上選択してください</value></data>
+  <data name="Gesture_CycleTitle" xml:space="preserve"><value>{0}で切り替えるノイズコントロールモード</value></data>
+  <data name="Gesture_CycleNote" xml:space="preserve"><value>{0} 個以上選択する必要があります</value></data>
+  <data name="Gesture_Tap1" xml:space="preserve"><value>シングルタップ</value></data>
+  <data name="Gesture_Tap2" xml:space="preserve"><value>ダブルタップ</value></data>
+  <data name="Gesture_Tap3" xml:space="preserve"><value>トリプルタップ</value></data>
+  <data name="Gesture_TapHold" xml:space="preserve"><value>長押し</value></data>
+  <data name="Gesture_TapLongHold" xml:space="preserve"><value>超長押し</value></data>
+  <data name="Gesture_LongHold" xml:space="preserve"><value>超長押し（つまむ）</value></data>
+  <data name="Gesture_ButtonHold" xml:space="preserve"><value>中央ボタンを長押し</value></data>
+  <data name="Gesture_ButtonDouble" xml:space="preserve"><value>多機能ボタンを 2 回押す</value></data>
+  <data name="Gesture_CallButton" xml:space="preserve"><value>中央ボタンを押す</value></data>
+  <data name="Gesture_CallButtonHold" xml:space="preserve"><value>中央ボタンを長押し</value></data>
+  <data name="Gesture_CallTap1" xml:space="preserve"><value>シングルタップ</value></data>
+  <data name="Gesture_CallTap2" xml:space="preserve"><value>ダブルタップ</value></data>
+  <data name="Gesture_CallTap3" xml:space="preserve"><value>トリプルタップ</value></data>
+  <data name="Gesture_CallTapLongHold" xml:space="preserve"><value>超長押し</value></data>
+  <data name="Gesture_CallTriple" xml:space="preserve"><value>3 回つまむ</value></data>
+  <data name="Gesture_CallLongHold" xml:space="preserve"><value>超長押し（つまむ）</value></data>
+  <data name="Gesture_Other" xml:space="preserve"><value>その他のジェスチャー</value></data>
+  <data name="Function_11" xml:space="preserve"><value>音量を上げる</value></data>
+  <data name="Function_12" xml:space="preserve"><value>音量を下げる</value></data>
+  <data name="Function_13" xml:space="preserve"><value>デバイスの切り替え</value></data>
+  <data name="Function_18" xml:space="preserve"><value>Zen Mode Air</value></data>
+  <data name="Function_22" xml:space="preserve"><value>曲をお気に入りに追加</value></data>
+  <data name="Spatial_On" xml:space="preserve"><value>オン</value></data>
+  <data name="NoiseMode_Voice" xml:space="preserve"><value>ボイス</value></data>
+  <data name="NoiseLevel_Weak" xml:space="preserve"><value>弱ノイズキャンセリング</value></data>
+  <data name="NoiseLevel_Strong" xml:space="preserve"><value>最大ノイズキャンセリング</value></data>
+  <data name="NoiseLevel_SmartTop" xml:space="preserve"><value>スマート</value></data>
+  <data name="Eq_Mode1" xml:space="preserve"><value>クラシック</value></data>
+  <data name="Eq_Mode1Alt" xml:space="preserve"><value>ナチュラルバランス</value></data>
+  <data name="Eq_Mode2" xml:space="preserve"><value>ダイナミックバス</value></data>
+  <data name="Eq_Mode2Alt" xml:space="preserve"><value>低音強調</value></data>
+  <data name="Eq_Mode3" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_Mode3Alt" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_Mode4" xml:space="preserve"><value>クリア</value></data>
+  <data name="Eq_Mode4Alt" xml:space="preserve"><value>ジェントル</value></data>
+  <data name="Eq_Mode5" xml:space="preserve"><value>既定</value></data>
+  <data name="Eq_Mode6" xml:space="preserve"><value>Dynaudio シンプル &amp; クリア</value></data>
+  <data name="Eq_Mode7" xml:space="preserve"><value>Dynaudio ウォーム &amp; ソフト</value></data>
+  <data name="Eq_Mode8" xml:space="preserve"><value>Dynaudio パンチ</value></data>
+  <data name="Eq_Mode9" xml:space="preserve"><value>Dynaudio リアル</value></data>
+  <data name="Eq_Mode10" xml:space="preserve"><value>久石譲チューニング</value></data>
+  <data name="Eq_Mode11" xml:space="preserve"><value>バランス（既定）</value></data>
+  <data name="Eq_Mode12" xml:space="preserve"><value>低音</value></data>
+  <data name="Eq_Mode13" xml:space="preserve"><value>ボールド</value></data>
+  <data name="Eq_Mode14" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_Mode15" xml:space="preserve"><value>ジェントル</value></data>
+  <data name="Eq_Mode16" xml:space="preserve"><value>Enco X クラシック</value></data>
+  <data name="Eq_Mode17" xml:space="preserve"><value>バランス</value></data>
+  <data name="Eq_Mode18" xml:space="preserve"><value>Reno 特別チューニング（夜明け）</value></data>
+  <data name="Eq_Mode19" xml:space="preserve"><value>ハンス・ジマー サウンドスケープチューニング</value></data>
+  <data name="Eq_Mode20" xml:space="preserve"><value>ナチュラルインスピレーション</value></data>
+  <data name="Eq_Mode21" xml:space="preserve"><value>Reno 特別チューニング（朝焼け）</value></data>
+  <data name="Eq_Mode22" xml:space="preserve"><value>ナチュラルバランス</value></data>
+  <data name="Eq_Mode25" xml:space="preserve"><value>Reno 特別チューニング（紫の銀河）</value></data>
+  <data name="Eq_Mode26" xml:space="preserve"><value>アルティメットサウンド</value></data>
+  <data name="Eq_Mode27" xml:space="preserve"><value>HD クラリティ</value></data>
+  <data name="Eq_Mode30" xml:space="preserve"><value>Dynaudio チューニング</value></data>
+  <data name="Eq_Mode31" xml:space="preserve"><value>低音強調</value></data>
+  <data name="Eq_Mode32" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_Mode33" xml:space="preserve"><value>ギャラクティック・モノローグ</value></data>
+  <data name="Eq_Mode34" xml:space="preserve"><value>ビビッド</value></data>
+  <data name="Eq_Mode35" xml:space="preserve"><value>既定</value></data>
+  <data name="Eq_Mode40" xml:space="preserve"><value>Dynaudio ボーカル</value></data>
+  <data name="Eq_Mode41" xml:space="preserve"><value>クリア &amp; クリスプ</value></data>
+  <data name="Settings_DeveloperLabel.Text" xml:space="preserve"><value>開発者</value></data>
+  <data name="Settings_SponsorText.Text" xml:space="preserve"><value>EncoDeck は無料のオープンソースソフトウェアです。お役に立てた場合は、開発へのご支援をご検討ください。</value></data>
+  <data name="Settings_SponsorButton.Text" xml:space="preserve"><value>支援する</value></data>
+  <data name="Settings_SponsorTitle.Text" xml:space="preserve"><value>開発者を支援</value></data>
+  <data name="Settings_SponsorAlipay.Text" xml:space="preserve"><value>Alipay</value></data>
+  <data name="Settings_SponsorWeChat.Text" xml:space="preserve"><value>WeChat Pay</value></data>
+  <data name="Home_DeviceThisPc" xml:space="preserve"><value>この PC</value></data>
+  <data name="Home_DeviceBusy" xml:space="preserve"><value>処理中…</value></data>
+  <data name="Home_DeviceConnected" xml:space="preserve"><value>接続済み · タップで切断</value></data>
+  <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>タップで接続</value></data>
+  <data name="Home_DeviceLastConnected" xml:space="preserve"><value>前回接続済み</value></data>
+  <data name="Home_DeviceNotConnected" xml:space="preserve"><value>未接続</value></data>
+  <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>この PC の切断は Windows の Bluetooth 設定で行います</value></data>
+  <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>これはこの PC です</value></data>
+  <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>イヤホンはこの PC に接続されています。この PC を切断するには、Windows の Bluetooth 設定でイヤホンを切断してください。</value></data>
+  <data name="Home_OpenBluetoothSettings" xml:space="preserve"><value>Bluetooth 設定を開く</value></data>
+  <data name="Home_DeviceDisconnect_Title" xml:space="preserve"><value>「{0}」を切断しますか？</value></data>
+  <data name="Home_DeviceDisconnect_Message" xml:space="preserve"><value>イヤホンとこのデバイスとの接続が切断されます。ここから再度接続できます。</value></data>
+  <data name="Settings_Artwork.Text" xml:space="preserve"><value>デバイスのアートワーク</value></data>
+  <data name="Settings_ArtworkOpenFolder.Content" xml:space="preserve"><value>キャッシュフォルダーを開く</value></data>
+  <data name="Settings_ArtworkRedownload.Content" xml:space="preserve"><value>再ダウンロード</value></data>
+  <data name="Settings_ArtworkUpdated.Header" xml:space="preserve"><value>最終更新</value></data>
+  <data name="Settings_ArtworkCache.Header" xml:space="preserve"><value>ローカルキャッシュ</value></data>
+  <data name="Settings_ArtworkSource.Header" xml:space="preserve"><value>提供元</value></data>
+  <data name="Settings_ArtworkSource.Description" xml:space="preserve"><value>コミュニティによるサービスです。</value></data>
+  <data name="Artwork_Device" xml:space="preserve"><value>{0} · 製品 ID {1} · カラー {2}</value></data>
+  <data name="Artwork_NoDevice" xml:space="preserve"><value>イヤホンがまだ識別されていません</value></data>
+  <data name="Artwork_Checking" xml:space="preserve"><value>アートワークを確認しています…</value></data>
+  <data name="Artwork_Downloading" xml:space="preserve"><value>パッケージをダウンロードしています（{0}/{1}）…</value></data>
+  <data name="Artwork_DownloadingBytes" xml:space="preserve"><value>パッケージをダウンロードしています（{0}/{1}、{2} / {3}）</value></data>
+  <data name="Artwork_Extracting" xml:space="preserve"><value>パッケージを展開しています（{0}/{1}）…</value></data>
+  <data name="Artwork_Completed" xml:space="preserve"><value>アートワークを更新しました。</value></data>
+  <data name="Artwork_UpToDate" xml:space="preserve"><value>アートワークは最新です。</value></data>
+  <data name="Artwork_Cached" xml:space="preserve"><value>キャッシュされたアートワークを使用しています。</value></data>
+  <data name="Artwork_NotDownloaded" xml:space="preserve"><value>アートワークがまだダウンロードされていないため、汎用のイラストを表示しています。</value></data>
+  <data name="Artwork_KeepingCache" xml:space="preserve"><value>既存のアートワークを引き続き使用します。</value></data>
+  <data name="Artwork_Error_Offline" xml:space="preserve"><value>アートワークサーバーに接続できませんでした。インターネット接続を確認して、もう一度お試しください。</value></data>
+  <data name="Artwork_Error_Server" xml:space="preserve"><value>アートワークサーバーは一時的に利用できません。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Artwork_Error_NotAvailable" xml:space="preserve"><value>このイヤホン（またはこのカラー）のアートワークはまだないため、汎用のイラストを表示しています。</value></data>
+  <data name="Artwork_Error_InvalidData" xml:space="preserve"><value>ダウンロードしたアートワークが整合性チェックに失敗したため、破棄しました。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Artwork_Error_Storage" xml:space="preserve"><value>アートワークのキャッシュを書き込めませんでした。ディスクの空き容量とアクセス許可を確認してください。</value></data>
+  <data name="Artwork_Error_Other" xml:space="preserve"><value>アートワークのダウンロードに失敗しました。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Artwork_CacheSummary" xml:space="preserve"><value>{0} 個のファイル · {1}</value></data>
+  <data name="Settings_Updates.Text" xml:space="preserve"><value>更新</value></data>
+  <data name="Settings_CheckUpdates.Content" xml:space="preserve"><value>更新を確認</value></data>
+  <data name="Settings_ReleaseNotes.Content" xml:space="preserve"><value>リリースノート</value></data>
+  <data name="Settings_AutoUpdate.Header" xml:space="preserve"><value>更新を自動的に確認</value></data>
+  <data name="Settings_AutoUpdate.Description" xml:space="preserve"><value>新しいバージョンをバックグラウンドでダウンロードしてお知らせします。インストールは選択するまで行われません。</value></data>
+  <data name="Settings_Prerelease.Header" xml:space="preserve"><value>プレビュー版を受け取る</value></data>
+  <data name="Settings_Prerelease.Description" xml:space="preserve"><value>プレリリース版も提供します。安定性が低い場合があります。</value></data>
+  <data name="Update_CurrentVersion" xml:space="preserve"><value>現在のバージョン {0}</value></data>
+  <data name="Update_NeverChecked" xml:space="preserve"><value>まだ確認していません。</value></data>
+  <data name="Update_LastChecked" xml:space="preserve"><value>最終確認: {0}</value></data>
+  <data name="Update_Checking" xml:space="preserve"><value>更新を確認しています…</value></data>
+  <data name="Update_UpToDate" xml:space="preserve"><value>EncoDeck は最新です。</value></data>
+  <data name="Update_Available" xml:space="preserve"><value>バージョン {0} が利用可能です。</value></data>
+  <data name="Update_Downloading" xml:space="preserve"><value>{0} をダウンロードしています（{1} / {2}）…</value></data>
+  <data name="Update_Ready" xml:space="preserve"><value>バージョン {0} のダウンロードと検証が完了し、インストールの準備ができました。</value></data>
+  <data name="Update_Installing" xml:space="preserve"><value>インストーラーを起動しています。EncoDeck は終了し、更新後に再起動します…</value></data>
+  <data name="Update_Error_Offline" xml:space="preserve"><value>GitHub に接続できませんでした。インターネット接続を確認して、もう一度お試しください。</value></data>
+  <data name="Update_Error_RateLimited" xml:space="preserve"><value>GitHub によりリクエストが一時的に制限されています。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Update_Error_NotFound" xml:space="preserve"><value>リリースページが見つかりませんでした。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Update_Error_Verification" xml:space="preserve"><value>ダウンロードしたインストーラーが検証に失敗したため、削除しました。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Update_Error_Storage" xml:space="preserve"><value>インストーラーを保存または起動できませんでした。ディスクの空き容量とアクセス許可を確認してください。</value></data>
+  <data name="Update_Error_Other" xml:space="preserve"><value>更新の確認に失敗しました。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Update_DownloadAndInstall" xml:space="preserve"><value>ダウンロードしてインストール</value></data>
+  <data name="Update_InstallNow" xml:space="preserve"><value>今すぐ再起動して更新</value></data>
+  <data name="Notify_UpdateReady_Title" xml:space="preserve"><value>EncoDeck {0} をインストールする準備ができました</value></data>
+  <data name="Notify_UpdateReady_Message" xml:space="preserve"><value>バックグラウンドでダウンロードしました。[バージョン情報] › [更新] からインストールしてください。</value></data>
+  <data name="Notify_Updated_Title" xml:space="preserve"><value>EncoDeck が {0} に更新されました</value></data>
+  <data name="Notify_Updated_Message" xml:space="preserve"><value>EncoDeck は通知領域で実行されています。</value></data>
+  <data name="Settings_StoreUpdate.Content" xml:space="preserve"><value>更新</value></data>
+  <data name="Settings_StoreAutoUpdate.Header" xml:space="preserve"><value>更新を自動的に確認</value></data>
+  <data name="Settings_StoreAutoUpdate.Description" xml:space="preserve"><value>新しいバージョンが利用可能になるとお知らせします。</value></data>
+  <data name="StoreUpdate_Available" xml:space="preserve"><value>Microsoft Store で新しいバージョンが利用可能です。</value></data>
+  <data name="Settings_StoreReleaseNotes.Text" xml:space="preserve"><value>新機能</value></data>
+  <data name="Notify_StoreUpdate_Title" xml:space="preserve"><value>EncoDeck の更新があります</value></data>
+  <data name="Notify_StoreUpdate_Message" xml:space="preserve"><value>設定を開いて Microsoft Store から更新してください。</value></data>
+  <data name="Vivo_Eq_Standard" xml:space="preserve"><value>標準</value></data>
+  <data name="Vivo_Eq_ClearVoice" xml:space="preserve"><value>クリアボイス</value></data>
+  <data name="Vivo_Eq_MegaBass" xml:space="preserve"><value>メガベース</value></data>
+  <data name="Vivo_Eq_CrispHighs" xml:space="preserve"><value>クリスプな高音</value></data>
+  <data name="Vivo_Eq_Immersive" xml:space="preserve"><value>没入型オーディオ</value></data>
+  <data name="Vivo_Eq_Audiobooks" xml:space="preserve"><value>オーディオブック</value></data>
+  <data name="Vivo_Eq_UltimateMaster" xml:space="preserve"><value>アルティメットマスター</value></data>
+  <data name="Vivo_Function_Translate" xml:space="preserve"><value>翻訳</value></data>
+  <data name="Vivo_Function_DeclineCall" xml:space="preserve"><value>着信を拒否</value></data>
+  <data name="Vivo_HoldCycle" xml:space="preserve"><value>長押しで切り替えるノイズモード</value></data>
+  <data name="Brand_UnknownValue" xml:space="preserve"><value>不明な値 (0x{0}) — 表示のみ</value></data>
+  <data name="Edifier_AncComfort" xml:space="preserve"><value>快適</value></data>
+  <data name="Edifier_Eq_Classic" xml:space="preserve"><value>クラシック</value></data>
+  <data name="Edifier_Eq_Pop" xml:space="preserve"><value>ポップ</value></data>
+  <data name="Edifier_Eq_Classical" xml:space="preserve"><value>クラシック音楽</value></data>
+  <data name="Edifier_Eq_Rock" xml:space="preserve"><value>ロック</value></data>
+  <data name="Edifier_ButtonCycle" xml:space="preserve"><value>ボタンで切り替えるモード</value></data>
+  <data name="PowerOff_Minutes" xml:space="preserve"><value>{0} 分</value></data>
+  <data name="PowerOff_Hours" xml:space="preserve"><value>{0} 時間</value></data>
+  <data name="Huawei_NoiseLevel_Dynamic" xml:space="preserve"><value>ダイナミック</value></data>
+  <data name="Huawei_NoiseLevel_Cozy" xml:space="preserve"><value>快適</value></data>
+  <data name="Huawei_NoiseLevel_General" xml:space="preserve"><value>標準</value></data>
+  <data name="Huawei_NoiseLevel_Ultra" xml:space="preserve"><value>ウルトラ</value></data>
+  <data name="Huawei_Eq_Default" xml:space="preserve"><value>既定</value></data>
+  <data name="Huawei_Eq_Bass" xml:space="preserve"><value>低音強調</value></data>
+  <data name="Huawei_Eq_Treble" xml:space="preserve"><value>高音強調</value></data>
+  <data name="Huawei_Eq_Voices" xml:space="preserve"><value>ボーカル</value></data>
+  <data name="Huawei_Eq_Balanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="Huawei_Eq_Movie" xml:space="preserve"><value>映画</value></data>
+  <data name="Huawei_Eq_Podcast" xml:space="preserve"><value>ポッドキャスト</value></data>
+  <data name="Huawei_Eq_Game" xml:space="preserve"><value>ゲーム</value></data>
+  <data name="Huawei_Eq_Sport" xml:space="preserve"><value>スポーツ</value></data>
+  <data name="Artwork_Left.Text" xml:space="preserve"><value>左イヤホン</value></data>
+  <data name="Artwork_Right.Text" xml:space="preserve"><value>右イヤホン</value></data>
+  <data name="Artwork_Case.Text" xml:space="preserve"><value>充電ケース</value></data>
+  <data name="Home_Dual.Header" xml:space="preserve"><value>デュアル接続</value></data>
+  <data name="Artwork_GenericMotion.Text" xml:space="preserve"><value>製品モーション · 公式のふた開けアニメーションではありません</value></data>
+  <data name="Lhdc_Open.Content" xml:space="preserve"><value>LHDC コントロールパネルを開く</value></data>
+  <data name="Lhdc_Missing" xml:space="preserve"><value>EncoDeck が LHDC-Win のソースからビルドしたドライバーとバックエンドを、EncoDeck の LHDC コンポーネントのリリースからダウンロードし、サイズと SHA-256 で検証します。コンポーネントはアプリのバージョンとは独立しているため、EncoDeck を更新しても再ダウンロードは不要です。ダウンロードしてもドライバーはインストールされません。</value></data>
+  <data name="Lhdc_Store" xml:space="preserve"><value>Store 版では LHDC を利用できません。管理者権限でインストールする個別のドライバーとバックグラウンドサービスが必要です。試験的なサポートは現在、Store 版以外の x64 版に限られ、テスト署名ドライバーのサポートが必要です。</value></data>
+  <data name="Lhdc_Title.Text" xml:space="preserve"><value>LHDC V5（試験的）</value></data>
+  <data name="Lhdc_Windows" xml:space="preserve"><value>LHDC コンパニオンには Windows 11 22H2（22621）以降が必要です。</value></data>
+  <data name="Lhdc_Architecture" xml:space="preserve"><value>LHDC コンパニオンにはネイティブ x64 の Windows と x64 版アプリが必要です。</value></data>
+  <data name="Lhdc_Ready" xml:space="preserve"><value>EncoDeck がソースからビルドした LHDC-Win バックエンドを制御します。LHDC V5 対応イヤホンとテスト署名ドライバーのサポートが必要です。オーディオの適用と復元には管理者の承認が必要で、実際の互換性は展開時に確認されます。</value></data>
+  <data name="Lhdc_Downloading" xml:space="preserve"><value>ダウンロード元に接続しています…</value></data>
+  <data name="Lhdc_OpenLabel" xml:space="preserve"><value>LHDC コントロールパネルを開く</value></data>
+  <data name="Lhdc_DownloadProgress" xml:space="preserve"><value>LHDC をダウンロードしています: {0:F1} / {1:F1} MB。完了後に検証と展開を行います。</value></data>
+  <data name="Lhdc_Cancelled" xml:space="preserve"><value>ダウンロードをキャンセルしました。もう一度お試しいただけます。</value></data>
+  <data name="Lhdc_Cancel" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Lhdc_Download" xml:space="preserve"><value>LHDC コンポーネントをダウンロード</value></data>
+  <data name="Lhdc_Depth" xml:space="preserve"><value>ビット深度</value></data>
+  <data name="Lhdc_Applied" xml:space="preserve"><value>操作が完了しました。デバイスの状態を読み取っています。</value></data>
+  <data name="Lhdc_SelectDevice" xml:space="preserve"><value>ペアリング済みの Bluetooth イヤホンを選択してください。</value></data>
+  <data name="Lhdc_Restore" xml:space="preserve"><value>Windows オーディオに戻す</value></data>
+  <data name="Lhdc_Bitrate" xml:space="preserve"><value>ビットレート</value></data>
+  <data name="Lhdc_WindowsMode" xml:space="preserve"><value>Windows 標準オーディオ</value></data>
+  <data name="Lhdc_UnknownMode" xml:space="preserve"><value>利用できないか、サービスが停止しています</value></data>
+  <data name="Lhdc_Observed" xml:space="preserve"><value>前回読み取ったドライバーの状態: {0}</value></data>
+  <data name="Lhdc_Apply" xml:space="preserve"><value>LHDC を有効化 / 設定を適用</value></data>
+  <data name="Lhdc_Applying" xml:space="preserve"><value>管理者の承認を得て適用しています。音声が一時的に途切れることがあります。完了までお待ちください。</value></data>
+  <data name="Lhdc_Refresh" xml:space="preserve"><value>更新</value></data>
+  <data name="Lhdc_Adaptive" xml:space="preserve"><value>適応型ビットレート（選択した値が上限）</value></data>
+  <data name="Lhdc_Rate" xml:space="preserve"><value>サンプリングレート</value></data>
+  <data name="Lhdc_Device" xml:space="preserve"><value>オーディオデバイス</value></data>
+  <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>Store 版以外をダウンロード</value></data>
+  <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>Store 版では LHDC を利用できません</value></data>
+  <data name="Lhdc_HelpDownload.Text" xml:space="preserve"><value>1. Windows でイヤホンをペアリングし、「LHDC コンポーネントをダウンロード」を選択します。ダウンロードだけではドライバーはインストールされません。ダウンロードが終わったら、上でオーディオデバイスを選択します。この選択はホームページとは別で、一度に管理できるデバイスは 1 台だけです。</value></data>
+  <data name="Lhdc_HelpQuality.Text" xml:space="preserve"><value>3. 設定を変更する前に、音声を再生して正常に聞こえることを確認してください。音が途切れる場合は、まずビットレートを下げます。適応型ビットレートは接続状況に合わせて調整され、選択した値が上限になります。設定を変更するたびに「LHDC を有効化 / 設定を適用」をもう一度選択してください。現在の状態は「更新」で確認できます。イヤホンのハイレゾスイッチでは、Windows が LHDC を使用しているかどうかは確認できません。</value></data>
+  <data name="Lhdc_HelpApply.Text" xml:space="preserve"><value>2. まず 48 kHz、24 bit、400 kbps を試します。「LHDC を有効化 / 設定を適用」を選択し、Windows の管理者確認を承認します。インストール時に、イヤホンが LHDC V5 に対応しているかを確認します。切り替え中は音声が一時的に止まるので、完了までお待ちください。再起動を求められた場合は PC を再起動してから「更新」を選択します。</value></data>
+  <data name="Lhdc_HelpRequirements.Text" xml:space="preserve"><value>Store 版以外の x64 版 EncoDeck、Windows 11 22H2（22621）以降、LHDC V5 対応のイヤホンが必要です。テスト署名されたドライバーは Windows によって読み込みがブロックされる場合があります。EncoDeck がテストモード、セキュアブート、メモリ整合性の設定を自動的に変更することはありません。</value></data>
+  <data name="Lhdc_Help.Header" xml:space="preserve"><value>LHDC の使い方</value></data>
+  <data name="Lhdc_HelpRestore.Text" xml:space="preserve"><value>4. LHDC の使用をやめる前や EncoDeck をアンインストールする前に、イヤホンを選択して「Windows オーディオに戻す」を選び、管理者アクセスを承認して完了まで待ちます。EncoDeck を閉じても、LHDC のバックグラウンドサービスは停止せず、Windows オーディオも元に戻りません。</value></data>
+  <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>免責事項: LHDC は、サードパーティのオープンソースプロジェクト LHDC-Win に基づく試験的な機能です。再生、再接続、復元は実機での検証がまだ必要であり、すべてのデバイスやシステムでの互換性は保証されません。音が出ない、途切れる、手動で音声を復元する必要があるなどの問題が発生する可能性があります。ドライバーのインストールとシステム設定の変更に伴うリスクを理解し、受け入れたうえでのみご使用ください。適用法で認められる範囲において、EncoDeck およびその開発者は、これにより生じた損害について責任を負いません。</value></data>
+  <data name="DeviceConnect.Content" xml:space="preserve"><value>Windows で接続</value></data>
+  <data name="Lhdc_Guide.Content" xml:space="preserve"><value>詳しいガイド: ドライバーのセットアップと復元</value></data>
+  <data name="Lhdc_Version" xml:space="preserve"><value>コンポーネントのバージョン: {0}</value></data>
+  <data name="Lhdc_UpdateAvailable" xml:space="preserve"><value>LHDC コンポーネント {0} が利用可能です。更新するまでは、インストール済みのものを引き続き使用できます。</value></data>
+  <data name="Lhdc_DownloadSize" xml:space="preserve"><value>LHDC コンポーネントをダウンロード（{0:F0} MB）</value></data>
+  <data name="Lhdc_Update" xml:space="preserve"><value>LHDC コンポーネントを更新（{0:F0} MB）</value></data>
+  <data name="Lhdc_Unpublished" xml:space="preserve"><value>この EncoDeck バージョン用の LHDC コンポーネントはまだ公開されていません。後で EncoDeck を更新してください。</value></data>
+  <data name="Connection_Bridge" xml:space="preserve"><value>接続済み（音声のみ）</value></data>
+  <data name="Connection_BridgeConnecting" xml:space="preserve"><value>A2DP Bridge で接続中…</value></data>
+  <data name="Home_Bridge.Title" xml:space="preserve"><value>A2DP Bridge 経由で接続済み</value></data>
+  <data name="Home_Bridge_Open.Content" xml:space="preserve"><value>Labs を開く</value></data>
+  <data name="Home_Bridge_Only" xml:space="preserve"><value>イヤホンは A2DP Bridge 経由で再生中です（{0}）が、制御チャネルを使用できません。バッテリーの読み取りと設定の変更には A2DP Bridge 2.0.2 以降とクラシック接続が必要です。</value></data>
+  <data name="Badge_Bridge_AudioOnly" xml:space="preserve"><value>音声は A2DP Bridge 専用の USB アダプター（{0}）経由で再生されています。Windows からはこの接続が見えません。</value></data>
+  <data name="Badge_Bridge_Windows" xml:space="preserve"><value>音声は A2DP Bridge 専用の USB アダプター（{0}）経由で再生されています。イヤホンの設定は引き続き Windows の Bluetooth 経由で操作します。</value></data>
+  <data name="Badge_Bridge_Control" xml:space="preserve"><value>音声は A2DP Bridge 専用の USB アダプター（{0}）経由で再生されています。バッテリーの読み取りやイヤホン設定の変更も A2DP Bridge 経由で行います。</value></data>
+  <data name="Bridge_Title.Text" xml:space="preserve"><value>A2DP Bridge（専用 USB Bluetooth アダプター、試験的）</value></data>
+  <data name="Bridge_Summary.Text" xml:space="preserve"><value>A2DP Windows Bridge は専用の USB Bluetooth アダプターを占有し、独自の Bluetooth スタックで LDAC、LHDC V5、aptX HD などを使ってイヤホンに音声を送信します。テスト署名ドライバーは不要です。EncoDeck がダウンロードと起動を担い、これを経由して接続したイヤホンをホームページで認識して操作します。</value></data>
+  <data name="Bridge_Running" xml:space="preserve"><value>バックグラウンドで実行中: A2DPWB {0}（{1}）</value></data>
+  <data name="Bridge_Incompatible" xml:space="preserve"><value>実行中の A2DPWB は、この EncoDeck バージョンとは異なるプロトコルを使用しています（{0}）。EncoDeck または A2DPWB を更新してください。</value></data>
+  <data name="Bridge_Connecting" xml:space="preserve"><value>A2DPWB のバックグラウンドプロセスに接続しています…</value></data>
+  <data name="Bridge_Stopped" xml:space="preserve"><value>A2DPWB {0} はインストール済みです（{1}）が、バックグラウンドプロセスは実行されていません。</value></data>
+  <data name="Bridge_StoreMissing" xml:space="preserve"><value>Store 版では他のプログラムのダウンロードや起動は行いません。A2DP Windows Bridge をご自身でインストールしている場合は、起動すると EncoDeck が接続して状態を表示します。</value></data>
+  <data name="Bridge_StoreStart" xml:space="preserve"><value>スタートメニューから A2DP Windows Bridge を起動してください。</value></data>
+  <data name="Bridge_Missing" xml:space="preserve"><value>インストールされていません。コンポーネント（約 {0:F1} MB）は A2DPWB 公式ビルドの無改変コピーで、EncoDeck のコンポーネントリリースからダウンロードし、固定の SHA-256 で検証します。ダウンロードによってドライバーが変更されることはありません。</value></data>
+  <data name="Bridge_Unpublished" xml:space="preserve"><value>この EncoDeck バージョン用の A2DP Bridge コンポーネントはまだ公開されていません。</value></data>
+  <data name="Bridge_UpdateAvailable" xml:space="preserve"><value>コンポーネント {0} に更新できます。</value></data>
+  <data name="Bridge_StandaloneLink.Content" xml:space="preserve"><value>Store 版以外をダウンロード</value></data>
+  <data name="Bridge_Download" xml:space="preserve"><value>コンポーネントをダウンロード（{0:F1} MB）</value></data>
+  <data name="Bridge_Update" xml:space="preserve"><value>コンポーネントを更新（{0:F1} MB）</value></data>
+  <data name="Bridge_Start" xml:space="preserve"><value>起動</value></data>
+  <data name="Bridge_Quit" xml:space="preserve"><value>終了</value></data>
+  <data name="Bridge_OpenWindow" xml:space="preserve"><value>A2DPWB を開く</value></data>
+  <data name="Bridge_RefreshAdapters" xml:space="preserve"><value>更新</value></data>
+  <data name="Bridge_OpenSettingsFolder" xml:space="preserve"><value>設定フォルダーを開く</value></data>
+  <data name="Bridge_ManageInWindow.Text" xml:space="preserve"><value>イヤホンのペアリング、接続プロファイル、コーデック、音量は A2DPWB のウィンドウで管理します（「A2DPWB を開く」）。</value></data>
+  <data name="Bridge_AutoStart.Header" xml:space="preserve"><value>EncoDeck と同時に A2DPWB のバックグラウンドプロセスを起動</value></data>
+  <data name="Bridge_Adapters.Header" xml:space="preserve"><value>アダプター</value></data>
+  <data name="Bridge_AdaptersNote.Text" xml:space="preserve"><value>A2DPWB は WinUSB ドライバーを割り当てた専用 USB アダプターのみを使用します。割り当て後、そのアダプターは Windows で使用されなくなります。Windows の Bluetooth が使用中のアダプターを EncoDeck が割り当てることはありません。Realtek アダプターにはファームウェアファイルも必要です。設定フォルダーに配置して「更新」をクリックしてください。</value></data>
+  <data name="Bridge_FirmwareLink.Content" xml:space="preserve"><value>Realtek ファームウェアのダウンロード</value></data>
+  <data name="Bridge_Disclaimer.Text" xml:space="preserve"><value>免責事項: A2DP Windows Bridge は Seiya Funaoka 氏によるサードパーティのオープンソースプロジェクト（Apache-2.0 / MIT）であり、このコンポーネントはその公式ビルドの無改変コピーです。静的リンクされている BTstack ライブラリのライセンスは、個人的な非商用利用に限られます。イヤホンの互換性、無線品質、アダプターのファームウェアは EncoDeck の管理外です。ご自身の責任でご使用ください。</value></data>
+  <data name="Bridge_Help.Header" xml:space="preserve"><value>A2DP Bridge の使い方</value></data>
+  <data name="Bridge_HelpRequirements.Text" xml:space="preserve"><value>PC 内蔵の Bluetooth とは別の専用 USB Bluetooth アダプター（アップストリームで TP-Link UB500 / Realtek RTL8761BU を検証済み）と、Windows 10 22H2 または Windows 11 が必要です。内蔵の Bluetooth には絶対に WinUSB を割り当てないでください。</value></data>
+  <data name="Bridge_HelpSetup.Text" xml:space="preserve"><value>1. ダウンロードしてバックグラウンドプロセスを起動したら、「アダプター」で専用アダプターに WinUSB を割り当てます（管理者権限が必要）。Realtek アダプターにはファームウェアファイルも必要です。次に「A2DPWB を開く」をクリックし、そのウィンドウでイヤホンを追加し、コーデックを選んで接続します。</value></data>
+  <data name="Bridge_HelpDaily.Text" xml:space="preserve"><value>2. 以降は A2DPWB のウィンドウでイヤホンの接続と切断、プロファイルの切り替え、音量の調整を行います。既定では、A2DPWB は Windows で再生中の音声を送信します。EncoDeck を閉じても音声は止まりません。A2DPWB のバックグラウンドプロセスを EncoDeck から起動させることもできます。</value></data>
+  <data name="Bridge_HelpControls.Text" xml:space="preserve"><value>3. 専用アダプター経由では Windows からイヤホンが見えません。A2DPWB 2.0.2 以降は EncoDeck のために制御チャネルを開くため、ホームページには A2DP Bridge バッジ付きで通常どおりバッテリーとイヤホンの設定が表示されます。A2DPWB でのみペアリングしたイヤホンも EncoDeck に表示されます。2 台同時接続に対応したイヤホンは内蔵の Bluetooth にも接続できます。その場合は、2 つの音声がイヤホンに届かないよう、Windows の既定の出力を別のデバイスに設定してください。</value></data>
+  <data name="Bridge_HelpRestore.Text" xml:space="preserve"><value>4. 使用をやめるときは、「アダプター」で「ドライバーを復元」をクリックしてアダプターを Windows に戻し、バックグラウンドプロセスを終了します。EncoDeck をアンインストールしてもドライバーは復元されません。</value></data>
+  <data name="Bridge_Guide.Content" xml:space="preserve"><value>詳しいガイドを読む</value></data>
+  <data name="Bridge_Upstream.Content" xml:space="preserve"><value>A2DP Windows Bridge プロジェクトページ</value></data>
+  <data name="Bridge_V1Running" xml:space="preserve"><value>A2DPWB v1 が実行中で、アダプターを使用している可能性があります。先に v1 を終了してください。</value></data>
+  <data name="Bridge_NoAdapter" xml:space="preserve"><value>A2DPWB に割り当てられたアダプターはまだありません。専用の USB Bluetooth アダプターを接続して「アダプター」で WinUSB を割り当てるか、A2DPWB のウィンドウで初回セットアップを完了してください。</value></data>
+  <data name="Bridge_AdapterLine" xml:space="preserve"><value>アダプター: {0}（WinUSB）· {1}</value></data>
+  <data name="Bridge_AdapterStatus_Stopped" xml:space="preserve"><value>待機中（接続時に起動）</value></data>
+  <data name="Bridge_AdapterStatus_Initializing" xml:space="preserve"><value>初期化中</value></data>
+  <data name="Bridge_AdapterStatus_Ready" xml:space="preserve"><value>準備完了</value></data>
+  <data name="Bridge_AdapterStatus_Error" xml:space="preserve"><value>エラー</value></data>
+  <data name="Bridge_FirmwareInvalid" xml:space="preserve"><value>ファームウェアファイル {0} は無効です（保存された Web ページの可能性があります）。元のファイルをもう一度ダウンロードしてください。</value></data>
+  <data name="Bridge_FirmwareMissing" xml:space="preserve"><value>ファームウェアがありません: {0}。設定フォルダーにファイルを配置して「更新」をクリックしてください。</value></data>
+  <data name="Bridge_Stream_Idle" xml:space="preserve"><value>未接続</value></data>
+  <data name="Bridge_Stream_Connecting" xml:space="preserve"><value>接続中…</value></data>
+  <data name="Bridge_Stream_Streaming" xml:space="preserve"><value>再生中</value></data>
+  <data name="Bridge_Stream_Reconnecting" xml:space="preserve"><value>再接続中…</value></data>
+  <data name="Bridge_Stream_Error" xml:space="preserve"><value>エラー</value></data>
+  <data name="Bridge_StreamLine" xml:space="preserve"><value>状態: {0}</value></data>
+  <data name="Bridge_StreamingLine" xml:space="preserve"><value>状態: {0} · {1}（{2}）</value></data>
+  <data name="Bridge_BitrateAbr" xml:space="preserve"><value>最大 {0} kbps（適応型）</value></data>
+  <data name="Bridge_SourceLoopback" xml:space="preserve"><value>システム音声</value></data>
+  <data name="Bridge_SourceVirtual" xml:space="preserve"><value>仮想デバイス {0}</value></data>
+  <data name="Bridge_SourceApp" xml:space="preserve"><value>アプリ {0}</value></data>
+  <data name="Bridge_SourceAppWaiting" xml:space="preserve"><value>{0} を待機中</value></data>
+  <data name="Bridge_SourceTone" xml:space="preserve"><value>テストトーン</value></data>
+  <data name="Bridge_CodecFallback" xml:space="preserve"><value>イヤホンがプロファイルの {0} に対応していないため、別のコーデックを使用しています。</value></data>
+  <data name="Bridge_NoUsbAdapters" xml:space="preserve"><value>USB Bluetooth アダプターが見つかりません。</value></data>
+  <data name="Bridge_DriverWinUsb" xml:space="preserve"><value>WinUSB · A2DPWB が使用中</value></data>
+  <data name="Bridge_DriverWindowsInUse" xml:space="preserve"><value>Windows の Bluetooth が使用中</value></data>
+  <data name="Bridge_DriverBluetooth" xml:space="preserve"><value>Windows Bluetooth ドライバー</value></data>
+  <data name="Bridge_DriverNone" xml:space="preserve"><value>ドライバーなし</value></data>
+  <data name="Bridge_DriverOther" xml:space="preserve"><value>その他のドライバー（{0}）</value></data>
+  <data name="Bridge_RestoreDriver" xml:space="preserve"><value>ドライバーを復元</value></data>
+  <data name="Bridge_AssignWinUsb" xml:space="preserve"><value>WinUSB を割り当て</value></data>
+  <data name="Bridge_WindowsAdapterTip" xml:space="preserve"><value>これは Windows の Bluetooth が使用中のアダプターです。割り当てると、この PC のすべての Bluetooth デバイスと EncoDeck のイヤホン操作が切断されるため、EncoDeck ではこの操作を提供していません。</value></data>
+  <data name="Bridge_AssignTitle" xml:space="preserve"><value>{0} を A2DPWB に割り当てますか?</value></data>
+  <data name="Bridge_AssignBody" xml:space="preserve"><value>WinUSB を割り当てると、Windows はこのアダプターを使用しなくなり、接続中の Bluetooth デバイスはすべて切断されます。管理者権限が必要です。「ドライバーを復元」でいつでも Windows に戻せます。</value></data>
+  <data name="Bridge_RestoreTitle" xml:space="preserve"><value>{0} を Windows に戻しますか?</value></data>
+  <data name="Bridge_RestoreBody" xml:space="preserve"><value>A2DPWB はこのアダプターを使用できなくなり、再生中の音声は停止します。管理者権限が必要です。</value></data>
+  <data name="Bridge_DriverChanging" xml:space="preserve"><value>ドライバーを変更しています。Windows の管理者確認が表示されたら許可してください…</value></data>
+  <data name="Bridge_NotConnected" xml:space="preserve"><value>A2DPWB のバックグラウンドプロセスは実行されていません。</value></data>
+  <data name="Bridge_Starting" xml:space="preserve"><value>A2DPWB のバックグラウンドプロセスを起動しています…</value></data>
+  <data name="Bridge_StartTimeout" xml:space="preserve"><value>A2DPWB のバックグラウンドプロセスが 15 秒以内に応答しませんでした。「A2DPWB を開く」をクリックして原因を確認してください。</value></data>
+  <data name="Bridge_Downloading" xml:space="preserve"><value>ダウンロード元に接続しています…</value></data>
+  <data name="Bridge_DownloadProgress" xml:space="preserve"><value>A2DP Bridge をダウンロードしています: {0:F1} / {1:F1} MB。完了後に検証と展開を行います。</value></data>
+  <data name="Bridge_Cancelled" xml:space="preserve"><value>ダウンロードをキャンセルしました。再度ダウンロードすると中断した位置から再開します。</value></data>
+  <data name="Bridge_OriginManaged" xml:space="preserve"><value>EncoDeck で管理</value></data>
+  <data name="Bridge_OriginInstalled" xml:space="preserve"><value>A2DPWB 単体のインストール</value></data>
+  <data name="Bridge_OriginRunning" xml:space="preserve"><value>実行中のコピー</value></data>
+  <data name="Codec_Experimental.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>アップストリームで試験的: エンコーダーのテストと仮想レシーバーでの確認は済んでいますが、実際のヘッドホンではまだ確認されていません</value></data>
+  <data name="Codec_Experimental.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve"><value>試験的なコーデック</value></data>
+  <data name="Bridge_Codecs.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>A2DP Bridge が対応するコーデック</value></data>
+  <data name="Lhdc_Codecs.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>LHDC コンポーネントが対応するコーデック</value></data>
+  <data name="LeAudio_Codecs.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>LE Audio が使用するコーデック</value></data>
+  <data name="Component_CheckUpdates" xml:space="preserve"><value>更新を確認</value></data>
+  <data name="Component_Uninstall" xml:space="preserve"><value>コンポーネントをアンインストール</value></data>
+  <data name="Component_Checking" xml:space="preserve"><value>コンポーネントの更新を確認しています…</value></data>
+  <data name="Component_UpdateFound" xml:space="preserve"><value>バージョン {0} が利用可能です。「コンポーネントを更新」をクリックしてインストールしてください。</value></data>
+  <data name="Component_UpToDate" xml:space="preserve"><value>コンポーネントは最新です。</value></data>
+  <data name="Component_RateLimited" xml:space="preserve"><value>現在 GitHub が匿名リクエストを制限しています。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Component_Offline" xml:space="preserve"><value>GitHub に接続できません。ネットワークを確認してもう一度お試しください。</value></data>
+  <data name="Component_CheckFailed" xml:space="preserve"><value>更新の確認に失敗しました。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Lhdc_UninstallTitle" xml:space="preserve"><value>LHDC コンポーネントをアンインストールしますか?</value></data>
+  <data name="Lhdc_UninstallBody" xml:space="preserve"><value>EncoDeck がダウンロードした LHDC コンポーネントのファイル（約 120 MB）を削除します。これらのファイルは LHDC の有効化や Windows オーディオへの復元に必要なため、すべてのヘッドホンが Windows オーディオに戻ってからでないと削除できません。Windows 内の無効化された LHDC サービスとドライバーパッケージはそのまま残ります。</value></data>
+  <data name="Lhdc_UninstallInUse" xml:space="preserve"><value>LHDC はまだ有効です。先に LHDC を使用しているヘッドホンを選んで「Windows オーディオに戻す」をクリックしてから、コンポーネントをアンインストールしてください。</value></data>
+  <data name="Lhdc_UninstallBound" xml:space="preserve"><value>次のオーディオデバイスはまだ LHDC ドライバーを使用しています: {0}。先に Windows オーディオに戻してから、コンポーネントをアンインストールしてください。</value></data>
+  <data name="Lhdc_UninstallBusy" xml:space="preserve"><value>コンポーネントのファイルが使用中です。しばらくしてからもう一度お試しください。</value></data>
+  <data name="Lhdc_Uninstalled" xml:space="preserve"><value>LHDC コンポーネントをアンインストールしました。</value></data>
+  <data name="Bridge_ManagedVersion" xml:space="preserve"><value>EncoDeck が管理するコンポーネント: {0}</value></data>
+  <data name="Bridge_UninstallTitle" xml:space="preserve"><value>A2DP Bridge コンポーネントをアンインストールしますか?</value></data>
+  <data name="Bridge_UninstallBody" xml:space="preserve"><value>EncoDeck が管理する A2DPWB のバックグラウンドプロセスを終了し、そのファイル（約 25 MB）を削除して、それを指すスタートアップ項目を削除します。A2DPWB の設定フォルダー（ペアリング、ファームウェア、ログ）は保持されます。ご自身でインストールした A2DP Windows Bridge には影響しません。</value></data>
+  <data name="Bridge_UninstallRestore" xml:space="preserve"><value>A2DPWB が使用していた {0} 個のアダプターも Windows に戻す（推奨。管理者確認が 1 回表示されます）</value></data>
+  <data name="Bridge_Uninstalling" xml:space="preserve"><value>アンインストールしています…</value></data>
+  <data name="Bridge_UninstallingRestore" xml:space="preserve"><value>アダプターのドライバーを復元してアンインストールしています。Windows の管理者確認が表示されたら許可してください…</value></data>
+  <data name="Bridge_Uninstalled" xml:space="preserve"><value>A2DP Bridge コンポーネントをアンインストールしました。</value></data>
+  <data name="Bridge_UninstallCoreRunning" xml:space="preserve"><value>A2DPWB のバックグラウンドプロセスが終了しませんでした。通知領域のアイコンから終了して、もう一度お試しください。</value></data>
+  <data name="Bridge_UninstallRestoreFailed" xml:space="preserve"><value>一部のアダプターのドライバーを復元できませんでした（コード {0}）。コンポーネントはアンインストールされていません。「アダプター」で 1 つずつ復元してから、もう一度お試しください。</value></data>
+  <data name="Bridge_UninstallBusy" xml:space="preserve"><value>コンポーネントのファイルが使用中です（A2DPWB がまだ実行中の可能性があります）。終了してからもう一度お試しください。</value></data>
+  <data name="Bridge_UninstallUacDeclined" xml:space="preserve"><value>管理者確認が拒否されたため、コンポーネントはアンインストールされていません。</value></data>
+  <data name="Bridge_UpdateAfterRestart" xml:space="preserve"><value>コンポーネントを更新しました。バックグラウンドプロセスが再生中のため、新しいバージョンは次回の起動時に反映されます。</value></data>
+  <data name="Bridge_OwnInstallNote.Text" xml:space="preserve"><value>ご自身でインストールした A2DP Windows Bridge を使用しています。更新の確認はそのアプリ自体が行い、アンインストールは Windows の設定の「インストールされているアプリ」から行います。</value></data>
+  <data name="Bridge_OpenAppsSettings.Content" xml:space="preserve"><value>「インストールされているアプリ」を開く</value></data>
+  <data name="Xiaomi_Level_0" xml:space="preserve"><value>レベル 1</value></data>
+  <data name="Xiaomi_Level_1" xml:space="preserve"><value>レベル 2</value></data>
+  <data name="Xiaomi_Level_2" xml:space="preserve"><value>レベル 3</value></data>
+  <data name="Xiaomi_Level_3" xml:space="preserve"><value>レベル 4</value></data>
+  <data name="Xiaomi_Level_4" xml:space="preserve"><value>レベル 5</value></data>
+  <data name="Xiaomi_Level_5" xml:space="preserve"><value>レベル 6</value></data>
+  <data name="Xiaomi_Level_6" xml:space="preserve"><value>レベル 7</value></data>
+  <data name="Xiaomi_Level_7" xml:space="preserve"><value>レベル 8</value></data>
+  <data name="Xiaomi_Level_8" xml:space="preserve"><value>レベル 9</value></data>
+  <data name="Xiaomi_Level_9" xml:space="preserve"><value>レベル 10</value></data>
+  <data name="Xiaomi_Level_10" xml:space="preserve"><value>レベル 11</value></data>
+  <data name="Xiaomi_Level_11" xml:space="preserve"><value>レベル 12</value></data>
+  <data name="Xiaomi_Level_12" xml:space="preserve"><value>レベル 13</value></data>
+  <data name="Xiaomi_Level_13" xml:space="preserve"><value>レベル 14</value></data>
+  <data name="Xiaomi_Level_14" xml:space="preserve"><value>レベル 15</value></data>
+  <data name="Xiaomi_Level_15" xml:space="preserve"><value>レベル 16</value></data>
+  <data name="Xiaomi_Level_16" xml:space="preserve"><value>レベル 17</value></data>
+  <data name="Xiaomi_Level_17" xml:space="preserve"><value>レベル 18</value></data>
+  <data name="Xiaomi_Level_18" xml:space="preserve"><value>レベル 19</value></data>
+  <data name="Xiaomi_Level_19" xml:space="preserve"><value>レベル 20</value></data>
+  <data name="Xiaomi_Level_20" xml:space="preserve"><value>レベル 21</value></data>
+  <data name="Xiaomi_Level_21" xml:space="preserve"><value>レベル 22</value></data>
+  <data name="Xiaomi_Level_22" xml:space="preserve"><value>レベル 23</value></data>
+  <data name="Xiaomi_Level_23" xml:space="preserve"><value>レベル 24</value></data>
+  <data name="Xiaomi_Level_24" xml:space="preserve"><value>レベル 25</value></data>
+  <data name="Xiaomi_Level_25" xml:space="preserve"><value>レベル 26</value></data>
+  <data name="Xiaomi_Level_26" xml:space="preserve"><value>レベル 27</value></data>
+  <data name="Xiaomi_Level_27" xml:space="preserve"><value>レベル 28</value></data>
+  <data name="Xiaomi_Level_28" xml:space="preserve"><value>レベル 29</value></data>
+  <data name="Xiaomi_Level_29" xml:space="preserve"><value>レベル 30</value></data>
+  <data name="Xiaomi_Level_30" xml:space="preserve"><value>レベル 31</value></data>
+  <data name="Xiaomi_Level_31" xml:space="preserve"><value>レベル 32</value></data>
+  <data name="Xiaomi_Eq_0" xml:space="preserve"><value>デフォルト</value></data>
+  <data name="Xiaomi_Eq_1" xml:space="preserve"><value>ボーカル</value></data>
+  <data name="Xiaomi_Eq_2" xml:space="preserve"><value>ロック</value></data>
+  <data name="Xiaomi_Eq_3" xml:space="preserve"><value>クラシック</value></data>
+  <data name="Xiaomi_Eq_4" xml:space="preserve"><value>ポップ</value></data>
+  <data name="Xiaomi_Eq_5" xml:space="preserve"><value>低音</value></data>
+  <data name="Xiaomi_Eq_6" xml:space="preserve"><value>高音</value></data>
+  <data name="Xiaomi_Eq_7" xml:space="preserve"><value>音量ブースト</value></data>
+  <data name="Xiaomi_Eq_11" xml:space="preserve"><value>クラシックリスニング</value></data>
+  <data name="Xiaomi_Eq_12" xml:space="preserve"><value>レジェンダリーリスニング</value></data>
+  <data name="Xiaomi_Eq_13" xml:space="preserve"><value>ソフトな低音</value></data>
+  <data name="Xiaomi_Eq_14" xml:space="preserve"><value>Harman</value></data>
+  <data name="Xiaomi_Eq_15" xml:space="preserve"><value>Harman マスター</value></data>
+  <data name="Xiaomi_Eq_16" xml:space="preserve"><value>標準</value></data>
+  <data name="Xiaomi_Eq_17" xml:space="preserve"><value>アウトドア</value></data>
+  <data name="Xiaomi_Eq_18" xml:space="preserve"><value>水中</value></data>
+  <data name="Xiaomi_Eq_21" xml:space="preserve"><value>バランスリスニング</value></data>
+  <data name="Xiaomi_Eq_10" xml:space="preserve"><value>カスタム</value></data>
+  <data name="Xiaomi_Anc_0" xml:space="preserve"><value>バランス</value></data>
+  <data name="Xiaomi_Anc_1" xml:space="preserve"><value>弱</value></data>
+  <data name="Xiaomi_Anc_2" xml:space="preserve"><value>強</value></data>
+  <data name="Xiaomi_Ambient_0" xml:space="preserve"><value>標準</value></data>
+  <data name="Xiaomi_Ambient_1" xml:space="preserve"><value>音声強調</value></data>
+  <data name="Xiaomi_Ambient_2" xml:space="preserve"><value>環境音強調</value></data>
+  <data name="Toggle_AutoAnswerCalls" xml:space="preserve"><value>自動応答</value></data>
+  <data name="Toggle_AutoAnswerCalls_Description" xml:space="preserve"><value>着信時にイヤホンが自動的に応答します</value></data>
+  <data name="Error_FindWhileWorn" xml:space="preserve"><value>イヤホンが装着されています。探索音を鳴らす前に、両方のイヤホンを外してください。</value></data>
+  <data name="Moondrop_Gain.Header" xml:space="preserve"><value>ゲイン</value></data>
+  <data name="Moondrop_GainLow" xml:space="preserve"><value>低</value></data>
+  <data name="Moondrop_GainMid" xml:space="preserve"><value>中</value></data>
+  <data name="Moondrop_GainHigh" xml:space="preserve"><value>高</value></data>
+  <data name="Toggle_IndicatorLight" xml:space="preserve"><value>インジケーター</value></data>
+  <data name="Toggle_IndicatorLight_Description" xml:space="preserve"><value>イヤホンのインジケーターランプ。</value></data>
+  <data name="Toggle_PromptTone" xml:space="preserve"><value>通知音</value></data>
+  <data name="Toggle_PromptTone_Description" xml:space="preserve"><value>イヤホンの音声ガイダンスを再生します。変更しても、読み取った音量は維持されます。</value></data>
+  <data name="Cap_Gain" xml:space="preserve"><value>ゲイン</value></data>
+  <data name="Cap_IndicatorLight" xml:space="preserve"><value>インジケーター</value></data>
+  <data name="Cap_PromptTone" xml:space="preserve"><value>通知音</value></data>
+  <data name="Cap_HiResCodec" xml:space="preserve"><value>LHDC</value></data>
+  <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Cap_ChannelSwap" xml:space="preserve"><value>左右チャンネル入れ替え</value></data>
+  <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
+  <data name="Toggle_Ldac_Description" xml:space="preserve"><value>デバイス側の LDAC スイッチです。Windows に LDAC エンコーダーがインストールされるわけではありません。</value></data>
+  <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
+  <data name="Toggle_Lc3_Description" xml:space="preserve"><value>デバイス側の LC3 コーデックスイッチです。Windows の Bluetooth 転送方式は変更されません。</value></data>
+  <data name="Toggle_ChannelSwap" xml:space="preserve"><value>左右チャンネルを入れ替え</value></data>
+  <data name="Toggle_ChannelSwap_Description" xml:space="preserve"><value>デバイス側で左右のオーディオチャンネルを入れ替えます。</value></data>
+  <data name="Moondrop_Bass_Title" xml:space="preserve"><value>ダイナミックベース</value></data>
+  <data name="Moondrop_Bass_Summary" xml:space="preserve"><value>イヤホン内で低音域を強調します。</value></data>
+  <data name="Moondrop_Hold1" xml:space="preserve"><value>長押し（1 秒）</value></data>
+  <data name="Moondrop_Hold3" xml:space="preserve"><value>長押し（3 秒）</value></data>
+  <data name="Moondrop_Function_0" xml:space="preserve"><value>なし</value></data>
+  <data name="Moondrop_Function_1" xml:space="preserve"><value>再生 / 一時停止</value></data>
+  <data name="Moondrop_Function_2" xml:space="preserve"><value>前の曲</value></data>
+  <data name="Moondrop_Function_3" xml:space="preserve"><value>次の曲</value></data>
+  <data name="Moondrop_Function_4" xml:space="preserve"><value>音量を上げる（推定、試験的）</value></data>
+  <data name="Moondrop_Function_5" xml:space="preserve"><value>音量を下げる（推定、試験的）</value></data>
+  <data name="Moondrop_Function_6" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="Moondrop_Function_7" xml:space="preserve"><value>ノイズコントロールの切り替え</value></data>
+  <data name="Moondrop_UnknownAction" xml:space="preserve"><value>不明な操作 (0x{0}) — 読み取り値のみ表示</value></data>
+  <data name="Settings_MoondropExperimental.Header" xml:space="preserve"><value>MOONDROP の試験的機能</value></data>
+  <data name="Settings_MoondropExperimental.Description" xml:space="preserve"><value>未検証の MOONDROP コマンドと推定されたジェスチャー操作を有効にします。既定ではオフです。自己責任でご使用ください。有効にした機能を読み込むには再接続してください。</value></data>
+  <data name="Home_SwitchDevice.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>デバイスを切り替え</value></data>
+  <data name="Home_SwitchDevice.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.HelpText" xml:space="preserve"><value>デバイスを切り替え</value></data>
+  <data name="Home_SwitchDevice_NotConnected" xml:space="preserve"><value>{0}（未接続）</value></data>
+  <data name="Home_ManageDevices" xml:space="preserve"><value>デバイスの管理</value></data>
+  <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>LC3 を待機中 · ケースのボタンを長押しして再接続</value></data>
+  <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio（LC3）接続（試験的）</value></data>
+  <data name="LeAudio_Summary.Text" xml:space="preserve"><value>クラシック Bluetooth の A2DP ではなく、LE Audio と LC3 コーデックで Windows がこのイヤホンに接続できるようにします。PC の Bluetooth が LE Audio に対応している必要があります。</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>LE Audio に切り替えると、EncoDeck からノイズコントロールを変更できなくなります。イヤホン本体で変更してください。</value></data>
+  <data name="LeAudio_Switch" xml:space="preserve"><value>LE Audio に切り替え</value></data>
+  <data name="LeAudio_Restore" xml:space="preserve"><value>クラシック Bluetooth に戻す</value></data>
+  <data name="LeAudio_StatusLe" xml:space="preserve"><value>左右両方のイヤホンが LE でペアリング済みです。実際のオーディオ接続は Windows が管理します。</value></data>
+  <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>Windows のオーディオエンドポイントの状態を確認できませんでした。ACL/GATT の準備完了は両耳再生を保証するものではありません。</value></data>
+  <data name="LeAudio_DisableClassic" xml:space="preserve"><value>クラシックのオーディオエンドポイントを無効化</value></data>
+  <data name="LeAudio_EnableClassic" xml:space="preserve"><value>クラシックのオーディオエンドポイントを復元</value></data>
+  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>ヘッドセットのマイクを無効化</value></data>
+  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>アプリがヘッドセットのマイクを開くと、Windows は LE Audio を双方向通話構成に切り替え、再生音質が大きく低下します。無効にすると、アプリは他のマイクしか使用できず、イヤホンはメディア品質の再生を維持します。再ペアリング後は再度オンにしてください。</value></data>
+  <data name="LeAudio_MicFailed" xml:space="preserve"><value>ヘッドセットのマイクを変更できませんでした: {0}</value></data>
+  <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>クラシック A2DP のレンダリングエンドポイントを無効にしました。サウンド設定で LE Audio の「スピーカー」エンドポイントを選択してください。</value></data>
+  <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>クラシック A2DP エンドポイントは既に無効になっています。</value></data>
+  <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>無効にできるクラシック A2DP エンドポイントが見つかりませんでした。</value></data>
+  <data name="LeAudio_Endpoint_Enabled" xml:space="preserve"><value>クラシックのオーディオエンドポイントを再度有効にしました。</value></data>
+  <data name="LeAudio_Endpoint_NothingToRestore" xml:space="preserve"><value>復元が必要なクラシックのオーディオエンドポイントはありません。</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeLinks" xml:space="preserve"><value>左右の LE リンクがまだ両方とも接続されていません。エンドポイントは変更されていません。</value></data>
+  <data name="LeAudio_Endpoint_BlockedLeAudioEndpointMissing" xml:space="preserve"><value>LE Audio のレンダリングエンドポイントが見つかりませんでした。LE Audio が使えなくなるのを防ぐため、クラシックのエンドポイントは変更していません。</value></data>
+  <data name="LeAudio_Endpoint_Ambiguous" xml:space="preserve"><value>LE Audio エンドポイントの候補が複数見つかりました。何も変更していません。</value></data>
+  <data name="LeAudio_Endpoint_Failed" xml:space="preserve"><value>エンドポイントの操作に失敗しました: {0}</value></data>
+  <data name="Connection_LeAudioSingleEar" xml:space="preserve"><value>LE で接続中のイヤホンは片方のみ</value></data>
+  <data name="LeAudio_Stage_WaitingForLinks" xml:space="preserve"><value>両方のイヤホンをペアリングしました。両方の LE リンクを待機しています…</value></data>
+  <data name="LeAudio_Result_PairedWaitingForLinks" xml:space="preserve"><value>両方の LE ペアリングは完了していますが、両方の接続はまだ確認されていません。両方のイヤホンを取り出して再接続を待ってください。すぐにペアリングを削除する必要はありません。</value></data>
+  <data name="LeAudio_StatusLeSingle" xml:space="preserve"><value>現在: LE Audio。ただし片方のイヤホンしかペアリングされていないため、片側からしか音が出ない場合があります。もう一度切り替えると解消できます。</value></data>
+  <data name="LeAudio_StatusClassic" xml:space="preserve"><value>現在: クラシック Bluetooth（A2DP）。</value></data>
+  <data name="LeAudio_StatusUnpaired" xml:space="preserve"><value>現在: このイヤホンはこの PC とペアリングされていません。</value></data>
+  <data name="LeAudio_ConfirmTitle" xml:space="preserve"><value>イヤホンの接続方式を変更しますか？</value></data>
+  <data name="LeAudio_ConfirmSwitch" xml:space="preserve"><value>EncoDeck はまずマルチポイントをオフにして設定を確認し、スマートフォンに接続を奪われないようにします。以降、イヤホンは 2 台のデバイスに同時接続しなくなります。確認に失敗した場合、切り替えは中止されます。
+
+指示が表示されたら、イヤホンをケースに入れてふたを開け、ケースのボタンを長押ししてペアリングモードにしてください。ペアリングモードが検出されると、EncoDeck はこの PC とイヤホンの古いペアリングを削除し（スマートフォンや他のデバイスのペアリング情報は保持されます）、LE Audio で両方のイヤホンを自動的にペアリングします。この間、音声は途切れます。
+
+切り替え後、Windows には同じ名前の項目が 2 つ表示され（一方はもう片方のイヤホンです）、音声は「スピーカー (イヤホン名)」から再生されます。</value></data>
+  <data name="LeAudio_ConfirmRestore" xml:space="preserve"><value>EncoDeck はこの PC 上の LE Audio と関連するクラシック Bluetooth のペアリングを削除します。この間、音声は途切れます。削除後、イヤホンをペアリングモードにして、Windows の Bluetooth 設定の「デバイスの追加」から手動でペアリングしてください。</value></data>
+  <data name="LeAudio_OpenBluetooth.Content" xml:space="preserve"><value>Windows の Bluetooth 設定を開く</value></data>
+  <data name="LeAudio_Stage_RemovingPairings" xml:space="preserve"><value>この PC とイヤホンのペアリングを削除しています…</value></data>
+  <data name="LeAudio_Stage_WaitingForCleanup" xml:space="preserve"><value>Windows が古いペアリングを削除するのを待っています（最大約 45 秒）。LE Audio に切り替える場合は、イヤホンをペアリングモードのままにしてください…</value></data>
+  <data name="LeAudio_Stage_WaitingForPairingMode" xml:space="preserve"><value>両方のイヤホンをケースに入れてふたを開け、ランプが点滅するまでケースのボタンを長押ししてください（最大 2 分間待機）…</value></data>
+  <data name="LeAudio_Stage_PairingPrimary" xml:space="preserve"><value>ペアリングモードを検出しました。LE Audio で 1 つ目のイヤホンをペアリングしています…</value></data>
+  <data name="LeAudio_Stage_ReportingLeTransport" xml:space="preserve"><value>LE Audio 経由でイヤホンの制御接続が戻るのを待ち、この PC が LE Audio を使うことをイヤホンに伝えています…</value></data>
+  <data name="LeAudio_Stage_PairingSecondary" xml:space="preserve"><value>もう片方のイヤホンをペアリングしています…</value></data>
+  <data name="LeAudio_Stage_DisablingMultipoint" xml:space="preserve"><value>マルチポイントをオフにして、イヤホンの設定を確認しています…</value></data>
+  <data name="Error_LeAudioMultipoint" xml:space="preserve"><value>LE Audio の使用中は、スマートフォンに接続を奪われにくくするため、マルチポイントをオフのままにしてください。マルチポイントを有効にする前に、クラシック Bluetooth に戻してください。</value></data>
+  <data name="LeAudio_Result_MultipointDisableFailed" xml:space="preserve"><value>マルチポイントがオフになったことを確認できませんでした。切り替えを中止し、既存のペアリングは保持しました。この PC とイヤホンの制御接続を復旧してから再試行してください。</value></data>
+  <data name="LeAudio_Result_Paired" xml:space="preserve"><value>LE Audio に切り替えました。イヤホンを装着し、サウンド設定で出力として「スピーカー (イヤホン名)」を選択してください。</value></data>
+  <data name="LeAudio_Result_PairedWithClassicAudio" xml:space="preserve"><value>LE Audio はペアリング済みですが、Windows にクラシック A2DP エンドポイントが残っています。再生前にこれを無効にするか、LE Audio の「スピーカー」エンドポイントを選択してください。そうしないと片耳だけで再生される場合があります。</value></data>
+  <data name="LeAudio_Result_PairedButLeAudioEndpointMissing" xml:space="preserve"><value>両方の LE リンクは接続されていますが、LE Audio のレンダリングエンドポイントが見つかりませんでした。LE Audio が使えなくなるのを防ぐため、クラシックのエンドポイントは変更していません。後で再試行するか、診断を確認してください。</value></data>
+  <data name="LeAudio_Result_ClassicAudioEndpointRestoreFailed" xml:space="preserve"><value>クラシックのオーディオエンドポイントを再度有効にできなかったため、ペアリングは保持しました。管理者として再試行するか、デバイス マネージャーで有効にしてください。</value></data>
+  <data name="LeAudio_Result_PrimaryOnly" xml:space="preserve"><value>片方のイヤホンしかペアリングできなかったため、片側からしか音が出ない場合があります。もう一度ペアリングモードにして再試行してください。</value></data>
+  <data name="LeAudio_Result_Removed" xml:space="preserve"><value>この PC 上のイヤホンのペアリングを削除しました。イヤホンをペアリングモードにして「Windows の Bluetooth 設定を開く」をクリックし、「デバイスの追加」→「Bluetooth」を選んで手動でペアリングすると、クラシック Bluetooth オーディオに戻ります。</value></data>
+  <data name="LeAudio_Result_PairingModeNotSeen" xml:space="preserve"><value>ペアリングモードが検出されませんでした。既存のペアリングは変更されていません。再試行してください。</value></data>
+  <data name="LeAudio_Result_PairingFailed" xml:space="preserve"><value>ペアリングに失敗しました。イヤホンをもう一度ペアリングモードにして再試行するか、Windows の Bluetooth 設定で再度追加してください。</value></data>
+  <data name="LeAudio_Cancelled" xml:space="preserve"><value>キャンセルしました。ペアリングが既に削除されている場合は、再試行するか、Windows の Bluetooth 設定でイヤホンを再度追加してください。</value></data>
+  <data name="LeAudio_Error" xml:space="preserve"><value>失敗しました: {0}</value></data>
+  <data name="LeAudio_Disclaimer.Text" xml:space="preserve"><value>試験的機能: 現時点では OPPO Enco X4 でのみ動作を確認しています。LE Audio 接続中は、空間オーディオ、ハイレゾ、2 台同時接続が利用できない場合があります。</value></data>
+  <data name="LeAudio_Help.Header" xml:space="preserve"><value>LE Audio について</value></data>
+  <data name="LeAudio_Guide.Content" xml:space="preserve"><value>ガイドと仕組みを読む</value></data>
+  <data name="LeAudio_HelpRequirements.Text" xml:space="preserve"><value>Windows 11 24H2 以降と、LE Audio に対応した Bluetooth アダプターおよびドライバー（Intel の「Smart Sound Technology for Bluetooth LE Audio」など）が必要です。[設定] → [Bluetooth とデバイス] → [デバイス] で「利用可能な場合は LE Audio を使用する」をオンにすることをお勧めします。</value></data>
+  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>このイヤホンは Windows の「デバイスの追加」に LE デバイスとして表示されないため、そこからのペアリングはクラシック Bluetooth になります。EncoDeck はイヤホンの LE アドレスに直接ペアリングし、Windows が関連するクラシックのペアリング情報を生成します。LE Audio 接続中、EncoDeck は GATT による制御のみを使用します。もう片方のイヤホンのアドレスは、1 つ目のイヤホンのアドバタイズから読み取ります。イヤホン本体の設定は一切変更しません。</value></data>
+  <data name="LeAudio_HelpLimits.Text" xml:space="preserve"><value>切り替え後、もう片方のイヤホンは Bluetooth 設定に同じ名前で別項目として表示されます。LE Audio 接続中も EncoDeck は GATT でイヤホンを制御するため、ノイズコントロールやバッテリーなどの機能は引き続き使用できます。既知の問題: 再生開始時に、片方のイヤホンがもう片方より約 7.5 ms 遅れ、音が片側に寄ることがあります。すべての音声を数秒間停止してから再生し直すと揃います。</value></data>
+  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>クラシック Bluetooth に戻すには、「クラシック Bluetooth に戻す」をクリックしてこの PC 上のイヤホンのペアリングを削除します。削除後、イヤホンをペアリングモードにして、Windows の Bluetooth 設定の「デバイスの追加」から手動でペアリングしてください。EncoDeck はクラシック Bluetooth のペアリングを自動では行いません。</value></data>
+  <data name="Honor_Anc_Cozy" xml:space="preserve"><value>快適</value></data>
+  <data name="Honor_Anc_General" xml:space="preserve"><value>標準</value></data>
+  <data name="Honor_Anc_Ultra" xml:space="preserve"><value>強</value></data>
+  <data name="Honor_Anc_Dynamic" xml:space="preserve"><value>インテリジェント</value></data>
+  <data name="Honor_Eq_Standard" xml:space="preserve"><value>スタンダード</value></data>
+  <data name="Honor_Eq_Vocals" xml:space="preserve"><value>ボーカル</value></data>
+  <data name="Honor_Eq_Pop" xml:space="preserve"><value>ポップ</value></data>
+  <data name="Honor_Eq_Subwoofer" xml:space="preserve"><value>サブウーファー</value></data>
+  <data name="Honor_Eq_Default" xml:space="preserve"><value>既定</value></data>
+  <data name="Honor_Eq_Bass" xml:space="preserve"><value>低音強調</value></data>
+  <data name="Honor_Eq_Treble" xml:space="preserve"><value>高音強調</value></data>
+  <data name="Honor_Eq_Classic" xml:space="preserve"><value>クラシック</value></data>
+  <data name="Honor_Eq_DeepBass" xml:space="preserve"><value>ディープベース</value></data>
+  <data name="Honor_Eq_WarmVocals" xml:space="preserve"><value>ウォームボーカル</value></data>
+  <data name="Honor_Eq_BrightTreble" xml:space="preserve"><value>ブライト高音</value></data>
+  <data name="Sennheiser_NormalAnc" xml:space="preserve"><value>標準</value></data>
+  <data name="Sennheiser_ToggleTransparency" xml:space="preserve"><value>外音取り込みの切り替え</value></data>
+  <data name="Sennheiser_ToggleAnc" xml:space="preserve"><value>ノイズキャンセリングの切り替え</value></data>
+  <data name="Sennheiser_ToggleTouchLock" xml:space="preserve"><value>タッチ操作のロック / 解除</value></data>
+  <data name="Sennheiser_Hold" xml:space="preserve"><value>長押し</value></data>
+  <data name="Sennheiser_UnknownAction" xml:space="preserve"><value>不明な操作 (0x{0})</value></data>
+  <data name="Sennheiser_LowLatency" xml:space="preserve"><value>低遅延モード</value></data>
+  <data name="Sennheiser_LowLatencyDescription" xml:space="preserve"><value>ゲームや動画向けに、イヤホンの音声遅延を減らします。</value></data>
+  <data name="NoiseLevel_TransparencyStandard" xml:space="preserve"><value>標準の外音取り込み</value></data>
+  <data name="NoiseLevel_EnhancedVoices" xml:space="preserve"><value>音声を強調</value></data>
+  <data name="NoiseSelector_TransparencyLevel" xml:space="preserve"><value>外音取り込みモード</value></data>
+  <data name="Toggle_AutoVolume" xml:space="preserve"><value>スマート音量</value></data>
+  <data name="Toggle_AutoVolume_Description" xml:space="preserve"><value>周囲の騒音の変化に応じて再生音量を自動調整します</value></data>
+  <data name="Dual_ManagementUnavailable" xml:space="preserve"><value>このファームウェアではデバイスの一覧表示はできますが、リモートでの接続、切断、削除はできません。該当するデバイスの Bluetooth 設定で操作してください。</value></data>
+  <data name="Nav_About.Content" xml:space="preserve"><value>バージョン情報</value></data>
+  <data name="About_Legal.Text" xml:space="preserve"><value>法的情報</value></data>
+  <data name="About_Tagline.Text" xml:space="preserve"><value>Windows でイヤホンを管理 — ノイズキャンセリングを切り替えるためだけにスマートフォンを手に取る必要はもうありません。</value></data>
+  <data name="About_Compatibility.Content" xml:space="preserve"><value>デバイスの互換性</value></data>
+  <data name="About_Changelog.Content" xml:space="preserve"><value>変更履歴</value></data>
+  <data name="About_Feedback.Text" xml:space="preserve"><value>フィードバック</value></data>
+  <data name="About_FeedbackText.Text" xml:space="preserve"><value>イヤホンが接続できない、設定が反映されない、モデルが正しく認識されないといった場合は、イヤホンのモデル、ファームウェアのバージョン、Windows のバージョン、操作手順を記載して Issue を作成してください。未検証モデルでのテスト結果も歓迎します。</value></data>
+  <data name="About_ReportIssue.Content" xml:space="preserve"><value>問題を報告</value></data>
+  <data name="About_Contributing.Content" xml:space="preserve"><value>コントリビュート</value></data>
+  <data name="About_Thanks.Text" xml:space="preserve"><value>謝辞</value></data>
+  <data name="About_ThanksProtocol.Text" xml:space="preserve"><value>イヤホンのプロトコルとデバイス対応</value></data>
+  <data name="About_ThanksLhdc.Text" xml:space="preserve"><value>LHDC V5 コンポーネント</value></data>
+  <data name="Lhdc_Summary.Text" xml:space="preserve"><value>Windows 標準の Bluetooth に LHDC V5 ドライバーをインストールし、LHDC V5 対応イヤホンをより高いビットレートで再生できるようにします。ドライバーの読み込みにはテスト署名の条件を満たす必要があり、ストア版以外の x64 版でのみ利用できます。</value></data>
+  <data name="About_ThanksIntro.Text" xml:space="preserve"><value>EncoDeck は以下のオープンソースプロジェクトの成果の上に成り立っています。作者とコントリビューターの皆さんに感謝します。</value></data>
+  <data name="About_ThanksUsb.Text" xml:space="preserve"><value>USB / 2.4 GHz ゲーミングヘッドセット</value></data>
+  <data name="About_ThanksComponents.Text" xml:space="preserve"><value>コンポーネントとライブラリ</value></data>
+  <data name="About_ThanksBridge.Text" xml:space="preserve"><value>A2DP Bridge コンポーネント</value></data>
+  <data name="About_ThanksLibraries.Text" xml:space="preserve"><value>ライブラリ</value></data>
+  <data name="About_ThanksAll.Text" xml:space="preserve"><value>各プロジェクトの使用リビジョンとライセンスは、サードパーティの通知に記載しています。</value></data>
+  <data name="About_PrivacyText.Text" xml:space="preserve"><value>EncoDeck にはアカウント、広告、分析、テレメトリーはありません。インターネットに接続するのは、更新の確認、デバイス画像の取得、選択したオプションコンポーネントのダウンロードのときだけです。</value></data>
+  <data name="About_Privacy.Content" xml:space="preserve"><value>プライバシーポリシー</value></data>
+  <data name="About_SystemInfo.Header" xml:space="preserve"><value>バージョン情報</value></data>
+  <data name="About_CopyInfo" xml:space="preserve"><value>コピー</value></data>
+  <data name="About_Copied" xml:space="preserve"><value>コピーしました</value></data>
+  <data name="About_LicenseLink.Content" xml:space="preserve"><value>ライセンス</value></data>
+  <data name="Error_SonyLeAudioControl" xml:space="preserve"><value>ヘッドホンは LE Audio で接続されており、このモードでは現在制御サービスを開けません。スマートフォンの Sony | Sound Connect で「LE Audio 接続設定」を「Classic Audio のみ」にするか、「Bluetooth 接続品質」を「音質優先」または「接続優先」にして、ヘッドホンをクラシック Bluetooth で再接続させてください。再接続されると EncoDeck が自動的に再試行します。</value></data>
+  <data name="Error_SonyClassicLinkDown" xml:space="preserve"><value>ヘッドホンにクラシック Bluetooth の接続がないため、制御チャネルがありません。Windows の [設定] › [Bluetooth とデバイス] で接続し（または音声を再生して起動し）、必要に応じてヘッドホンを Classic Audio に切り替えてから再試行してください。</value></data>
+  <data name="Update_BadgeHint" xml:space="preserve"><value>新しいバージョンが利用可能です</value></data>
+  <data name="Samsung_AncLevel_1" xml:space="preserve"><value>レベル 1</value></data>
+  <data name="Samsung_AncLevel_2" xml:space="preserve"><value>レベル 2</value></data>
+  <data name="Samsung_AncLevel_3" xml:space="preserve"><value>レベル 3</value></data>
+  <data name="Samsung_AncLevel_4" xml:space="preserve"><value>レベル 4</value></data>
+  <data name="Samsung_AncLevel_5" xml:space="preserve"><value>レベル 5</value></data>
+  <data name="Samsung_Eq_Normal" xml:space="preserve"><value>ノーマル</value></data>
+  <data name="Samsung_Eq_BassBoost" xml:space="preserve"><value>低音強調</value></data>
+  <data name="Samsung_Eq_Soft" xml:space="preserve"><value>ソフト</value></data>
+  <data name="Samsung_Eq_Dynamic" xml:space="preserve"><value>ダイナミック</value></data>
+  <data name="Samsung_Eq_Clear" xml:space="preserve"><value>クリア</value></data>
+  <data name="Samsung_Eq_TrebleBoost" xml:space="preserve"><value>高音強調</value></data>
+  <data name="Google_Eq_Balanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="Google_Eq_HeavyBass" xml:space="preserve"><value>重低音</value></data>
+  <data name="Google_Eq_VocalBoost" xml:space="preserve"><value>ボーカル強調</value></data>
+  <data name="Google_Eq_TrebleBoost" xml:space="preserve"><value>高音強調</value></data>
+  <data name="Google_Eq_LightBass" xml:space="preserve"><value>低音控えめ</value></data>
+  <data name="Nothing_Eq_Balanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="Nothing_Eq_Voice" xml:space="preserve"><value>ボイス</value></data>
+  <data name="Nothing_Eq_MoreTreble" xml:space="preserve"><value>高音強め</value></data>
+  <data name="Nothing_Eq_MoreBass" xml:space="preserve"><value>低音強め</value></data>
+  <data name="Nothing_Eq_Rock" xml:space="preserve"><value>ロック</value></data>
+  <data name="Nothing_Eq_Electronic" xml:space="preserve"><value>エレクトロニック</value></data>
+  <data name="Nothing_Eq_Pop" xml:space="preserve"><value>ポップ</value></data>
+  <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>ボーカル強調</value></data>
+  <data name="Nothing_Eq_Classical" xml:space="preserve"><value>クラシック</value></data>
+  <data name="Eq_DeviceCustom" xml:space="preserve"><value>カスタム EQ</value></data>
+  <data name="Eq_DevicePreset" xml:space="preserve"><value>プリセット {0}</value></data>
+  <data name="Sennheiser_EqOff" xml:space="preserve"><value>オフ</value></data>
+  <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>ポッドキャスト</value></data>
+  <data name="Dual_ConnectOnly" xml:space="preserve"><value>一覧のデバイスはここから接続できます。デバイスの切断や削除は、そのデバイスの Bluetooth 設定で行ってください。</value></data>
+  <data name="Find_Loud_Message" xml:space="preserve"><value>非常に大きな音が鳴ります。イヤホンが誰の耳にも装着されていないことを確認してください。聴覚を損なうおそれがあります。</value></data>
+  <data name="Toggle_SpeakToChat" xml:space="preserve"><value>スピーク・トゥ・チャット</value></data>
+  <data name="Toggle_SpeakToChat_Description" xml:space="preserve"><value>話し始めると再生を一時停止し、周囲の音を取り込みます。</value></data>
+  <data name="Toggle_Upscaling" xml:space="preserve"><value>DSEE</value></data>
+  <data name="Toggle_Upscaling_Description" xml:space="preserve"><value>圧縮音源をデバイス側でアップスケーリングします。消費電力が増える場合があります。</value></data>
+  <data name="Toggle_TouchControls" xml:space="preserve"><value>タッチ操作</value></data>
+  <data name="Toggle_TouchControls_Description" xml:space="preserve"><value>タッチパネルまたはタッチセンサーのオン/オフを切り替えます。オフの間も各ジェスチャーの設定は保持されます。</value></data>
+  <data name="NoiseLevel_SonyAmbient" xml:space="preserve"><value>標準</value></data>
+  <data name="NoiseLevel_SonyVoice" xml:space="preserve"><value>ボイスフォーカス</value></data>
+  <data name="NoiseLevel_AkgAmbientAware" xml:space="preserve"><value>Ambient Aware</value></data>
+  <data name="NoiseLevel_AkgTalkThrough" xml:space="preserve"><value>TalkThru</value></data>
+  <data name="SonyOption_AmbientLevel" xml:space="preserve"><value>外音取り込みレベル</value></data>
+  <data name="SonyOption_Unknown" xml:space="preserve"><value>不明（0x{0}）</value></data>
+  <data name="AutoOff_Title" xml:space="preserve"><value>自動電源オフ</value></data>
+  <data name="AutoOff_Off" xml:space="preserve"><value>オフ</value></data>
+  <data name="AutoOff_WhenRemoved" xml:space="preserve"><value>外したとき</value></data>
+  <data name="SonyKey_Left" xml:space="preserve"><value>左タッチセンサー</value></data>
+  <data name="SonyKey_Right" xml:space="preserve"><value>右タッチセンサー</value></data>
+  <data name="SonyKey_Custom" xml:space="preserve"><value>カスタムボタン</value></data>
+  <data name="SonyKey_NcAmbient" xml:space="preserve"><value>NC/AMB ボタン</value></data>
+  <data name="SonyKey_Other" xml:space="preserve"><value>割り当て可能な操作</value></data>
+  <data name="SonyPreset_00" xml:space="preserve"><value>外音コントロール</value></data>
+  <data name="SonyPreset_10" xml:space="preserve"><value>音量操作</value></data>
+  <data name="SonyPreset_20" xml:space="preserve"><value>再生操作</value></data>
+  <data name="SonyPreset_21" xml:space="preserve"><value>曲送り/曲戻し</value></data>
+  <data name="SonyPreset_30" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="SonyPreset_31" xml:space="preserve"><value>Google アシスタント</value></data>
+  <data name="SonyPreset_32" xml:space="preserve"><value>Amazon Alexa</value></data>
+  <data name="SonyPreset_35" xml:space="preserve"><value>外音コントロール / クイックアクセス</value></data>
+  <data name="SonyPreset_36" xml:space="preserve"><value>クイックアクセス</value></data>
+  <data name="SonyPreset_45" xml:space="preserve"><value>外音コントロール（マイク）</value></data>
+  <data name="SonyPreset_46" xml:space="preserve"><value>リスニングモード / クイックアクセス</value></data>
+  <data name="SonyPreset_47" xml:space="preserve"><value>外音コントロール / リスニングモード</value></data>
+  <data name="SonyPreset_FF" xml:space="preserve"><value>機能なし</value></data>
+  <data name="SonyEq_Off" xml:space="preserve"><value>オフ</value></data>
+  <data name="SonyEq_Rock" xml:space="preserve"><value>ロック</value></data>
+  <data name="SonyEq_Pop" xml:space="preserve"><value>ポップ</value></data>
+  <data name="SonyEq_Jazz" xml:space="preserve"><value>ジャズ</value></data>
+  <data name="SonyEq_Dance" xml:space="preserve"><value>ダンス</value></data>
+  <data name="SonyEq_Edm" xml:space="preserve"><value>EDM</value></data>
+  <data name="SonyEq_RnbHipHop" xml:space="preserve"><value>R&amp;B/ヒップホップ</value></data>
+  <data name="SonyEq_Acoustic" xml:space="preserve"><value>アコースティック</value></data>
+  <data name="SonyEq_Bright" xml:space="preserve"><value>Bright</value></data>
+  <data name="SonyEq_Excited" xml:space="preserve"><value>Excited</value></data>
+  <data name="SonyEq_Mellow" xml:space="preserve"><value>Mellow</value></data>
+  <data name="SonyEq_Relaxed" xml:space="preserve"><value>Relaxed</value></data>
+  <data name="SonyEq_Vocal" xml:space="preserve"><value>Vocal</value></data>
+  <data name="SonyEq_TrebleBoost" xml:space="preserve"><value>Treble Boost</value></data>
+  <data name="SonyEq_BassBoost" xml:space="preserve"><value>Bass Boost</value></data>
+  <data name="SonyEq_Speech" xml:space="preserve"><value>Speech</value></data>
+  <data name="SonyEq_Heavy" xml:space="preserve"><value>Heavy</value></data>
+  <data name="SonyEq_Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="SonyEq_Hard" xml:space="preserve"><value>Hard</value></data>
+  <data name="SonyEq_Soft" xml:space="preserve"><value>Soft</value></data>
+  <data name="SonyEq_Custom" xml:space="preserve"><value>カスタム</value></data>
+  <data name="AkgEq_Off" xml:space="preserve"><value>オフ</value></data>
+  <data name="AkgEq_Jazz" xml:space="preserve"><value>ジャズ</value></data>
+  <data name="AkgEq_Vocal" xml:space="preserve"><value>ボーカル</value></data>
+  <data name="AkgEq_Bass" xml:space="preserve"><value>ベース</value></data>
+  <data name="AkgEq_User" xml:space="preserve"><value>ユーザー</value></data>
+  <data name="AkgEq_Rock" xml:space="preserve"><value>ロック</value></data>
+  <data name="AkgEq_Piano" xml:space="preserve"><value>ピアノ</value></data>
+  <data name="AkgEq_Club" xml:space="preserve"><value>クラブ</value></data>
+  <data name="AkgEq_Studio" xml:space="preserve"><value>スタジオ</value></data>
+  <data name="Settings_AkgExperimental.Header" xml:space="preserve"><value>AKG Hybrid の試験的機能</value></data>
+  <data name="Settings_AkgExperimental.Description" xml:space="preserve"><value>AKG N5 / N9 Hybrid 向けの未検証のノイズコントロールコマンドを有効にします。既定ではオフです。自己責任でご使用ください。有効にした機能を読み込むには再接続してください。</value></data>
+  <data name="SonyEq_Game" xml:space="preserve"><value>ゲーム</value></data>
+  <data name="SonyEq_Manual" xml:space="preserve"><value>マニュアル</value></data>
+  <data name="SonyEq_CustomN" xml:space="preserve"><value>カスタム {0}</value></data>
+  <data name="SonyEq_UserSetting" xml:space="preserve"><value>ユーザー設定 {0}</value></data>
+  <data name="PowerOff_Timer" xml:space="preserve"><value>自動電源オフ</value></data>
+  <data name="PowerOff_Timer_Description" xml:space="preserve"><value>選択した時間が経過するとヘッドホンの電源をオフにします。</value></data>
+  <data name="Settings_BrandExperimental.Header" xml:space="preserve"><value>試験的機能</value></data>
+  <data name="Settings_BrandExperimental.Description" xml:space="preserve"><value>このモデルで実機の報告がない設定（ジェスチャー、装着検出、ゲームモードなど）を有効にします。既定ではオフです。自己責任でご使用ください。有効にした機能を読み込むには再接続してください。</value></data>
+  <data name="Toggle_DoNotDisturb" xml:space="preserve"><value>おやすみモード</value></data>
+  <data name="Toggle_DoNotDisturb_Description" xml:space="preserve"><value>2.4 GHz ワイヤレス接続の使用中、ペアリング済み Bluetooth デバイスの音声で中断されないようにします</value></data>
+  <data name="UsbEq_Default" xml:space="preserve"><value>既定</value></data>
+  <data name="UsbEq_Game" xml:space="preserve"><value>ゲーム</value></data>
+  <data name="UsbEq_Music" xml:space="preserve"><value>音楽</value></data>
+  <data name="UsbEq_Movie" xml:space="preserve"><value>映画</value></data>
+  <data name="UsbEq_Custom" xml:space="preserve"><value>カスタム</value></data>
+  <data name="AutoOff_Minutes" xml:space="preserve"><value>{0} 分後</value></data>
+  <data name="AutoOff_IdleDescription" xml:space="preserve"><value>選択した時間アイドル状態が続くと、ヘッドホンの電源をオフにします</value></data>
+  <data name="Codec_ReportedDescription" xml:space="preserve"><value>オーディオコーデック: {0}</value></data>
+  <data name="Codec_BridgeDescription" xml:space="preserve"><value>A2DP Bridge がこのイヤホンに {0} 音声を送信しています。</value></data>
+  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>LE リンクは接続済みです。音声ストリームと LC3 コーデックは未確認です。</value></data>
+</root>

@@ -87,6 +87,10 @@ public sealed class FeaturesViewModel
     public Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default) =>
         _commands.SetLeBrSwitchAsync(enabled, cancellationToken);
 
+    /// <summary>Reports the LE Audio transport (feature 0x1F) once control runs over LE.</summary>
+    public Task<CommandResult> ReportLeAudioTransportAsync(CancellationToken cancellationToken) =>
+        _commands.ReportLeAudioTransportAsync(cancellationToken);
+
     /// <summary>Always writes and reads back multipoint off before attempting LE Audio.</summary>
     public Task<CommandResult> DisableMultipointForLeAudioAsync(CancellationToken cancellationToken) =>
         _basic.SetToggleAsync(DeviceToggle.DualDeviceConnection, false, cancellationToken);

@@ -12,6 +12,57 @@ public class XiaomiDeviceControllerTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    private sealed class StalledWriteChannel : EncoDeck.Protocol.Transport.IDuplexByteChannel
+    {
+        private readonly EncoDeck.Tests.Fakes.FakeByteChannel _inner = new();
+        public string Description => "stalled Xiaomi control write";
+        public int Writes { get; private set; }
+        public TaskCompletionSource WriteStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+        {
+            Writes++;
+            WriteStarted.TrySetResult();
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+        }
+        public ValueTask<int> ReadAsync(Memory<byte> data, CancellationToken cancellationToken) => _inner.ReadAsync(data, cancellationToken);
+        public ValueTask DisposeAsync() => _inner.DisposeAsync();
+    }
+
+    [Fact]
+    public async Task StalledHandshakeWrite_EndsSessionInsteadOfContinuingWithoutAuth()
+    {
+        await using var channel = new StalledWriteChannel();
+        var identity = new EncoDeck.Core.Devices.DeviceIdentity("stalled-redmi", "REDMI Buds 8 Pro", new EncoDeck.Core.Privacy.BluetoothAddress(0x112233445566));
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = identity });
+        await using var controller = XiaomiDeviceProfile.Redmi.CreateController(channel,
+            new(identity, store, () => false, Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance, TimeProvider.System));
+
+        var exception = await Assert.ThrowsAsync<IOException>(() => controller.InitializeAsync(Ct).WaitAsync(TimeSpan.FromSeconds(8), Ct));
+
+        Assert.Contains("write timed out", exception.Message);
+        Assert.True(controller.Closed.IsCompleted);
+        Assert.Equal(1, channel.Writes);
+    }
+
+    [Fact]
+    public async Task CancelledHandshakeWrite_PreservesCallerCancellation()
+    {
+        await using var channel = new StalledWriteChannel();
+        var identity = new EncoDeck.Core.Devices.DeviceIdentity("cancelled-redmi", "REDMI Buds 8 Pro", new EncoDeck.Core.Privacy.BluetoothAddress(0x112233445566));
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = identity });
+        await using var controller = XiaomiDeviceProfile.Redmi.CreateController(channel,
+            new(identity, store, () => false, Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance, TimeProvider.System));
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var initialize = controller.InitializeAsync(cancellation.Token);
+        await channel.WriteStarted.Task.WaitAsync(TimeSpan.FromSeconds(2), Ct);
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => initialize);
+        Assert.Equal(1, channel.Writes);
+    }
+
     [Fact]
     public async Task Initialize_RunsMutualAuthAndReadsDeviceInfo()
     {

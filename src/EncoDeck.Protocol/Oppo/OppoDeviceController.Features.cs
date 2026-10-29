@@ -362,7 +362,8 @@ public sealed partial class OppoDeviceController : IAdvancedDeviceCommands
                     _ => false,
                 }, RequestStatus.Success);
             },
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken,
+            operation == MultiConnectOperation.Connect ? ConnectSettleDelays : null).ConfigureAwait(false);
     }
 
     public async Task<CommandResult> SetPreferredDeviceAsync(byte[]? address, CancellationToken cancellationToken = default)

@@ -197,9 +197,24 @@ Model-to-artwork mappings contain interoperability facts only. Artwork for OPPO,
 ## 7. Optional LHDC companion
 
 Non-Store x64 installers built with `-WithLhdc` include [LHDC-Win](https://github.com/Wayne-u/LHDC-Win)
-(MIT) and its dependencies. Each component build fetches a fresh upstream checkout.
-Standard installers omit this component. Users can explicitly download the EncoDeck source-built runtime from the matching application version
-GitHub Release in the app; its licenses and source revision are retained in the user component cache.
+(MIT) and its dependencies. Each component build fetches a fresh upstream checkout of the commit pinned in
+`src/EncoDeck.Platform/Components/components.json`.
+Standard installers omit this component. Users can explicitly download the EncoDeck source-built runtime from its own
+component release (`lhdc-v<version>`) in the app; its licenses and source revision are retained in the user component cache.
 The complete upstream LICENSE, NOTICE.md and licenses directory are retained under LHDC/;
 release.json identifies the upstream source commit. EncoDeck provides its own WinUI controls; the upstream WPF panel is not included. Dependencies include the Apache-2.0
 LHDC V5 encoder, MS-PL Windows driver samples, and the bundled .NET and PowerShell runtimes.
+
+## 8. Optional A2DP Windows Bridge component
+
+[A2DP Windows Bridge](https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge) (A2DPWB), Copyright (c) 2026 Seiya Funaoka,
+Apache-2.0 OR MIT. It is not included in any installer. On request, the app downloads the unmodified official portable
+build, which EncoDeck mirrors byte for byte in its `a2dpwb-v<version>` component release (the upstream release is the
+fallback source; both are checked against the SHA-256 pinned in `components.json`). The archive keeps upstream's LICENSE,
+THIRD_PARTY_LICENSES.md, licenses directory and SOURCE.txt, which names the source repository and commit for the complete
+corresponding source, including the LGPL-2.1-or-later libopenaptx. The distributed `a2dpwb-core.exe` statically links
+[BTstack](https://github.com/bluekitchen/btstack), whose license permits use and redistribution only for personal,
+non-commercial purposes. EncoDeck talks to the separate A2DPWB process over its local named pipe and links none of its code.
+
+`src/EncoDeck.Platform/A2dpBridge/Lang/en.json` and `zh-CN.json` are A2DPWB's `app/lang` message files from the pinned
+release (Apache-2.0 OR MIT), embedded so that the core's status and error keys read as A2DPWB words them.

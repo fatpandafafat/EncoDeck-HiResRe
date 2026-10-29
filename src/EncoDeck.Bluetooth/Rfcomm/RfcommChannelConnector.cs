@@ -9,6 +9,7 @@ using EncoDeck.Protocol.Brands.Edifier;
 using EncoDeck.Protocol.Brands.Sennheiser;
 using EncoDeck.Protocol.Brands.Sony;
 using EncoDeck.Protocol.Oppo;
+using EncoDeck.Protocol.Oppo.Models;
 using EncoDeck.Protocol.Transport;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -45,6 +46,7 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
         {
             if (serviceUuids.Any(OppoServiceUuids.IsCandidate))
             {
+                bool guardsPartialLeBond = GuardsPartialLeBond(profiles.Match(new DeviceIdentity(deviceId, device.Name, new BluetoothAddress(device.BluetoothAddress))));
                 return await OppoControlChannelRouter.OpenAsync(
                     async () =>
                     {
@@ -53,7 +55,7 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                         bool bonded = await LeAudioLink.IsBondedAsync(device.BluetoothAddress, cancellationToken).ConfigureAwait(false);
                         if (!bonded && LeAudioLink.IsPreferred(device.BluetoothAddress))
                             throw new InvalidOperationException("LE Audio 配对未完成，请重新进入配对模式后再试一次。");
-                        if (!bonded && await LeAudioLink.HasSecondaryBondAsync(device.BluetoothAddress, cancellationToken, device.Name).ConfigureAwait(false))
+                        if (!bonded && guardsPartialLeBond && await LeAudioLink.HasSecondaryBondAsync(device.BluetoothAddress, cancellationToken, device.Name).ConfigureAwait(false))
                             throw new InvalidOperationException("LE Audio 配对不完整：主耳 LE 绑定缺失，请重新切换到 LE Audio。");
                         if (LeAudioLink.IsPairingChanging(device.BluetoothAddress))
                             throw new InvalidOperationException("The earbuds' pairing is being changed.");
@@ -65,6 +67,14 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
             return await OpenClassicAsync(device, deviceId, serviceUuids, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Whether another LE bond without the primary's means a half-finished LE Audio switch that Classic
+    /// must not paper over. Only models EncoDeck can switch to LE Audio are guarded: Swift Pair leaves an
+    /// LE bond next to a Classic-only pair (OPPO Enco Air5s), and blocking RFCOMM there left it uncontrollable.
+    /// </summary>
+    internal static bool GuardsPartialLeBond(IDeviceProfile? profile) =>
+        profile is OppoDeviceProfile { Definition.SupportsLeAudioPairing: true };
 
     private async Task<ChannelOpenResult> OpenClassicAsync(BluetoothDevice device, string deviceId, IReadOnlyList<Guid> serviceUuids, CancellationToken cancellationToken)
     {
@@ -145,16 +155,25 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                 continue;
             }
             RfcommDeviceServicesResult services;
+            using var lookupTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            lookupTimeout.CancelAfter(ConnectTimeout);
             try
             {
                 // Sony's control service can change after reconnecting / changing Bluetooth mode.
                 // Resolve its current SDP endpoint rather than repeatedly reopening a stale channel.
                 var cacheMode = SonyAkgProfiles.IsControlService(uuid) ? BluetoothCacheMode.Uncached : BluetoothCacheMode.Cached;
-                services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), cacheMode).AsTask(cancellationToken);
+                _logger.LogInformation("SDP lookup starting: {Service}, cache {CacheMode}", uuid, cacheMode);
+                services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), cacheMode).AsTask(lookupTimeout.Token);
                 if (services.Services.Count == 0 && cacheMode == BluetoothCacheMode.Cached)
                 {
-                    services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+                    services = await device.GetRfcommServicesForIdAsync(RfcommServiceId.FromUuid(uuid), BluetoothCacheMode.Uncached).AsTask(lookupTimeout.Token);
                 }
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning("SDP lookup for {Service} timed out", uuid);
+                connectFailure = ChannelOpenResult.Failed(ChannelOpenStatus.ConnectFailed, $"SDP lookup for {uuid:D} timed out.");
+                continue;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -167,7 +186,9 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                 _logger.LogInformation("SDP lookup for {Service}: {Error}", uuid, services.Error);
                 if (services.Error is BluetoothError.DeviceNotConnected or BluetoothError.RadioNotAvailable)
                 {
-                    if (services.Error == BluetoothError.RadioNotAvailable || !serviceUuids.Contains(SennheiserProfile.GattServiceId))
+                    // Unless a GATT service later in the list can still answer without Classic (one
+                    // earbud worn on LE Audio has no Classic link to page).
+                    if (services.Error == BluetoothError.RadioNotAvailable || !serviceUuids.Any(IsClassicFreeFallback))
                         return ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, services.Error.ToString());
                 }
                 continue;
@@ -205,7 +226,15 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
         return connectFailure ?? gattFailure ?? ChannelOpenResult.Failed(ChannelOpenStatus.ServiceNotFound, "No candidate control service could be opened.");
     }
 
-    /// <summary>RFCOMM channel of the Sony MDR v2 control service on WH/WF-1000XM6 class hardware.</summary>
+    /// <summary>Whether <paramref name="uuid"/> names an RFCOMM service; the others are GATT services opened over LE.</summary>
+    internal static bool IsRfcommService(Guid uuid) =>
+        EncoDeck.Protocol.Brands.GattStreamEndpoints.Find(uuid) is null && !EdifierConstants.IsGattService(uuid)
+        && uuid != SonyAkgProfiles.BleServiceUuid && uuid != SennheiserProfile.GattServiceId && uuid != MoondropConstants.GattServiceId;
+
+    private static bool IsClassicFreeFallback(Guid uuid) =>
+        uuid == SennheiserProfile.GattServiceId || EncoDeck.Protocol.Brands.GattStreamEndpoints.Find(uuid) is { BondedLeIdentities: true };
+
+    /// <summary>RFCOMM channel of the Sony MDR v2 control service on WH/WF-1000XM5 and XM6 class hardware.</summary>
     internal const int SonyMdrV2Channel = 9;
 
     /// <summary>Reads the RFCOMM channel out of <c>RFCOMM:00000009:{uuid}</c>; 0 means unresolved.</summary>
@@ -230,8 +259,15 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
     /// Last-resort channel for models whose MDR v2 channel is verified independently of Windows' SDP,
     /// used only when the classic link is up but Windows still reports an unresolved channel.
     /// </summary>
+    /// <remarks>
+    /// WH-1000XM5 and WH-1000XM6 both publish their MDR control service with
+    /// <c>RFCOMM:00000000</c>, so SDP alone never yields a channel; the real channel 9 is verified on
+    /// hardware for both (WH-1000XM5: protocol-version ACK over channel 9).
+    /// </remarks>
     internal static int? KnownSonyControlChannel(string? deviceName) =>
-        deviceName is not null && deviceName.Contains("1000XM6", StringComparison.OrdinalIgnoreCase)
+        deviceName is not null
+        && (deviceName.Contains("WH-1000XM5", StringComparison.OrdinalIgnoreCase)
+            || deviceName.Contains("WH-1000XM6", StringComparison.OrdinalIgnoreCase))
             ? SonyMdrV2Channel
             : null;
 
@@ -309,8 +345,8 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
             _logger.LogInformation(
                 "Sony SDP reports no resolvable channel although the classic link is up; trying the known RFCOMM channel {Channel}",
                 knownChannel);
-            var direct = await BluetoothSocketByteChannel.OpenAsync(device.BluetoothAddress, (uint)knownChannel, cancellationToken).ConfigureAwait(false);
-            if (direct.Status == ChannelOpenStatus.Opened) return direct;
+            var direct = await BluetoothSocketByteChannel.OpenAsync(device.BluetoothAddress, (uint)knownChannel, cancellationToken, "Sony MDR").ConfigureAwait(false);
+            if (direct.Status == ChannelOpenStatus.Opened) return direct with { ServiceUuid = SonyAkgProfiles.PrimaryServiceUuid };
             _logger.LogInformation("Known Sony RFCOMM channel {Channel} failed: {Detail}", knownChannel, direct.Detail);
             // The RFCOMM endpoint is unusable even with the link up; the LE Audio control service
             // carries the identical MDR v2 stream and is the remaining transport.

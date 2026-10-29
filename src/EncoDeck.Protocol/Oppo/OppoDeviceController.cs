@@ -28,6 +28,13 @@ public sealed partial class OppoDeviceController : IDeviceController
     /// acknowledgement. The official client trusts the acknowledgement and shows later reports.
     /// </summary>
     private static readonly TimeSpan[] SettleDelays = [TimeSpan.FromMilliseconds(400), TimeSpan.FromMilliseconds(800), TimeSpan.FromMilliseconds(1200)];
+
+    /// <summary>
+    /// Connecting a source device: the earbuds acknowledge at once, then page the phone, which takes several seconds
+    /// (about 9 s in all before the connection counts as refused).
+    /// </summary>
+    private static readonly TimeSpan[] ConnectSettleDelays = [.. SettleDelays, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2.5)];
+
     private static readonly TimeSpan LivenessUpdateInterval = TimeSpan.FromSeconds(30);
 
     private readonly OppoSession _session;
@@ -76,6 +83,12 @@ public sealed partial class OppoDeviceController : IDeviceController
     /// <summary>When set, the battery is queried this often (see <see cref="Transport.IDuplexByteChannel.KeepAliveInterval"/>).</summary>
     internal TimeSpan? KeepAliveInterval { get; init; }
 
+    /// <summary>The session runs over the LE Audio link (see <see cref="Transport.IDuplexByteChannel.IsLeAudioTransport"/>).</summary>
+    internal bool IsLeAudioTransport { get; init; }
+
+    /// <summary>Feature switch 0x1F: the host's audio transport is LE (1) or Classic (0).</summary>
+    internal const byte LeAudioTransportFeature = 0x1F;
+
     public Task Closed => _closed.Task;
 
     private void OnSessionClosed(object? sender, SessionClosedEventArgs e) => _closed.TrySetResult();
@@ -95,6 +108,9 @@ public sealed partial class OppoDeviceController : IDeviceController
     /// </summary>
     public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
     {
+        // A new control session must not revive codec data from an earlier connection when its
+        // firmware no longer advertises the query, or when initialization fails before the read.
+        _store.TryUpdate(_identity.DeviceId, s => s with { Codec = null, ReportedCodecId = null });
         RequestResult? handshake = null;
         for (int attempt = 0; attempt < HandshakeAttempts; attempt++)
         {
@@ -115,9 +131,31 @@ public sealed partial class OppoDeviceController : IDeviceController
 
         // HeyMelody advertises its translation support here; a PC has none.
         await RequestIfAllowedAsync(new OppoRequest(OppoCommand.SetHostCapabilities, [0x00], SequenceMode.FixedSet), cancellationToken).ConfigureAwait(false);
+        if (IsLeAudioTransport) await ReportLeAudioTransportAsync(cancellationToken).ConfigureAwait(false);
+        StartCodecPolling();
         if (KeepAliveInterval is { } interval)
             _keepAliveTask ??= Task.Run(() => KeepAliveAsync(interval, _keepAliveStop.Token), CancellationToken.None);
         return true;
+    }
+
+    /// <summary>
+    /// ColorOS tells the earbuds over 0x0403 [0x1F, 1] that the host's transport is now LE. Report this before
+    /// secondary pairing on firmware without 0x0433 (Enco X3); an ACK does not verify peer bonding. Sent on every LE
+    /// connection like the phone does, and not at all on Classic or on firmware with 0x0433 (X4, verified
+    /// without it). The feature is never in the capability list, so the bitmap is not consulted.
+    /// Not connected over LE yet is <see cref="CommandStatus.NotConnected"/>; firmware with 0x0433 is unsupported.
+    /// </summary>
+    public async Task<CommandResult> ReportLeAudioTransportAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsLeAudioTransport || _remoteCapabilities is not { } caps) return CommandResult.NotConnected;
+        if (caps.Allows(OppoCommand.SetLeBrSwitch)) return CommandResult.Unsupported("These earbuds use the LE/BR switch (0x0433).");
+        var result = await _session.RequestAsync(new OppoRequest(OppoCommand.SetFeature, [LeAudioTransportFeature, 1], SequenceMode.FixedSet), CommandTimeout, cancellationToken).ConfigureAwait(false);
+        byte status = 0xFF;
+        bool acknowledged = result.Response is { } ack && OppoParsers.TryParseAck(ack, OppoCommand.SetFeature, out status) && status == OppoParsers.StatusOk;
+        _logger.LogInformation("LE Audio transport reported (0x0403 [1F 01]): {Status} {Ack}", result.Status, acknowledged ? "ok" : $"status 0x{status:X2}");
+        if (acknowledged) return CommandResult.Ok;
+        return result.Response is null ? ToCommandResult(result.Status, "LE Audio transport")
+            : new CommandResult(CommandStatus.Rejected, $"LE Audio transport: status 0x{status:X2}");
     }
 
     /// <summary>Queries the battery periodically, so a silent control earbud is noticed while idle.</summary>
@@ -155,6 +193,8 @@ public sealed partial class OppoDeviceController : IDeviceController
             if (result?.Response is { } frame) ApplyResponse(frame, StateSource.QueryResponse);
             if (result?.Status != RequestStatus.Timeout) break;
         }
+        if (request.Command == OppoCommand.QueryCodec && result?.Response is null)
+            _store.TryUpdate(_identity.DeviceId, s => s with { Codec = null, ReportedCodecId = null });
         return result;
     }
 
@@ -309,9 +349,7 @@ public sealed partial class OppoDeviceController : IDeviceController
                 ApplyFirmware(frame);
                 break;
             case OppoCommand.QueryCodec:
-                // Unknown or no Classic codec (e.g. LE Audio) clears a value left from an earlier link.
-                Observed<AudioCodec>? codec = OppoParsers.TryParseCodec(frame, out var parsedCodec) ? Observed.From(parsedCodec, _time.GetUtcNow(), source) : null;
-                _store.TryUpdate(_identity.DeviceId, s => s with { Codec = codec });
+                ApplyCodec(frame, source);
                 break;
             default:
                 ApplyFeatureResponse(frame, source);
@@ -434,7 +472,8 @@ public sealed partial class OppoDeviceController : IDeviceController
         Func<DeviceState, DeviceState> applyOptimistic,
         OppoRequest request,
         Func<CancellationToken, Task<(bool Matches, RequestStatus Status)>> readBack,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        IReadOnlyList<TimeSpan>? settleDelays = null)
     {
         if (_remoteCapabilities is { } caps && !caps.Allows(request.Command))
         {
@@ -464,7 +503,7 @@ public sealed partial class OppoDeviceController : IDeviceController
                 {
                     await Task.Delay(ReadBackDelay, _time, cancellationToken).ConfigureAwait(false);
                     var (matches, readStatus) = await readBack(cancellationToken).ConfigureAwait(false);
-                    foreach (var settle in SettleDelays)
+                    foreach (var settle in settleDelays ?? SettleDelays)
                     {
                         if (matches || readStatus != RequestStatus.Success) break;
                         // Keep showing the requested value while the earbuds settle (no flicker back).
@@ -920,11 +959,12 @@ public sealed partial class OppoDeviceController : IDeviceController
         _session.UnsolicitedFrame -= OnUnsolicitedFrame;
         _session.Closed -= OnSessionClosed;
         await _keepAliveStop.CancelAsync().ConfigureAwait(false);
-        if (_keepAliveTask is { } keepAlive)
+        foreach (var task in new[] { _keepAliveTask, _codecPollTask })
         {
+            if (task is null) continue;
             try
             {
-                await keepAlive.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+                await task.WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
             }
             catch (TimeoutException)
             {

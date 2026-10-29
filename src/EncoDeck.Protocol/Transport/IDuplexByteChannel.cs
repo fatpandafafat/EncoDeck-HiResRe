@@ -16,6 +16,9 @@ public interface IDuplexByteChannel : IAsyncDisposable
     /// </summary>
     TimeSpan? KeepAliveInterval => null;
 
+    /// <summary>The channel runs over the earbuds' LE Audio link (their audio is on LC3, not Classic).</summary>
+    bool IsLeAudioTransport => false;
+
     ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
 
     /// <summary>Reads at least one byte, or returns 0 when the remote side closed the channel.</summary>

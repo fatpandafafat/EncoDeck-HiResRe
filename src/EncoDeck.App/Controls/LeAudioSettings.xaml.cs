@@ -58,7 +58,7 @@ public sealed partial class LeAudioSettings : UserControl
         {
             // After an operation the earbuds may have left the app (pairing removed): keep the card,
             // its result and its buttons, which still work on the remembered address.
-            Visibility = _address != 0 && Message.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
+            Visibility = _address != 0 && Notice.IsOpen ? Visibility.Visible : Visibility.Collapsed;
             Sync();
             return;
         }
@@ -117,15 +117,14 @@ public sealed partial class LeAudioSettings : UserControl
         // Nothing bonded (e.g. an earlier attempt failed): offer both ways back.
         bool unpaired = _bond is { PrimaryBonded: false, ClassicBonded: false };
         var endpoints = _bond?.AudioEndpoints;
-        bool residualClassic = endpoints?.HasResidualClassicAudio == true;
         bool classicDisabled = endpoints?.ClassicA2dpDisabled == true;
         bool bothLinks = _bond is { PrimaryConnected: true, SecondaryConnected: true };
 
         bool endpointUnknown = _bond is not null && endpoints is { State: LeAudioAudioEndpointState.Unknown };
         string key = unpaired ? "LeAudio_StatusUnpaired" : both ? "LeAudio_StatusLe" : le ? "LeAudio_StatusLeSingle" : "LeAudio_StatusClassic";
         Status.Text = _bond is null ? "" : Loc.Get(key)
-            + (residualClassic ? " " + Loc.Get("LeAudio_StatusClassicEndpoint") : "")
             + (endpointUnknown ? " " + Loc.Get("LeAudio_StatusEndpointUnknown") : "");
+        Status.Visibility = Status.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         Switch.Visibility = both ? Visibility.Collapsed : Visibility.Visible;
         Restore.Visibility = le || unpaired ? Visibility.Visible : Visibility.Collapsed;
         // Disabling is only offered for an A2DP render endpoint, after both LE links were observed.
@@ -145,6 +144,7 @@ public sealed partial class LeAudioSettings : UserControl
             _syncingMic = false;
         }
         Progress.Visibility = Cancel.Visibility = _busy ? Visibility.Visible : Visibility.Collapsed;
+        Message.Visibility = _busy && Message.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async void OnSwitch(object sender, RoutedEventArgs e)
@@ -153,7 +153,8 @@ public sealed partial class LeAudioSettings : UserControl
         if (await ConfirmAsync("LeAudio_ConfirmSwitch", "LeAudio_Switch") && target == _address)
             await RunAsync((address, progress, ct) => LeAudioPairing.SwitchToLeAudioAsync(address, progress, ct,
                 (on, token) => Features.State.Device?.Address.Value == address ? Features.SetLeBrSwitchAsync(on, token) : Task.FromResult(CommandResult.NotConnected),
-                token => Features.State.Device?.Address.Value == address ? Features.DisableMultipointForLeAudioAsync(token) : Task.FromResult(CommandResult.NotConnected)));
+                token => Features.State.Device?.Address.Value == address ? Features.DisableMultipointForLeAudioAsync(token) : Task.FromResult(CommandResult.NotConnected),
+                reportLeTransport: token => Features.State.Device?.Address.Value == address ? Features.ReportLeAudioTransportAsync(token) : Task.FromResult(CommandResult.NotConnected)));
     }
 
     private async void OnRestore(object sender, RoutedEventArgs e)
@@ -187,6 +188,8 @@ public sealed partial class LeAudioSettings : UserControl
         bool enable = !MicOff.IsOn;
         ulong address = _address;
         _busy = true;
+        CardNotice.Hide(Notice);
+        Message.Text = "";
         Sync();
         try
         {
@@ -194,15 +197,11 @@ public sealed partial class LeAudioSettings : UserControl
             // Show what Windows reports, not what was requested.
             if (address == _address) _mic = await LeAudioMicrophone.InspectAsync(address);
             if (!result.Success)
-            {
-                Message.Text = Loc.Format("LeAudio_MicFailed", result.Detail ?? "");
-                Message.Visibility = Visibility.Visible;
-            }
+                CardNotice.Show(Notice, InfoBarSeverity.Error, Loc.Format("LeAudio_MicFailed", result.Detail ?? ""));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            Message.Text = Loc.Format("LeAudio_MicFailed", ex.Message);
-            Message.Visibility = Visibility.Visible;
+            CardNotice.ShowError(Notice, ex, Loc.Format("LeAudio_MicFailed", ex.Message));
         }
         finally
         {
@@ -217,22 +216,23 @@ public sealed partial class LeAudioSettings : UserControl
         _busy = true;
         using var cancellation = new CancellationTokenSource();
         _operation = cancellation;
-        Message.Visibility = Visibility.Visible;
+        CardNotice.Hide(Notice);
+        Message.Text = "";
         Sync();
         try
         {
             var result = await operation(cancellation.Token);
-            Message.Text = result.Outcome == LeAudioEndpointOutcome.Failed
+            CardNotice.Show(Notice, Severity(result.Outcome), result.Outcome == LeAudioEndpointOutcome.Failed
                 ? Loc.Format("LeAudio_Endpoint_Failed", result.Detail ?? "")
-                : Loc.Get($"LeAudio_Endpoint_{result.Outcome}") + (result.Detail is { } detail ? $" ({detail})" : "");
+                : Loc.Get($"LeAudio_Endpoint_{result.Outcome}") + (result.Detail is { } detail ? $" ({detail})" : ""));
         }
         catch (OperationCanceledException)
         {
-            Message.Text = Loc.Get("LeAudio_Cancelled");
+            CardNotice.Show(Notice, InfoBarSeverity.Informational, Loc.Get("LeAudio_Cancelled"));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            Message.Text = Loc.Format("LeAudio_Error", ex.Message);
+            CardNotice.ShowError(Notice, ex, Loc.Format("LeAudio_Error", ex.Message));
         }
         finally
         {
@@ -250,21 +250,27 @@ public sealed partial class LeAudioSettings : UserControl
         _busy = true;
         using var cancellation = new CancellationTokenSource();
         _operation = cancellation;
-        Message.Visibility = Visibility.Visible;
+        CardNotice.Hide(Notice);
+        Message.Text = "";
         Sync();
         try
         {
-            var progress = new Progress<LeAudioPairingStage>(stage => Message.Text = Loc.Get($"LeAudio_Stage_{stage}"));
+            var progress = new Progress<LeAudioPairingStage>(stage =>
+            {
+                Message.Text = Loc.Get($"LeAudio_Stage_{stage}");
+                Message.Visibility = _busy ? Visibility.Visible : Visibility.Collapsed;
+            });
             var result = await operation(_address, progress, cancellation.Token);
-            Message.Text = Loc.Get($"LeAudio_Result_{result.Outcome}") + (result.Detail is { } detail ? $" ({detail})" : "");
+            CardNotice.Show(Notice, Severity(result.Outcome),
+                Loc.Get($"LeAudio_Result_{result.Outcome}") + (result.Detail is { } detail ? $" ({detail})" : ""));
         }
         catch (OperationCanceledException)
         {
-            Message.Text = Loc.Get("LeAudio_Cancelled");
+            CardNotice.Show(Notice, InfoBarSeverity.Informational, Loc.Get("LeAudio_Cancelled"));
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            Message.Text = Loc.Format("LeAudio_Error", ex.Message);
+            CardNotice.ShowError(Notice, ex, Loc.Format("LeAudio_Error", ex.Message));
         }
         finally
         {
@@ -297,13 +303,31 @@ public sealed partial class LeAudioSettings : UserControl
     {
         var dialog = new ContentDialog
         {
-            XamlRoot = XamlRoot,
             Title = Loc.Get("LeAudio_ConfirmTitle"),
             Content = new TextBlock { Text = Loc.Get(messageKey), TextWrapping = TextWrapping.Wrap },
             PrimaryButtonText = Loc.Get(primaryKey),
             CloseButtonText = Loc.Get("Common_Cancel"),
             DefaultButton = ContentDialogButton.Close,
         };
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await CardNotice.ShowDialogAsync(dialog, XamlRoot) == ContentDialogResult.Primary;
     }
+
+    private static InfoBarSeverity Severity(LeAudioPairingOutcome outcome) => outcome switch
+    {
+        LeAudioPairingOutcome.Paired => InfoBarSeverity.Success,
+        // Pairings removed on purpose: the next step is pairing again in Windows.
+        LeAudioPairingOutcome.Removed => InfoBarSeverity.Informational,
+        LeAudioPairingOutcome.PairedWithClassicAudio or LeAudioPairingOutcome.PairedButLeAudioEndpointMissing
+            or LeAudioPairingOutcome.PairedWaitingForLinks or LeAudioPairingOutcome.PrimaryOnly => InfoBarSeverity.Warning,
+        _ => InfoBarSeverity.Error,
+    };
+
+    private static InfoBarSeverity Severity(LeAudioEndpointOutcome outcome) => outcome switch
+    {
+        LeAudioEndpointOutcome.Disabled or LeAudioEndpointOutcome.Enabled => InfoBarSeverity.Success,
+        LeAudioEndpointOutcome.AlreadyLeAudioOnly or LeAudioEndpointOutcome.NoClassicEndpoint
+            or LeAudioEndpointOutcome.NothingToRestore => InfoBarSeverity.Informational,
+        LeAudioEndpointOutcome.Failed => InfoBarSeverity.Error,
+        _ => InfoBarSeverity.Warning,
+    };
 }

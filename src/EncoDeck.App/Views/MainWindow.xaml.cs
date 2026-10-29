@@ -24,6 +24,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Loc.ApplyLanguage(this);
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 

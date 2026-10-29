@@ -2,6 +2,7 @@
 using System.IO.Compression;
 using System.Text.Json;
 using EncoDeck.Core.Capabilities;
+using EncoDeck.Core.State;
 using EncoDeck.Platform.Logging;
 
 namespace EncoDeck.App.Services;
@@ -32,6 +33,14 @@ internal static class DiagnosticsExporter
             connection = state.Connection.ToString(),
             leAudio = new { state.IsLeAudioBonded, links = state.LeAudioLinks, audioStreamingVerified = false },
             firmware = state.Firmware?.Value.Extra,
+            codec = new
+            {
+                reportedId = state.ReportedCodecId?.Value,
+                reportedAt = state.ReportedCodecId?.Timestamp,
+                accepted = state.Codec?.Value.ToString(),
+                displayKind = CodecDisplay.Resolve(state).Kind.ToString(),
+                displayCodec = CodecDisplay.Resolve(state).Codec,
+            },
             battery = new
             {
                 left = state.Battery.Left is { } l ? new { l.Value.Level, l.Value.IsCharging, source = l.Source.ToString(), l.Timestamp } : null,
@@ -43,8 +52,20 @@ internal static class DiagnosticsExporter
             lastError = state.LastError?.Message,
             capabilities = state.Profile?.Capabilities.All.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value.Support.ToString()),
             settings = host.Settings.Current,
+            bridge = new
+            {
+                link = host.Bridge.Status.Link.ToString(),
+                server = host.Bridge.Status.Server,
+                rfcomm = host.Bridge.Status.Rfcomm,
+                origin = host.Bridge.Installation?.Origin.ToString(),
+                stream = state.Bridge,
+                controlViaBridge = state.LinkViaBridge,
+                component = host.Bridge.Managed?.Version,
+            },
         };
         await WriteEntryAsync(zip, "summary.json", JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
+        // A2DP Windows Bridge's own diagnostics (its addresses masked by the core), when it runs.
+        if (await host.Bridge.DiagnosticsAsync() is { } bridge) await WriteEntryAsync(zip, "a2dpwb.txt", LogRedactor.Redact(bridge));
 
         foreach (var log in new DirectoryInfo(host.Paths.LogDirectory).GetFiles("encodeck-*.log").OrderByDescending(f => f.Name).Take(3))
         {
@@ -56,7 +77,28 @@ internal static class DiagnosticsExporter
             }
             await WriteEntryAsync(zip, "logs/" + log.Name, LogRedactor.Redact(text));
         }
+        // The LE Audio switch writes its steps (advert, per-earbud pairing results) to a trace of its own.
+        if (await ReadTailAsync(EncoDeck.Bluetooth.LeAudio.LeAudioPairing.DiagnosticLogPath, LeAudioTraceTail) is { } trace)
+            await WriteEntryAsync(zip, "logs/enco-leaudio.log", LogRedactor.Redact(trace));
         return path;
+    }
+
+    private const int LeAudioTraceTail = 256 * 1024;
+
+    /// <summary>The last <paramref name="maxBytes"/> of a file, or null when it does not exist or cannot be read.</summary>
+    private static async Task<string?> ReadTailAsync(string path, int maxBytes)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            if (stream.Length > maxBytes) stream.Seek(-maxBytes, SeekOrigin.End);
+            using var reader = new StreamReader(stream);
+            return await reader.ReadToEndAsync();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static async Task WriteEntryAsync(ZipArchive zip, string name, string content)

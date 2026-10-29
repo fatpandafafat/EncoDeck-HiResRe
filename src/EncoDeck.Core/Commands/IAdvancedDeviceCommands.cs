@@ -51,6 +51,14 @@ public interface IAdvancedDeviceCommands
     /// </summary>
     Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Tells earbuds without the LE/BR switch that the host now uses LE Audio (OPPO feature <c>0x1F</c>);
+    /// the firmware then shares this host's LE bond with the other earbud. <see cref="CommandStatus.NotConnected"/>
+    /// while control does not run over LE.
+    /// </summary>
+    Task<CommandResult> ReportLeAudioTransportAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(CommandResult.Unsupported("LE Audio transport report is not supported on this device."));
+
     /// <summary>Sets the preferred source device; null means automatic selection.</summary>
     Task<CommandResult> SetPreferredDeviceAsync(byte[]? address, CancellationToken cancellationToken = default);
 

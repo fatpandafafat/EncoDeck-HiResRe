@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Runtime.InteropServices;
 using EncoDeck.Bluetooth.LeAudio;
+using EncoDeck.Bluetooth.Rfcomm;
+using EncoDeck.Core.Devices;
+using EncoDeck.Core.Privacy;
+using EncoDeck.Core.Profiles;
+using EncoDeck.Protocol.Brands;
 using EncoDeck.Protocol.Transport;
 using EncoDeck.Tests.Fakes;
 
@@ -76,5 +81,16 @@ public class OppoControlChannelRouterTests
             Assert.Throws<InvalidOperationException>(() => LeAudioLink.BeginPairingChange(address));
         }
         Assert.False(LeAudioLink.IsPairingChanging(address));
+    }
+
+    [Theory]
+    [InlineData("OPPO Enco X4", true)]
+    // Swift Pair leaves an LE bond beside this Classic-only pair; it must still open RFCOMM.
+    [InlineData("OPPO Enco Air5s", false)]
+    public void PartialLeBondGuard_OnlyForModelsSwitchableToLeAudio(string name, bool guarded)
+    {
+        var profile = new DeviceProfileRegistry(BuiltInProfiles.Create()).Match(new DeviceIdentity("id", name, new BluetoothAddress(0)));
+        Assert.NotNull(profile);
+        Assert.Equal(guarded, RfcommChannelConnector.GuardsPartialLeBond(profile));
     }
 }

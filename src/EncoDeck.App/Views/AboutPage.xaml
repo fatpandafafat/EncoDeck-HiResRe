@@ -5,6 +5,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:EncoDeck.App.Controls"
     xmlns:services="using:EncoDeck.App.Services">
+    <Page.Resources>
+        <!-- Links sit in text flow: no button padding, so they line up with the labels above them. -->
+        <Style TargetType="HyperlinkButton" BasedOn="{StaticResource DefaultHyperlinkButtonStyle}">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style x:Key="LinkRowStyle" TargetType="controls:WrapPanel">
+            <Setter Property="HorizontalSpacing" Value="16" />
+            <Setter Property="VerticalSpacing" Value="4" />
+        </Style>
+    </Page.Resources>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <!-- Not the max-width element itself: a ScrollViewer centres its child by the child's desired width, which shifts it off-screen once the viewport is wider than the max width. -->
         <Grid>
@@ -22,11 +32,11 @@
                         <TextBlock Text="EncoDeck" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <TextBlock x:Uid="About_Tagline" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
                                    Text="Manage your earbuds on Windows — no more reaching for your phone just to switch noise cancelling." />
-                        <StackPanel Orientation="Horizontal" Spacing="16" Margin="0,2,0,0">
-                            <HyperlinkButton x:Uid="Settings_Source" Content="Source code" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck" />
-                            <HyperlinkButton x:Uid="About_Compatibility" Content="Device compatibility" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/COMPATIBILITY.md" />
-                            <HyperlinkButton x:Uid="About_Changelog" Content="Changelog" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CHANGELOG.md" />
-                        </StackPanel>
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}" Margin="0,2,0,0">
+                            <HyperlinkButton x:Uid="Settings_Source" Content="Source code" NavigateUri="https://github.com/TIANLI0/EncoDeck" />
+                            <HyperlinkButton x:Uid="About_Compatibility" Content="Device compatibility" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/COMPATIBILITY.md" />
+                            <HyperlinkButton x:Uid="About_Changelog" Content="Changelog" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CHANGELOG.md" />
+                        </controls:WrapPanel>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -36,11 +46,11 @@
                 <StackPanel Spacing="12">
                     <TextBlock x:Uid="Settings_Updates" Text="Updates" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <controls:SettingRow Header="{x:Bind ViewModel.CurrentVersionText}" Description="{x:Bind ViewModel.UpdateStatus, Mode=OneWay}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
                             <Button x:Uid="Settings_CheckUpdates" Content="Check for updates" Command="{x:Bind ViewModel.CheckForUpdatesCommand}" />
                             <Button Style="{StaticResource AccentButtonStyle}" Content="{x:Bind ViewModel.UpdateActionText, Mode=OneWay}"
                                     Command="{x:Bind ViewModel.RunUpdateActionCommand}" Visibility="{x:Bind services:Ui.Visible(ViewModel.IsUpdateActionVisible), Mode=OneWay}" />
-                        </StackPanel>
+                        </controls:WrapPanel>
                     </controls:SettingRow>
                     <ProgressBar Value="{x:Bind ViewModel.UpdateProgress, Mode=OneWay}" Visibility="{x:Bind services:Ui.Visible(ViewModel.IsUpdateDownloading), Mode=OneWay}" />
                     <StackPanel Spacing="4" Visibility="{x:Bind services:Ui.VisibleIfText(ViewModel.UpdateReleaseNotes), Mode=OneWay}">
@@ -50,7 +60,7 @@
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </ScrollViewer>
                     </StackPanel>
-                    <HyperlinkButton x:Uid="Settings_ReleaseNotes" Content="Release notes" Padding="0" NavigateUri="{x:Bind ViewModel.ReleaseNotesUrl, Mode=OneWay}"
+                    <HyperlinkButton x:Uid="Settings_ReleaseNotes" Content="Release notes" NavigateUri="{x:Bind ViewModel.ReleaseNotesUrl, Mode=OneWay}"
                                      Visibility="{x:Bind services:Ui.Visible(ViewModel.HasReleaseNotes), Mode=OneWay}" />
                     <controls:SettingRow x:Uid="Settings_AutoUpdate" Header="Check for updates automatically"
                                          Description="Downloads new versions in the background and lets you know. Nothing is installed until you choose to.">
@@ -67,11 +77,11 @@
                 <StackPanel Spacing="12">
                     <TextBlock x:Uid="Settings_Updates" Text="Updates" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <controls:SettingRow Header="{x:Bind ViewModel.CurrentVersionText}" Description="{x:Bind ViewModel.StoreUpdateStatus, Mode=OneWay}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <controls:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
                             <Button x:Uid="Settings_CheckUpdates" Content="Check for updates" Command="{x:Bind ViewModel.CheckStoreUpdatesCommand}" />
                             <Button x:Uid="Settings_StoreUpdate" Style="{StaticResource AccentButtonStyle}" Content="Update"
                                     Command="{x:Bind ViewModel.InstallStoreUpdateCommand}" Visibility="{x:Bind services:Ui.Visible(ViewModel.IsStoreUpdateAvailable), Mode=OneWay}" />
-                        </StackPanel>
+                        </controls:WrapPanel>
                     </controls:SettingRow>
                     <StackPanel Spacing="4" Visibility="{x:Bind services:Ui.VisibleIfText(ViewModel.StoreReleaseNotes), Mode=OneWay}">
                         <TextBlock x:Uid="Settings_StoreReleaseNotes" Text="What's new" Style="{StaticResource BodyStrongTextBlockStyle}" />
@@ -103,11 +113,11 @@
                         </Ellipse>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="Tianli" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <StackPanel Orientation="Horizontal" Spacing="16">
-                                <HyperlinkButton Content="wutianli@tianli0.top" NavigateUri="mailto:wutianli@tianli0.top" Padding="0" />
-                                <HyperlinkButton Content="GitHub · TIANLI0" NavigateUri="https://github.com/TIANLI0" Padding="0" />
-                                <HyperlinkButton Content="tianli0.top" NavigateUri="https://tianli0.top" Padding="0" />
-                            </StackPanel>
+                            <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                                <HyperlinkButton Content="wutianli@tianli0.top" NavigateUri="mailto:wutianli@tianli0.top" />
+                                <HyperlinkButton Content="GitHub · TIANLI0" NavigateUri="https://github.com/TIANLI0" />
+                                <HyperlinkButton Content="tianli0.top" NavigateUri="https://tianli0.top" />
+                            </controls:WrapPanel>
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -151,7 +161,7 @@
                 </Grid>
             </Border>
 
-            <!-- Feedback -->
+            <!-- Feedback, with the version details an issue report asks for -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
                     <StackPanel Spacing="2">
@@ -159,38 +169,140 @@
                         <TextBlock x:Uid="About_FeedbackText" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
                                    Text="If the earbuds will not connect, a setting has no effect or the model is recognised wrongly, open an issue with the earbud model, firmware version, Windows version and the steps you took. Test results for models not yet verified are welcome too." />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="16">
-                        <HyperlinkButton x:Uid="About_ReportIssue" Content="Report an issue" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck/issues" />
-                        <HyperlinkButton x:Uid="About_Contributing" Content="Contributing" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CONTRIBUTING.md" />
-                    </StackPanel>
+                    <controls:SettingRow x:Uid="About_SystemInfo" Header="Version information" Description="{x:Bind SystemInfo}">
+                        <Button x:Name="CopyInfo" Click="OnCopySystemInfo" />
+                    </controls:SettingRow>
+                    <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                        <HyperlinkButton x:Uid="About_ReportIssue" Content="Report an issue" NavigateUri="https://github.com/TIANLI0/EncoDeck/issues" />
+                        <HyperlinkButton x:Uid="About_Contributing" Content="Contributing" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CONTRIBUTING.md" />
+                    </controls:WrapPanel>
                 </StackPanel>
             </Border>
 
-            <!-- Acknowledgements (README) -->
+            <!-- Acknowledgements: projects whose code or protocol research EncoDeck uses (THIRD_PARTY_NOTICES.md sections 1, 3, 7 and 8) -->
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="12">
-                    <TextBlock x:Uid="About_Thanks" Text="Acknowledgements" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <StackPanel Spacing="2">
-                        <TextBlock x:Uid="About_ThanksProtocol" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="Earbud protocol and device support" />
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <HyperlinkButton Content="OppoPodsWindows" Padding="0" NavigateUri="https://github.com/3295074384/OppoPodsWindows" />
-                            <HyperlinkButton Content="OppoPodsManager" Padding="0" NavigateUri="https://github.com/Zhaoyi-ya/OppoPodsManager" />
-                            <HyperlinkButton Content="OppoPods" Padding="0" NavigateUri="https://github.com/Leaf-lsgtky/OppoPods" />
-                            <HyperlinkButton Content="HeyBuds" Padding="0" NavigateUri="https://github.com/abaichuan1017/HeyBuds" />
-                        </StackPanel>
+                        <TextBlock x:Uid="About_Thanks" Text="Acknowledgements" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock x:Uid="About_ThanksIntro" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
+                                   Text="EncoDeck builds on the work of these open-source projects. Thanks to their authors and contributors." />
+                    </StackPanel>
+
+                    <TextBlock x:Uid="About_ThanksProtocol" Text="Earbud protocol and device support" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="OPPO · OnePlus · realme" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="OppoPodsWindows" NavigateUri="https://github.com/3295074384/OppoPodsWindows" />
+                            <HyperlinkButton Content="OppoPodsManager" NavigateUri="https://github.com/Zhaoyi-ya/OppoPodsManager" />
+                            <HyperlinkButton Content="OppoPods" NavigateUri="https://github.com/Leaf-lsgtky/OppoPods" />
+                            <HyperlinkButton Content="HeyBuds" NavigateUri="https://github.com/abaichuan1017/HeyBuds" />
+                        </controls:WrapPanel>
                     </StackPanel>
                     <StackPanel Spacing="2">
-                        <TextBlock x:Uid="About_ThanksMoondrop" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="MOONDROP model data, GAIA framing and commands" />
-                        <HyperlinkButton Content="MiuixMoondrop" Padding="0" NavigateUri="https://github.com/huime180/MiuixMoondrop" />
+                        <TextBlock Text="HUAWEI" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="OpenFreebuds" NavigateUri="https://github.com/melianmiko/OpenFreebuds" />
+                            <HyperlinkButton Content="HuaweiPods" NavigateUri="https://github.com/Nshpiter/HuaweiPods" />
+                            <HyperlinkButton Content="EZBuds" NavigateUri="https://github.com/CenSher/EZBuds" />
+                        </controls:WrapPanel>
                     </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Xiaomi · Redmi" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="BudsLink" NavigateUri="https://github.com/maniacx/BudsLink" />
+                            <HyperlinkButton Content="redmi-buds-bar" NavigateUri="https://github.com/robin-liquidium/redmi-buds-bar" />
+                            <HyperlinkButton Content="mebuds" NavigateUri="https://github.com/paradox-ng/mebuds" />
+                            <HyperlinkButton Content="MiBudsClient" NavigateUri="https://github.com/CesurPolat/MiBudsClient" />
+                            <HyperlinkButton Content="OpenXia" NavigateUri="https://github.com/thetriu/OpenXia" />
+                            <HyperlinkButton Content="XiaomiTWS" NavigateUri="https://github.com/web1n/android_packages_apps_XiaomiTWS" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="vivo · iQOO" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="TWS-Pods-PC" NavigateUri="https://github.com/Zhaoyi-ya/TWS-Pods-PC" />
+                            <HyperlinkButton Content="vivopods-mac" NavigateUri="https://github.com/FxRayHughes/vivopods-mac" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="EDIFIER" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="HyperEars" NavigateUri="https://github.com/silverpoetry/HyperEars" />
+                            <HyperlinkButton Content="mEDIFIER" NavigateUri="https://github.com/wh201906/mEDIFIER" />
+                            <HyperlinkButton Content="Macifier" NavigateUri="https://github.com/luanyufei/Macifier" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="MOONDROP" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="MiuixMoondrop" NavigateUri="https://github.com/huime180/MiuixMoondrop" />
+                            <HyperlinkButton Content="FxxkMoondrop" NavigateUri="https://github.com/bqj6666/FxxkMoondrop" />
+                            <HyperlinkButton Content="moondrop-control" NavigateUri="https://github.com/FEAKEuser/moondrop-control" />
+                            <HyperlinkButton Content="moondrop-pc" NavigateUri="https://github.com/herikk04/moondrop-pc" />
+                            <HyperlinkButton Content="Edge2Pods" NavigateUri="https://github.com/Konakonai/Edge2Pods" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Sony · Sennheiser" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="SonyHeadphonesClient" NavigateUri="https://github.com/mos9527/SonyHeadphonesClient" />
+                            <HyperlinkButton Content="momentum4-control" NavigateUri="https://github.com/Ariazonaa/momentum4-control" />
+                            <HyperlinkButton Content="momentum-menu" NavigateUri="https://github.com/andr3-santos/momentum-menu" />
+                            <HyperlinkButton Content="m4-companion" NavigateUri="https://github.com/Zhengyang-Liu/m4-companion" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="Samsung · Google · Bose · Nothing" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="GalaxyBudsClient" NavigateUri="https://github.com/timschneeb/GalaxyBudsClient" />
+                            <HyperlinkButton Content="Budsy" NavigateUri="https://github.com/vedatkilic/budsy" />
+                            <HyperlinkButton Content="PixelBudsMacOS" NavigateUri="https://github.com/KashaMalaga/PixelBudsMacOS" />
+                            <HyperlinkButton Content="pbpctrl" NavigateUri="https://github.com/qzed/pbpctrl" />
+                            <HyperlinkButton Content="MagicBuds" NavigateUri="https://github.com/artistro08/MagicBuds" />
+                            <HyperlinkButton Content="bosectl" NavigateUri="https://github.com/aaronsb/bosectl" />
+                            <HyperlinkButton Content="bozo" NavigateUri="https://github.com/NerdySouth/bozo" />
+                            <HyperlinkButton Content="swift-nothing-ear" NavigateUri="https://github.com/bestK1ngArthur/swift-nothing-ear" />
+                            <HyperlinkButton Content="nothing-x-macos" NavigateUri="https://github.com/nikiomori/nothing-x-macos" />
+                            <HyperlinkButton Content="EarA-linux" NavigateUri="https://github.com/oneydef/EarA-linux" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Uid="About_ThanksUsb" Text="USB and 2.4 GHz gaming headsets" Style="{StaticResource SecondaryTextStyle}" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="HeadsetControl" NavigateUri="https://github.com/Sapd/HeadsetControl" />
+                            <HyperlinkButton Content="OpenRazer" NavigateUri="https://github.com/openrazer/openrazer" />
+                            <HyperlinkButton Content="blackshark-control" NavigateUri="https://github.com/AbdullahSAhmad/blackshark-control" />
+                            <HyperlinkButton Content="HaloBattery" NavigateUri="https://github.com/HeyOkay/HaloBattery" />
+                            <HyperlinkButton Content="barracuda-x-battery" NavigateUri="https://github.com/nightdevx/barracuda-x-battery" />
+                            <HyperlinkButton Content="NPS.HecateBattery" NavigateUri="https://github.com/SnowDreamXUE/NPS.HecateBattery" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+
+                    <TextBlock x:Uid="About_ThanksComponents" Text="Components and libraries" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <StackPanel Spacing="2">
                         <TextBlock x:Uid="About_ThanksLhdc" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="LHDC V5 component" />
-                        <HyperlinkButton Content="LHDC-Win" Padding="0" NavigateUri="https://github.com/Wayne-u/LHDC-Win" />
+                        <HyperlinkButton Content="LHDC-Win" NavigateUri="https://github.com/Wayne-u/LHDC-Win" />
                     </StackPanel>
                     <StackPanel Spacing="2">
-                        <TextBlock x:Uid="About_ThanksTray" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="Notification area icon" />
-                        <HyperlinkButton Content="H.NotifyIcon" Padding="0" NavigateUri="https://github.com/HavenDV/H.NotifyIcon" />
+                        <TextBlock x:Uid="About_ThanksBridge" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="A2DP Bridge component" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="A2DP Windows Bridge" NavigateUri="https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge" />
+                            <HyperlinkButton Content="BTstack" NavigateUri="https://github.com/bluekitchen/btstack" />
+                        </controls:WrapPanel>
                     </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Uid="About_ThanksLibraries" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="Libraries" />
+                        <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                            <HyperlinkButton Content="Windows App SDK" NavigateUri="https://github.com/microsoft/WindowsAppSDK" />
+                            <HyperlinkButton Content="H.NotifyIcon" NavigateUri="https://github.com/HavenDV/H.NotifyIcon" />
+                            <HyperlinkButton Content="CommunityToolkit.Mvvm" NavigateUri="https://github.com/CommunityToolkit/dotnet" />
+                            <HyperlinkButton Content="Lottie-Windows" NavigateUri="https://github.com/CommunityToolkit/Lottie-Windows" />
+                            <HyperlinkButton Content="Win2D" NavigateUri="https://github.com/microsoft/Win2D" />
+                            <HyperlinkButton Content="Vortice.Windows" NavigateUri="https://github.com/amerkoleci/Vortice.Windows" />
+                        </controls:WrapPanel>
+                    </StackPanel>
+                    <TextBlock x:Uid="About_ThanksAll" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
+                               Text="The third-party notices list every project with the revision used and its license." />
                 </StackPanel>
             </Border>
 
@@ -202,10 +314,13 @@
                                Text="EncoDeck is an unofficial open-source project with no affiliation, partnership or endorsement from the earbud brands it supports or their manufacturers. Brand and product names are used only to describe compatibility." />
                     <TextBlock x:Uid="Settings_License" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
                                Text="Licensed under the GNU General Public License v3.0 only (GPL-3.0-only). Third-party notices are included with the app." />
-                    <StackPanel Orientation="Horizontal" Spacing="16">
-                        <HyperlinkButton x:Uid="Settings_Notices" Content="Third-party notices" Padding="0" Click="OnOpenNotices" />
-                        <HyperlinkButton x:Uid="About_LicenseLink" Content="License" Padding="0" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/LICENSE" />
-                    </StackPanel>
+                    <TextBlock x:Uid="About_PrivacyText" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
+                               Text="EncoDeck has no accounts, ads, analytics or telemetry. It goes online only for updates, device artwork and the optional components you download." />
+                    <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
+                        <HyperlinkButton x:Uid="Settings_Notices" Content="Third-party notices" Click="OnOpenNotices" />
+                        <HyperlinkButton x:Uid="About_LicenseLink" Content="License" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/LICENSE" />
+                        <HyperlinkButton x:Uid="About_Privacy" Content="Privacy policy" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/PRIVACY.md" />
+                    </controls:WrapPanel>
                 </StackPanel>
             </Border>
         </StackPanel>

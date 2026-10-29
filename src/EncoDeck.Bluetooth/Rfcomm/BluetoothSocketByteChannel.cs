@@ -7,13 +7,13 @@ using EncoDeck.Protocol.Transport;
 namespace EncoDeck.Bluetooth.Rfcomm;
 
 /// <summary>Windows AF_BTH stream for a model's known RFCOMM channel when SDP does not expose it.</summary>
-internal sealed class BluetoothSocketByteChannel(Socket socket, uint channel) : IDuplexByteChannel
+internal sealed class BluetoothSocketByteChannel(Socket socket, uint channel, string label = "MOONDROP") : IDuplexByteChannel
 {
     private int _disposed;
 
-    public string Description => $"RFCOMM MOONDROP channel {channel}";
+    public string Description => $"RFCOMM {label} channel {channel}";
 
-    internal static async Task<ChannelOpenResult> OpenAsync(ulong address, uint channel, CancellationToken cancellationToken)
+    internal static async Task<ChannelOpenResult> OpenAsync(ulong address, uint channel, CancellationToken cancellationToken, string label = "MOONDROP")
     {
         if (channel is < 1 or > 30) throw new ArgumentOutOfRangeException(nameof(channel));
         cancellationToken.ThrowIfCancellationRequested();
@@ -27,7 +27,7 @@ internal sealed class BluetoothSocketByteChannel(Socket socket, uint channel) : 
             // Ordinary Winsock connect runs off the UI thread; disposal cancels the blocking call.
             await Task.Run(() => socket.Connect(new BluetoothEndPoint(address, channel)), timeout.Token).ConfigureAwait(false);
             timeout.Token.ThrowIfCancellationRequested();
-            return new ChannelOpenResult(ChannelOpenStatus.Opened, new BluetoothSocketByteChannel(socket, channel), MoondropConstants.SppServiceId, null);
+            return new ChannelOpenResult(ChannelOpenStatus.Opened, new BluetoothSocketByteChannel(socket, channel, label), MoondropConstants.SppServiceId, null);
         }
         catch (Exception ex) when (ex is SocketException or ObjectDisposedException or OperationCanceledException)
         {

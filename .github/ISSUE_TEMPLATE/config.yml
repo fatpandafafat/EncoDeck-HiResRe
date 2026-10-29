@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 设备兼容性列表 / Device compatibility
+    url: https://github.com/TIANLI0/EncoDeck/blob/main/docs/COMPATIBILITY.md
+    about: 先确认你的耳机支持哪些功能 / Check which features your earbuds support
+  - name: 测试与 Probe 使用说明 / Testing and Probe guide
+    url: https://github.com/TIANLI0/EncoDeck/blob/main/docs/TESTING.md
+    about: 如何生成脱敏的 Probe 报告 / How to produce a redacted Probe report

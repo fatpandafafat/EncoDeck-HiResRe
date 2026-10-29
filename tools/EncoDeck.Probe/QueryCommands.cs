@@ -36,6 +36,7 @@ internal static class QueryCommands
         session.UnsolicitedFrame += (_, f) => { lock (unsolicited) unsolicited.Add(f); };
 
         var queries = StandardQueries.ToList();
+        if (options.Has("codec")) queries.Add(("codec", new OppoRequest(OppoCommand.QueryCodec, [])));
         if (options.Has("eq-list")) queries.Add(("equalizer-list", EqualizerList));
         string? only = options.Get("only");
 
@@ -93,7 +94,8 @@ internal static class QueryCommands
         int seconds = options.GetInt("seconds", 120);
         var interval = TimeSpan.FromMilliseconds(Math.Max(500, options.GetInt("interval-ms", 2000)));
         // battery, noise control, feature status, equalizer, wear state
-        var polled = new[] { StandardQueries[4].Request, StandardQueries[5].Request, StandardQueries[3].Request, StandardQueries[6].Request, StandardQueries[8].Request };
+        var polled = new List<OppoRequest> { StandardQueries[4].Request, StandardQueries[5].Request, StandardQueries[3].Request, StandardQueries[6].Request, StandardQueries[8].Request };
+        if (options.Has("codec")) polled.Add(new OppoRequest(OppoCommand.QueryCodec, []));
         var last = new Dictionary<ushort, string>();
         Console.WriteLine($"Watching for {seconds}s (poll every {interval.TotalSeconds:F1}s, only changes are printed). Ctrl+C to stop.");
         var deadline = DateTimeOffset.UtcNow.AddSeconds(seconds);

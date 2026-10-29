@@ -50,6 +50,7 @@
                             <ComboBoxItem x:Uid="Settings_Language_System" Content="Use system language" />
                             <ComboBoxItem Content="简体中文" />
                             <ComboBoxItem Content="English" />
+                            <ComboBoxItem Content="日本語" />
                         </ComboBox>
                     </controls:SettingRow>
                 </StackPanel>

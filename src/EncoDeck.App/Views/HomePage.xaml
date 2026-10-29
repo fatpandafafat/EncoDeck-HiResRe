@@ -61,6 +61,18 @@
                     Severity="Informational"
                     Title="Unrecognized model"
                     Message="{x:Bind ViewModel.GenericModelMessage, Mode=OneWay}" />
+                <!-- A2DP Windows Bridge streams to these earbuds over its own adapter, but their controls are unreachable. -->
+                <InfoBar
+                    x:Uid="Home_Bridge"
+                    IsOpen="{x:Bind ViewModel.HasBridgeNotice, Mode=OneWay}"
+                    IsClosable="False"
+                    Severity="Informational"
+                    Title="Connected through A2DP Bridge"
+                    Message="{x:Bind ViewModel.BridgeMessage, Mode=OneWay}">
+                    <InfoBar.ActionButton>
+                        <HyperlinkButton x:Uid="Home_Bridge_Open" Content="Open Labs" Click="OnOpenLabs" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
 
                 <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind services:Ui.Collapsed(ViewModel.HasDevice), Mode=OneWay}">
                     <StackPanel Spacing="12">
@@ -123,12 +135,15 @@
                                       Visibility="{x:Bind ViewModel.IsBusyConnecting, Mode=OneWay}" />
                         <TextBlock Text="{x:Bind ViewModel.ConnectionText, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center"
                                    AutomationProperties.LiveSetting="Polite" />
-                        <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.IsLeAudio, Mode=OneWay}"
-                                x:Uid="Codec_LeAudio" ToolTipService.ToolTip="LE Audio (LC3)">
-                            <TextBlock Text="LC3" Style="{StaticResource CodecBadgeTextStyle}" />
+                        <Border Style="{StaticResource CodecBadgeSubtleStyle}" Visibility="{x:Bind ViewModel.HasBridgeBadge, Mode=OneWay}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.BridgeBadgeDescription, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.BridgeBadgeDescription, Mode=OneWay}">
+                            <TextBlock Text="A2DP Bridge" Style="{StaticResource CodecBadgeSubtleTextStyle}" />
                         </Border>
-                        <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.HasClassicCodec, Mode=OneWay}" x:Uid="Codec_Classic">
-                            <TextBlock Text="{x:Bind ViewModel.ClassicCodec, Mode=OneWay}" Style="{StaticResource CodecBadgeTextStyle}" />
+                        <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.HasCodec, Mode=OneWay}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.CodecDescription, Mode=OneWay}"
+                                AutomationProperties.Name="{x:Bind ViewModel.CodecDescription, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind ViewModel.CodecLabel, Mode=OneWay}" Style="{StaticResource CodecBadgeTextStyle}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
                         </Border>
                         <!-- Inline with no vertical padding, so showing/hiding it never changes the row height. -->
                         <HyperlinkButton x:Uid="DeviceConnect" Click="OnOpenBluetoothSettings" Padding="2,0" MinHeight="0" VerticalAlignment="Center"
@@ -149,9 +164,6 @@
                                       Visibility="{x:Bind ViewModel.HasDeviceMotion, Mode=OneWay}" />
                 </Grid>
                 <TextBlock Text="{x:Bind ViewModel.FirmwareText, Mode=OneWay}" HorizontalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Margin="0,4,0,0" />
-                <TextBlock x:Uid="Artwork_Representative" Text="Showing reference artwork for this model; device color is unknown."
-                           TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" Style="{StaticResource SecondaryTextStyle}"
-                           Visibility="{x:Bind ViewModel.IsRepresentativeArtwork, Mode=OneWay}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="24" Margin="0,12,0,4"
                             Visibility="{x:Bind ViewModel.HasComponentArtwork, Mode=OneWay}">
                     <StackPanel Spacing="6" Visibility="{x:Bind services:Ui.VisibleIfText(ViewModel.LeftArtworkPath), Mode=OneWay}">

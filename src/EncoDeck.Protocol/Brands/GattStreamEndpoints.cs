@@ -13,7 +13,11 @@ namespace EncoDeck.Protocol.Brands;
 /// When the classic address has no such service, the endpoint may be found on one separate LE
 /// advertiser named like the paired device (or "&lt;name&gt;-LE"); never used when several match.
 /// </param>
-public sealed record GattStreamEndpoint(Guid Service, Guid? Write, Guid? Notify, string Name, bool NameMatchedLeFallback = false);
+/// <param name="BondedLeIdentities">
+/// LE Audio earbuds carry the service on each earbud's bonded LE identity: the connected identities
+/// are tried first, so one earbud worn alone is reached even when it is not the one at the public address.
+/// </param>
+public sealed record GattStreamEndpoint(Guid Service, Guid? Write, Guid? Notify, string Name, bool NameMatchedLeFallback = false, bool BondedLeIdentities = false);
 
 /// <summary>
 /// Byte-stream GATT services opened by the shared notify/write channel. Sony's MDR GATT service is
@@ -26,6 +30,7 @@ public static class GattStreamEndpoints
     [
         new(AkgBleUuids.BesService, AkgBleUuids.BesWrite, AkgBleUuids.BesNotify, "AKG BES GATT", NameMatchedLeFallback: true),
         new(AkgBleUuids.RaceService, AkgBleUuids.RaceWrite, AkgBleUuids.RaceNotify, "Airoha RACE GATT", NameMatchedLeFallback: true),
+        new(Xiaomi.XiaomiProtocol.MmaGattServiceUuid, Xiaomi.XiaomiProtocol.MmaGattWriteUuid, Xiaomi.XiaomiProtocol.MmaGattNotifyUuid, "Xiaomi MMA GATT", BondedLeIdentities: true),
     ];
 
     public static GattStreamEndpoint? Find(Guid service) => All.FirstOrDefault(e => e.Service == service);

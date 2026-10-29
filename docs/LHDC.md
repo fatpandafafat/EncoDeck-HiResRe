@@ -152,34 +152,53 @@ bcdedit /set testsigning on
 
 ## 组件下载
 
-普通安装包不捆绑 LHDC。点击下载后，应用从与自身版本相同的 Release
-（例如 `v1.2.0`）获取 `EncoDeck-LHDC-1.2.0-win-x64.zip`，
-校验 GitHub SHA-256、大小、组件标识和上游提交号后解压到
-`%LOCALAPPDATA%/EncoDeck/Components/LHDC`。显示进度，支持取消与重试。
-下载本身不安装驱动；安装及恢复仅在点击对应按钮、确认系统管理员授权后执行。
-后台组件复用，打开应用不自动联网。旧的上游面板缓存不视为新运行时。
+普通安装包不捆绑 LHDC。LHDC 组件有自己的版本（例如 `0.8.8-r1`，对应 LHDC-Win 0.8.8 的第 1 次构建）和自己的
+Release（`lhdc-v0.8.8-r1`），与 EncoDeck 应用版本分开：
+
+- 点击下载后，应用从组件 Release 获取 `EncoDeck-LHDC-<组件版本>-win-x64.zip`，按应用内置
+  `src/EncoDeck.Platform/Components/components.json` 中固定的大小和 SHA-256 校验，再核对组件标识和
+  上游提交号后解压到 `%LOCALAPPDATA%/EncoDeck/Components/LHDC/<组件版本>-<摘要>`。不经过 GitHub API，
+  不受其匿名访问频率限制；中断的下载会从断点续传。显示进度，支持取消与重试。
+- 更新 EncoDeck **不会**重新下载组件。发布了新的 LHDC 组件时，不更新 EncoDeck 也能在实验室页
+  “更新 LHDC 组件”：打开实验室页时每天最多检查一次，也可以点击“检查更新”。只接受与当前应用的后端接口
+  和版本兼容、且大小和 SHA-256 与发布文件一致的组件。更新前，已安装的组件继续可用；更新完成后旧版本即被
+  删除，1.10.0 及以前按应用版本存放的旧组件也会被清理。
+- 下载本身不安装驱动；安装及恢复仅在点击对应按钮、确认系统管理员授权后执行。
+  除上述更新检查外不自动联网。旧的上游面板缓存不视为新运行时。
+
+### 卸载组件
+
+所有耳机都“恢复 Windows 音频”后，点击“卸载组件”即可删除下载的组件文件（约 120 MB）。
+LHDC 服务仍为启用状态，或有音频设备仍在使用 LHDC 驱动时，EncoDeck 会拒绝卸载——恢复 Windows 音频
+需要这些文件。卸载不会删除部署时安装到系统中、已被停用的 LHDC 服务和驱动包；需要再次使用时重新下载即可。
+随离线安装包捆绑的组件属于安装包本身，不能单独卸载。
 
 ## 源码构建与云端发布
 
-每次构建均从 https://github.com/Wayne-u/LHDC-Win.git 的 main 全新克隆，
-按上游固定提交拉取编码器与 Windows 驱动样例。拉取失败立即中止。
+组件构建从 https://github.com/Wayne-u/LHDC-Win.git 全新克隆，并检出 `components.json` 中固定的提交
+（不是构建当天的 main），按上游固定提交拉取编码器与 Windows 驱动样例。拉取失败立即中止。
 自编译四个原生后台工具及传输、音频驱动，运行上游测试、生成测试签名并验证包。
 不编译或分发上游 WPF UI，运行时仅包含后端、驱动、部署脚本和完整 PowerShell 7。
-`runtime.json` 与 `release.json` 记录源码仓库和提交；`checksums.json` 记录文件摘要。
+`runtime.json`（Schema 2）与 `release.json` 记录组件版本、源码仓库和提交；`checksums.json` 记录文件摘要。
 许可证随组件保留。构建不会安装驱动或修改系统启动配置。
 
 ```powershell
 # 普通应用安装包，不捆绑 LHDC
 pwsh build/build-installer.ps1
-# 构建独立组件和 ZIP；每次都重新拉取源码
+# 构建 components.json 固定的组件和 ZIP；每次都重新拉取源码，输出 component-pin.json（大小与 SHA-256）
 pwsh build/publish-lhdc-runtime.ps1 -PowerShellDirectory 'C:/Program Files/PowerShell/7'
-# 手动构建后上传至已存在的同版本应用 Release（需要 gh 登录）
+# 构建并发布为独立的组件 Release（lhdc-v<组件版本>，需要 gh 登录；不覆盖已发布的版本）
 pwsh build/publish-lhdc-runtime.ps1 -PowerShellDirectory 'C:/Program Files/PowerShell/7' -Publish
-# 可选：离线捆绑安装包
+# 可选：离线捆绑安装包（同一组件版本）
 pwsh build/build-installer.ps1 -WithLhdc -LhdcPowerShellDirectory 'C:/Program Files/PowerShell/7'
 ```
 
-每次应用发版由 CI 在全新 VS2026 构建机通过微软 WinGet 安装匹配 SDK/WDK、拉取上游并编译组件。组件与应用附件上传到同一个版本 Release；组件失败则阻止发布草稿生成。缓存按应用版本隔离，客户端拒绝其他版本的 Release 或组件清单。发布新版本前审查源码提交和构建结果。
+发布新组件版本时：在 `components.json` 中更新 `version`、`tag`、`source.commit` 和文件名，推送
+`lhdc-v<组件版本>` 标签。`.github/workflows/components.yml` 在全新 VS2026 构建机通过微软 WinGet 安装匹配
+SDK/WDK、拉取上游并编译，发布组件 Release（不会成为仓库的“最新版本”），并在运行摘要中给出大小和
+SHA-256；把它们填回 `components.json` 后再发布应用。应用发版不再编译 LHDC：CI 只检查每个固定的组件包
+已经发布且大小、摘要一致（`build/verify-components.ps1`），否则阻止发布应用。
+每次构建都会生成新的测试证书，字节不同，因此已发布的组件版本不重建、不覆盖，需要时提高 `-r` 修订号。
 构建依赖以上游为准，目前包括 MSVC x64、SDK/WDK 28000、KMDF 1.33、
 CMake、Ninja、.NET 10、PowerShell 7 x64，以及 Visual Studio 驱动组件和 Spectre 库。
 

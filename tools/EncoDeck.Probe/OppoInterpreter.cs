@@ -10,6 +10,8 @@ internal static class OppoInterpreter
     {
         if (OppoParsers.TryParseProductId(frame, out uint productId))
             return $"product id 0x{productId:X6}";
+        if (OppoParsers.TryParseCodec(frame, out var reportedCodec))
+            return $"reported codec id 0x{frame.Payload[1]:X2} ({reportedCodec}; model/stream verification required)";
         if (OppoParsers.TryParseBattery(frame, out var battery))
             return "battery " + string.Join(", ", battery.Select(b => $"{ComponentName(b.Component)}={b.Level}%{(b.IsCharging ? " charging" : string.Empty)}"));
         if (OppoParsers.TryParseNoiseControlResponse(frame, out uint ncBitmap) || OppoParsers.TryParseNoiseControlEvent(frame, out ncBitmap))

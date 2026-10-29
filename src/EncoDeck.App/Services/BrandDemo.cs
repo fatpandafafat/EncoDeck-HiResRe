@@ -27,7 +27,7 @@ internal sealed class BrandDemo
 {
     /// <summary>A demo model. Without <see cref="Directory"/> its artwork comes from EncoAPI like a real connection.</summary>
     internal sealed record Entry(string Brand, string Name, string? Directory = null, string? ProfileId = null, int? ColorId = null,
-        string? Popup = null, string? PopupDark = null, string? Model = null, string? Motion = null, string? MotionDark = null);
+        string? Popup = null, string? PopupDark = null, string? Model = null, string? Motion = null, string? MotionDark = null, string? CodecScenario = null);
     internal sealed record ArtworkReport(string? Key, int? Color, bool Ok, int Files, bool FromCache, string? Failure, string[] Roles);
     private readonly App _app;
     private readonly Entry[] _entries;
@@ -107,7 +107,7 @@ internal sealed class BrandDemo
         // Prepared folders stay pinned; otherwise the normal resolver shows what EncoAPI provided.
         _app.Device.ArtworkPinned = local;
         // Demo state simulates a successful session; no Bluetooth session runs.
-        var state = CreateState(DemoDiscovery.AfterSession(profile, entry.Name), device, DateTimeOffset.UtcNow) with { ColorId = entry.ColorId };
+        var state = ApplyCodecScenario(CreateState(DemoDiscovery.AfterSession(profile, entry.Name), device, DateTimeOffset.UtcNow), entry.CodecScenario) with { ColorId = entry.ColorId };
         _app.Host.Store.Reset(state);
         _artwork = null;
         _status.Text = $"当前：{entry.Name}\n素材：{(local ? "本地素材文件夹" : "正在从 EncoAPI 拉取…")}";
@@ -174,6 +174,24 @@ internal sealed class BrandDemo
             PreferredDevice = dual ? O(new PreferredDeviceState(null)) : null,
             CustomEqualizers = Has(DeviceCapability.CustomEqualizer) && model?.CustomEqualizer is { } spec
                 ? O<IReadOnlyList<CustomEqualizer>>([DemoCustomEqualizer(spec, 1, false)]) : null,
+        };
+    }
+
+    private static DeviceState ApplyCodecScenario(DeviceState state, string? scenario)
+    {
+        Observed<T> O<T>(T value) => Observed.From(value, DateTimeOffset.UtcNow, StateSource.QueryResponse);
+        // Explicit diagnostic fixtures only. The normal application never calls BrandDemo.
+        return scenario switch
+        {
+            null => state,
+            "reported-aac" => state with { Codec = O(AudioCodec.Aac), ReportedCodecId = O((byte)2) },
+            "unknown" => state with { ReportedCodecId = O((byte)7) },
+            "le" => state with { IsLeAudio = true, LeAudioLinks = new(true, true, true, true), Codec = O(AudioCodec.Aac) },
+            "bridge-aac" => state with { Bridge = new(true, "AAC", 256, 48000, "demo"), IsLeAudio = true, Codec = O(AudioCodec.Lhdc) },
+            "bridge-unknown" => state with { Bridge = new(true, null, 256, 48000, "demo"), Codec = O(AudioCodec.Aac) },
+            "bridge-idle" => state with { Bridge = new(false, "AAC", 0, 0, "demo"), Connection = DeviceConnectionState.PairedNotConnected },
+            "disconnected" => state with { Connection = DeviceConnectionState.Disconnected, Codec = O(AudioCodec.Aac), ReportedCodecId = O((byte)2) },
+            _ => throw new InvalidDataException($"Unknown codec preview scenario: {scenario}"),
         };
     }
 
@@ -345,7 +363,7 @@ internal sealed class BrandDemo
                 await Task.Delay(400);
                 await UiSnapshot.CaptureAsync(panel, Path.Combine(output, entry.Brand + "-tray.png"));
                 panel.Close();
-                results.Add(new { entry.Brand, entry.Name, Profile = _app.Host.Store.Current.Profile?.ModelId, Ok = true, Artwork = _artwork, Home = DescribeHome(), PopupKind = DescribePopup(), Features = features, ModelBefore = modelBefore, ModelAfter = modelAfter, HomeMediaBefore = mediaBefore, HomeMedia = homeMedia, ThemeMedia = themeMedia, Popup = state });
+                results.Add(new { entry.Brand, entry.Name, Profile = _app.Host.Store.Current.Profile?.ModelId, Ok = true, Artwork = _artwork, Home = DescribeHome(), CodecKind = CodecDisplay.Resolve(_app.Host.Store.Current).Kind.ToString(), _app.Device.CodecLabel, _app.Device.CodecDescription, _app.Device.HasCodec, PopupKind = DescribePopup(), Features = features, ModelBefore = modelBefore, ModelAfter = modelAfter, HomeMediaBefore = mediaBefore, HomeMedia = homeMedia, ThemeMedia = themeMedia, Popup = state });
             }
             catch (Exception ex)
             {

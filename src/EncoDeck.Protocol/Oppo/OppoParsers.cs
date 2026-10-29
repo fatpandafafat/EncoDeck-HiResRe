@@ -106,9 +106,9 @@ public static class OppoParsers
     }
 
     /// <summary>
-    /// <c>0x8114</c>: <c>[status][codec]</c>. Status 0x00 carries the A2DP codec (1 SBC, 2 AAC, 3 LDAC,
-    /// 4 aptX, 5 aptX HD, 6 aptX Adaptive, 7/8 LHDC); another status means no Classic audio codec
-    /// (seen over LE Audio). Returns false for that and for codecs this list does not name.
+    /// <c>0x8114</c>: <c>[status][codec]</c>. Decodes the vendor's reported enum (1 SBC, 2 AAC, 3 LDAC,
+    /// 4 aptX, 5 aptX HD, 6 aptX Adaptive, 7/8 LHDC). The controller validates the model's reports;
+    /// this mapping alone does not prove a negotiated stream. Nonzero status and unknown ids fail.
     /// </summary>
     public static bool TryParseCodec(OppoFrame frame, out AudioCodec codec)
     {

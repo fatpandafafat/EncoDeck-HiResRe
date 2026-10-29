@@ -62,10 +62,12 @@ public class ControlChannelSupervisorTests
         public int Attempts;
         public ChannelOpenStatus? FailWith { get; set; }
         public FakeOppoDevice? LastDevice { get; private set; }
+        public IReadOnlyList<Guid> LastServices { get; private set; } = [];
 
         public Task<ChannelOpenResult> OpenAsync(string deviceId, IReadOnlyList<Guid> serviceUuids, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref Attempts);
+            LastServices = serviceUuids;
             if (FailWith is { } status) return Task.FromResult(ChannelOpenResult.Failed(status, "fake failure"));
             LastDevice = new FakeOppoDevice();
             return Task.FromResult(new ChannelOpenResult(ChannelOpenStatus.Opened, LastDevice.Channel, serviceUuids[0], null));
@@ -107,6 +109,98 @@ public class ControlChannelSupervisorTests
 
     private static Task WaitFor(DeviceStateStore store, DeviceConnectionState state, int timeoutMs = 3000) =>
         OppoDeviceControllerTests.WaitUntil(() => store.Current.Connection == state, timeoutMs);
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Xiaomi_UsesConnectedLeTransportBeforeClassicDiscovery(bool leAudio)
+    {
+        var link = new FakeLink(true);
+        link.SetLeAudio(leAudio);
+        var connector = new FakeConnector { FailWith = ChannelOpenStatus.ServiceNotFound };
+        var profile = EncoDeck.Protocol.Brands.Xiaomi.XiaomiDeviceProfile.Redmi;
+        var (supervisor, store) = Create(link, connector, profile);
+        await using var _ = supervisor;
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.ControlUnavailable);
+
+        var protocolServices = profile.ControlServiceUuids;
+        Assert.Equal(leAudio ? protocolServices[2] : protocolServices[0], connector.LastServices[0]);
+        Assert.Equal(protocolServices.Order(), connector.LastServices.Order());
+        Assert.Equal(1, connector.Attempts);
+    }
+
+    [Fact]
+    public async Task OnlyTheBridgeLinked_ControlRunsThroughIt()
+    {
+        var windows = new FakeLink(false);
+        var windowsConnector = new FakeConnector();
+        var bridgeConnector = new FakeConnector();
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = X4 });
+        using var link = new BridgedLinkState(windows, store, X4.DeviceId);
+        var connector = new BridgeRoutingConnector(windowsConnector, bridgeConnector, link);
+        await using var supervisor = new ControlChannelSupervisor(X4, new OppoDeviceProfile(OppoModels.EncoX4), link, connector, store, FastPolicy, linkSettleDelay: TimeSpan.FromMilliseconds(20));
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.PairedNotConnected);
+
+        // A core without RFCOMM (or still connecting) does not count as a link.
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = new BridgeAudioLink(true, "LDAC", 990, 96000, "X4") });
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = new BridgeAudioLink(false, null, 0, 0, "X4", CanCarryControl: true) });
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.False(link.IsConnected);
+        Assert.Equal(0, bridgeConnector.Attempts);
+
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = new BridgeAudioLink(true, "LDAC", 990, 96000, "X4", CanCarryControl: true) });
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        Assert.True(store.Current.LinkViaBridge);
+        Assert.Equal(1, bridgeConnector.Attempts);
+        Assert.Equal(0, windowsConnector.Attempts);
+        Assert.Equal(new OppoDeviceProfile(OppoModels.EncoX4).ControlServiceUuids, bridgeConnector.LastServices);
+
+        // The stream stops: the link is gone with it.
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = null });
+        await WaitFor(store, DeviceConnectionState.Disconnected);
+        Assert.False(store.Current.LinkViaBridge);
+        Assert.Null(supervisor.Controller);
+
+        // Windows' link is preferred while it is up.
+        windows.Set(true);
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = new BridgeAudioLink(true, "LDAC", 990, 96000, "X4", CanCarryControl: true) });
+        await Task.Delay(100, TestContext.Current.CancellationToken);
+        Assert.Equal(1, windowsConnector.Attempts);
+        Assert.Equal(1, bridgeConnector.Attempts);
+        Assert.False(store.Current.LinkViaBridge);
+    }
+
+    [Fact]
+    public async Task NoWindowsRadio_ControlStillRunsThroughTheBridge()
+    {
+        // A2DPWB took the only adapter over: Windows cannot open the earbuds at all (0x800710DF).
+        var bridgeConnector = new FakeConnector();
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = X4, Connection = DeviceConnectionState.PairedNotConnected });
+        // Already streaming when EncoDeck selects the earbuds.
+        store.TryUpdate(X4.DeviceId, s => s with { Bridge = new BridgeAudioLink(true, "LHDC V5", 500, 48000, "X4", CanCarryControl: true) });
+        using var link = new BridgedLinkState(new NoWindowsLink(), store, X4.DeviceId);
+        var connector = new BridgeRoutingConnector(new FakeConnector(), bridgeConnector, link);
+        await using var supervisor = new ControlChannelSupervisor(X4, new OppoDeviceProfile(OppoModels.EncoX4), link, connector, store, FastPolicy, linkSettleDelay: TimeSpan.FromMilliseconds(20));
+        supervisor.Start();
+
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        Assert.True(store.Current.LinkViaBridge);
+        Assert.Equal(1, bridgeConnector.Attempts);
+    }
+
+    [Fact]
+    public void OnlyRfcommServicesGoThroughTheBridge()
+    {
+        Assert.True(EncoDeck.Bluetooth.Rfcomm.RfcommChannelConnector.IsRfcommService(OppoServiceUuids.Primary));
+        Assert.False(EncoDeck.Bluetooth.Rfcomm.RfcommChannelConnector.IsRfcommService(EncoDeck.Protocol.Brands.Sennheiser.SennheiserProfile.GattServiceId));
+        Assert.False(EncoDeck.Bluetooth.Rfcomm.RfcommChannelConnector.IsRfcommService(EncoDeck.Protocol.Brands.Moondrop.MoondropConstants.GattServiceId));
+        Assert.True(EncoDeck.Bluetooth.Rfcomm.RfcommChannelConnector.IsRfcommService(EncoDeck.Protocol.Brands.Moondrop.MoondropConstants.SppServiceId));
+    }
 
     [Fact]
     public async Task LinkAlreadyUp_ConnectsToReady()
@@ -378,6 +472,37 @@ public class ControlChannelSupervisorTests
         await supervisor.DisposeAsync();
         Assert.True(connector.LastDevice!.Channel.IsDisposed);
         Assert.Null(supervisor.Controller);
+    }
+
+    [Fact]
+    public async Task LinkDrop_ClearsCodecReportBeforeReconnect()
+    {
+        var link = new FakeLink(true);
+        var (supervisor, store) = Create(link, new FakeConnector());
+        await using var _ = supervisor;
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        Assert.NotNull(store.Current.Codec);
+        link.Set(false);
+        await WaitFor(store, DeviceConnectionState.Disconnected);
+        Assert.Null(store.Current.Codec);
+        Assert.Null(store.Current.ReportedCodecId);
+    }
+
+    [Fact]
+    public async Task TransportSwitch_ClearsClassicCodecInTheTransportSnapshot()
+    {
+        var link = new FakeLink(true);
+        var (supervisor, store) = Create(link, new FakeConnector());
+        await using var _ = supervisor;
+        supervisor.Start();
+        await WaitFor(store, DeviceConnectionState.ControlReady);
+        DeviceState? switched = null;
+        store.StateChanged += (_, e) => { if (!e.Previous.IsLeAudio && e.Current.IsLeAudio) switched = e.Current; };
+        link.SetLeAudio(true);
+        Assert.NotNull(switched);
+        Assert.Null(switched.Codec);
+        Assert.Null(switched.ReportedCodecId);
     }
 
     [Fact]

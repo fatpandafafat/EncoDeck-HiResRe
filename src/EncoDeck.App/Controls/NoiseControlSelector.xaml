@@ -6,27 +6,27 @@
     <StackPanel Spacing="8">
         <Grid x:Name="ModeGrid" ColumnSpacing="8">
             <ToggleButton x:Name="AncButton" Style="{StaticResource SegmentToggleStyle}" Click="OnModeClick" Tag="NoiseCancellation">
-                <StackPanel Spacing="4">
+                <StackPanel Spacing="4" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE7F6;" FontSize="18" />
-                    <TextBlock x:Uid="NoiseSelector_Anc" Text="Noise cancelling" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="AncLabel" x:Uid="NoiseSelector_Anc" Text="Noise cancelling" Style="{StaticResource SegmentLabelStyle}" />
                 </StackPanel>
             </ToggleButton>
             <ToggleButton x:Name="AdaptiveButton" Style="{StaticResource SegmentToggleStyle}" Click="OnModeClick" Tag="Adaptive">
-                <StackPanel Spacing="4">
+                <StackPanel Spacing="4" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE945;" FontSize="18" />
-                    <TextBlock x:Uid="NoiseSelector_Adaptive" Text="Adaptive" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="AdaptiveLabel" x:Uid="NoiseSelector_Adaptive" Text="Adaptive" Style="{StaticResource SegmentLabelStyle}" />
                 </StackPanel>
             </ToggleButton>
             <ToggleButton x:Name="TransparencyButton" Style="{StaticResource SegmentToggleStyle}" Click="OnModeClick" Tag="Transparency">
-                <StackPanel Spacing="4">
+                <StackPanel Spacing="4" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE767;" FontSize="18" />
-                    <TextBlock x:Uid="NoiseSelector_Transparency" Text="Transparency" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="TransparencyLabel" x:Uid="NoiseSelector_Transparency" Text="Transparency" Style="{StaticResource SegmentLabelStyle}" />
                 </StackPanel>
             </ToggleButton>
             <ToggleButton x:Name="OffButton" Style="{StaticResource SegmentToggleStyle}" Click="OnModeClick" Tag="Off">
-                <StackPanel Spacing="4">
+                <StackPanel Spacing="4" VerticalAlignment="Center">
                     <FontIcon Glyph="&#xE733;" FontSize="18" />
-                    <TextBlock x:Uid="NoiseSelector_Off" Text="Off" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="OffLabel" x:Uid="NoiseSelector_Off" Text="Off" Style="{StaticResource SegmentLabelStyle}" />
                 </StackPanel>
             </ToggleButton>
         </Grid>

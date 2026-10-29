@@ -22,20 +22,41 @@ internal static class LeAudioCommand
         if (device is null) return 3;
         void Log(string message) => Console.WriteLine($"{DateTimeOffset.Now:HH:mm:ss.fff} {message}");
         Log($"Target: {device.Name}; audio codec/CIS streaming cannot be verified from ACL state.");
-        if (options.Has("pair"))
+        using var loggers = LoggerFactory.Create(b => b.AddSimpleConsole(o =>
+        {
+            o.SingleLine = true;
+            o.TimestampFormat = "HH:mm:ss.fff ";
+        }).SetMinimumLevel(LogLevel.Information));
+        if (options.Has("pair") || options.Has("restore"))
         {
             if (!options.Has("confirm-write"))
             {
-                Console.Error.WriteLine("Replacing this PC's pairings requires --pair --confirm-write.");
+                Console.Error.WriteLine("Replacing this PC's pairings requires --pair or --restore with --confirm-write.");
                 return 2;
             }
-            var result = await LeAudioPairing.SwitchToLeAudioAsync(device.Address.Value, new Stages(Log), ct,
-                disableMultipoint: token => DisableMultipointAsync(device, token),
-                useSetPairing: !options.Has("legacy-pairing"), diagnosticLog: Log);
-            Log($"Pair result: {result.Outcome}; {result.Detail}");
-            if (result.AudioEndpoint is { } endpoint)
-                Log($"Endpoint: {endpoint.State}; activeLeRender={endpoint.LeAudioRenderPresent}; residualClassic={endpoint.HasResidualClassicAudio}; {endpoint.Detail}");
-            if (result.Outcome is not (LeAudioPairingOutcome.Paired or LeAudioPairingOutcome.PairedWaitingForLinks)) return 5;
+            // One control runtime for the whole switch, like the app: it carries the Classic prerequisites
+            // and reopens over GATT once the primary's LE bond exists.
+            await using (var control = await TargetRuntime.CreateAsync(device, loggers, ct))
+            {
+                if (control is null) return 4;
+                control.Supervisor.Start();
+                if (options.Has("restore"))
+                {
+                    var removed = await LeAudioPairing.RemoveLeAudioAsync(device.Address.Value, new Stages(Log), ct,
+                        (on, token) => WithControllerAsync(control, c => c.SetLeBrSwitchAsync(on, token)));
+                    Log($"Restore result: {removed.Outcome}; {removed.Detail}. Pair the earbuds again in Windows Settings.");
+                    return removed.Outcome == LeAudioPairingOutcome.Removed ? 0 : 5;
+                }
+                var result = await LeAudioPairing.SwitchToLeAudioAsync(device.Address.Value, new Stages(Log), ct,
+                    (on, token) => WithControllerAsync(control, c => c.SetLeBrSwitchAsync(on, token)),
+                    token => DisableMultipointAsync(control, token),
+                    useSetPairing: !options.Has("legacy-pairing"), diagnosticLog: Log,
+                    reportLeTransport: token => WithControllerAsync(control, c => c.ReportLeAudioTransportAsync(token)));
+                Log($"Pair result: {result.Outcome}; {result.Detail}");
+                if (result.AudioEndpoint is { } endpoint)
+                    Log($"Endpoint: {endpoint.State}; activeLeRender={endpoint.LeAudioRenderPresent}; residualClassic={endpoint.HasResidualClassicAudio}; {endpoint.Detail}");
+                if (result.Outcome is not (LeAudioPairingOutcome.Paired or LeAudioPairingOutcome.PairedWaitingForLinks)) return 5;
+            }
         }
         if (!await LeAudioLink.IsBondedAsync(device.Address.Value, ct))
         {
@@ -43,11 +64,6 @@ internal static class LeAudioCommand
             return 4;
         }
         LeAudioLink.MarkPreferred(device.Address.Value);
-        using var loggers = LoggerFactory.Create(b => b.AddSimpleConsole(o =>
-        {
-            o.SingleLine = true;
-            o.TimestampFormat = "HH:mm:ss.fff ";
-        }).SetMinimumLevel(LogLevel.Information));
         await using var runtime = await TargetRuntime.CreateAsync(device, loggers, ct);
         if (runtime is null) return 4;
         var store = runtime.Store;
@@ -81,26 +97,31 @@ internal static class LeAudioCommand
         }
         var device = await DeviceSelector.SelectAsync(new BluetoothDeviceCatalog(), options, ct);
         if (device is null) return 3;
-        var result = await DisableMultipointAsync(device, ct);
+        CommandResult result;
+        await using (var runtime = await TargetRuntime.CreateAsync(device, null, ct))
+        {
+            if (runtime is null) return 4;
+            runtime.Supervisor.Start();
+            result = await DisableMultipointAsync(runtime, ct);
+        }
         Console.WriteLine($"Multipoint off, device read-back confirmed={result.IsSuccess}; result={result}");
         return result.IsSuccess ? 0 : 5;
     }
 
-    private static async Task<CommandResult> DisableMultipointAsync(PairedDeviceInfo device, CancellationToken ct)
+    private static async Task<CommandResult> DisableMultipointAsync(TargetRuntime runtime, CancellationToken ct)
     {
         Console.WriteLine("Waiting up to 60 seconds for earbud control, then turning multipoint off with device read-back.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(60));
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(object? sender, DeviceStateChangedEventArgs e)
+        {
+            if (e.Current.Connection == DeviceConnectionState.ControlReady) ready.TrySetResult();
+        }
+        runtime.Store.StateChanged += OnChanged;
         try
         {
-            await using var runtime = await TargetRuntime.CreateAsync(device, null, timeout.Token);
-            if (runtime is null) return CommandResult.NotConnected;
-            runtime.Store.StateChanged += (_, e) =>
-            {
-                if (e.Current.Device?.DeviceId == device.DeviceId && e.Current.Connection == DeviceConnectionState.ControlReady) ready.TrySetResult();
-            };
-            runtime.Supervisor.Start();
+            if (runtime.Store.Current.Connection == DeviceConnectionState.ControlReady) ready.TrySetResult();
             await ready.Task.WaitAsync(timeout.Token);
             // The controller writes SetFeature and verifies QueryFeatureStatus; no cached-state shortcut.
             return runtime.Supervisor.Controller is { } controller
@@ -111,7 +132,12 @@ internal static class LeAudioCommand
         {
             return new(CommandStatus.Timeout, "Could not confirm multipoint off; restore the control connection and retry.");
         }
+        finally { runtime.Store.StateChanged -= OnChanged; }
     }
+
+    /// <summary>Runs a command on the current controller; NotConnected while control is down (callers retry).</summary>
+    private static Task<CommandResult> WithControllerAsync(TargetRuntime runtime, Func<IDeviceController, Task<CommandResult>> action) =>
+        runtime.Supervisor.Controller is { } controller ? action(controller) : Task.FromResult(CommandResult.NotConnected);
 
     /// <summary>A diagnostic command never follows the app's newest-connected-device selection.</summary>
     private sealed class TargetRuntime(BluetoothLinkMonitor link, ControlChannelSupervisor supervisor, DeviceStateStore store) : IAsyncDisposable

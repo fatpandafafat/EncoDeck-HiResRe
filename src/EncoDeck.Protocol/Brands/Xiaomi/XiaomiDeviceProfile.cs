@@ -155,7 +155,7 @@ public sealed class XiaomiDeviceProfile : IControllableProfile, IBrandGesturePro
     public IReadOnlyList<EqualizerPreset> EqualizerPresets => !HasEqualizer ? [] :
         _model!.Equalizers.Where(n => n != XiaomiCustomCurve.PresetId).Select(n => new EqualizerPreset($"xiaomi-{n}", $"EQ {n}", $"Xiaomi_Eq_{n}", CapabilitySupport.Supported)).ToArray();
 
-    public IReadOnlyList<Guid> ControlServiceUuids { get; } = [XiaomiProtocol.FastConnectSppUuid, XiaomiProtocol.XiaoAiSppUuid];
+    public IReadOnlyList<Guid> ControlServiceUuids { get; } = [XiaomiProtocol.FastConnectSppUuid, XiaomiProtocol.XiaoAiSppUuid, XiaomiProtocol.MmaGattServiceUuid];
 
     public int MatchScore(DeviceIdentity identity) =>
         Matches(identity.Name) ? _score : 0;

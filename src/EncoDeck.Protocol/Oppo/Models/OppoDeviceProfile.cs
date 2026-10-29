@@ -67,6 +67,7 @@ public sealed class OppoDeviceProfile(OppoModelDefinition definition) : IControl
         {
             OwnsSession = true,
             KeepAliveInterval = channel.KeepAliveInterval,
+            IsLeAudioTransport = channel.IsLeAudioTransport,
         };
     }
 

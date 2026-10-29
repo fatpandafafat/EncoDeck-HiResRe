@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="EncoDeck.Tests" />
+    <InternalsVisibleTo Include="EncoDeck.Probe" />
   </ItemGroup>
 </Project>

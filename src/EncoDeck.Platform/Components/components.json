@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "components": [
+    {
+      "id": "lhdc",
+      "version": "0.8.8-r1",
+      "tag": "lhdc-v0.8.8-r1",
+      "interface": 1,
+      "minApp": "1.11.0",
+      "source": {
+        "repository": "https://github.com/Wayne-u/LHDC-Win",
+        "commit": "b3da30e72f5a43c634383f81b95b8ab0dd1f8f88",
+        "release": "0.8.8"
+      },
+      "packages": [
+        {
+          "architecture": "x64",
+          "file": "EncoDeck-LHDC-0.8.8-r1-win-x64.zip",
+          "size": 124325622,
+          "sha256": "09873728410277e660b8d51f0d853b972266bcfc5ecbc1fd7ed512fe100b0e73"
+        }
+      ]
+    },
+    {
+      "id": "a2dpwb",
+      "version": "2.0.2-beta.10-r1",
+      "tag": "a2dpwb-v2.0.2-beta.10-r1",
+      "interface": 1,
+      "minApp": "1.11.0",
+      "source": {
+        "repository": "https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge",
+        "commit": "720762d49c40440de4c49e8160105c416951543b",
+        "release": "v2.0.2-beta.10"
+      },
+      "packages": [
+        {
+          "architecture": "x64",
+          "file": "A2DPWB-2.0.2-beta.10-win64-portable.zip",
+          "size": 11728642,
+          "sha256": "d17f0ec6f16d75ea611d65341e3fa7385620b99ab39cea6b4cdb32803f63b276",
+          "root": "A2DPWB-2.0.2-beta.10",
+          "mirrors": [
+            "https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge/releases/download/v2.0.2-beta.10/A2DPWB-2.0.2-beta.10-win64-portable.zip"
+          ]
+        },
+        {
+          "architecture": "arm64",
+          "file": "A2DPWB-2.0.2-beta.10-arm64-portable.zip",
+          "size": 10988838,
+          "sha256": "4d1e79a5902f607b89d995ff4c766e28c37b54a588695df3a0c4b512e95c0c63",
+          "root": "A2DPWB-2.0.2-beta.10",
+          "mirrors": [
+            "https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge/releases/download/v2.0.2-beta.10/A2DPWB-2.0.2-beta.10-arm64-portable.zip"
+          ]
+        }
+      ]
+    }
+  ]
+}

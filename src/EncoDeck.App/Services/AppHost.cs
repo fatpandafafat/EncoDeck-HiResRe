@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using EncoDeck.Bluetooth;
+using EncoDeck.Bluetooth.Discovery;
 using EncoDeck.Bluetooth.Rfcomm;
 using EncoDeck.Core.Notifications;
 using EncoDeck.Core.Profiles;
 using EncoDeck.Core.State;
+using EncoDeck.Platform.A2dpBridge;
 using EncoDeck.Platform.Cache;
 using EncoDeck.Platform.Logging;
 using EncoDeck.Platform.Packaging;
@@ -34,6 +36,15 @@ public sealed class AppHost : IAsyncDisposable
             new GitHubUpdateClient(new HttpClient(), paths.UpdatesDirectory, SemanticVersion.FromAssembly(typeof(AppHost).Assembly)),
             settings, Path.Combine(paths.UpdatesDirectory, "last-check.txt"), loggers.CreateLogger<UpdateManager>());
         StoreUpdates = new StoreUpdateService(loggers.CreateLogger<StoreUpdateService>());
+        Bridge = new A2dpBridgeCompanion(Path.Combine(paths.Root, "Components"), store, settings, loggers.CreateLogger<A2dpBridgeCompanion>());
+        if (devices is DeviceManager manager)
+        {
+            manager.BridgeConnector = new A2dpBridgeChannelConnector(() => Bridge.Monitor, loggers.CreateLogger<A2dpBridgeChannelConnector>());
+            // Earbuds paired with the bridge's adapter alone are unknown to Windows: list them from the bridge's profiles.
+            var bridge = Bridge;
+            bridge.Changed += (_, _) => manager.SetBridgeDevices(BridgeDeviceMatch.Devices(bridge.Status)
+                .Select(d => new PairedDevice(d.Identity, d.IsStreaming, PairedDevice.AudioVideoMajorClass)).ToArray());
+        }
         Paths = paths;
         FileLog = fileLog;
         Loggers = loggers;
@@ -67,6 +78,9 @@ public sealed class AppHost : IAsyncDisposable
 
     /// <summary>Store updates for the MSIX build (see <see cref="PackageIdentity"/>).</summary>
     public StoreUpdateService StoreUpdates { get; }
+
+    /// <summary>A2DP Windows Bridge: the optional component, its core and the "connected through the bridge" state.</summary>
+    public A2dpBridgeCompanion Bridge { get; internal set; }
 
     public StartupRegistration Startup { get; } = new();
 
@@ -125,6 +139,7 @@ public sealed class AppHost : IAsyncDisposable
         Resources.StartWatching();
         ResourceSync.Start();
         Devices.Start();
+        Bridge.Start();
         // The Store updates the MSIX build; GitHub Releases are for the installer build only.
         if (!PackageIdentity.IsPackaged) Updates.Start();
     }
@@ -132,6 +147,7 @@ public sealed class AppHost : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await Devices.DisposeAsync();
+        await Bridge.DisposeAsync();
         await ResourceSync.DisposeAsync();
         await Updates.DisposeAsync();
         ResourceClient.Dispose();

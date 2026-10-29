@@ -23,6 +23,7 @@ public sealed partial class TrayPanelWindow : Window
     public TrayPanelWindow()
     {
         InitializeComponent();
+        Loc.ApplyLanguage(this);
         WindowInterop.MakeFlyout(this, noActivate: false);
         Activated += OnActivated;
         ContentPanel.OpenAppRequested += OnOpenApp;

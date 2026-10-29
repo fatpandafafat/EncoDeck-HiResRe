@@ -59,6 +59,7 @@ public sealed partial class ConnectionPopupWindow : Window
     private string? _packRoot;
     private SilentVideoPresenter? _video;
     private PopupBatteryArrangement? _arrangement;
+    private DeviceModelView? _foreground;
     private DispatcherQueueTimer? _closeTimer;
     private readonly List<DispatcherQueueTimer> _stepTimers = [];
     private DispatcherQueueTimer? _guardTimer;
@@ -84,6 +85,7 @@ public sealed partial class ConnectionPopupWindow : Window
         _animate = ShellEnvironment.AnimationsEnabled();
         _passThrough = passThrough;
         InitializeComponent();
+        Loc.ApplyLanguage(this);
         // A Window's x:Bind bindings start on Activated, which never fires for a non-activating
         // pop-up: initialise them here, or every bound value (name, levels) stays empty.
         Bindings.Initialize();
@@ -122,7 +124,7 @@ public sealed partial class ConnectionPopupWindow : Window
     internal string DiagnosticState =>
         $"video={_videoPath is not null} pipeline={_video?.Player?.Pipeline} size={_video?.Player?.Width}x{_video?.Player?.Height} " +
         $"frames={_video?.Player?.FramesPublished} last={_video?.Player?.LastFrameTime?.TotalMilliseconds} holding={_video?.Player?.IsHolding} " +
-        $"headphones={_headphones} headphoneMedia=[{HeadphonePicture.DiagnosticState}] huawei={_huawei} pick={_huaweiPick} huaweiMedia=[{HuaweiPicture.DiagnosticState}] style={_layout.BatteryStyle} videoVisible={_arrangement?.VideoVisible} images={_arrangement?.ImagesVisible} " +
+        $"headphones={_headphones} headphoneMedia=[{HeadphonePicture.DiagnosticState}] huawei={_huawei} pick={_huaweiPick} huaweiMedia=[{HuaweiPicture.DiagnosticState}] style={_layout.BatteryStyle} videoVisible={_arrangement?.VideoVisible} images={_arrangement?.ImagesVisible} foreground=[{_foreground?.DiagnosticState ?? "-"}] " +
         $"groups=[{string.Join("; ", _arrangement?.Groups.Select(g => $"{g.Group}:{g.Image}:{string.Join(",", g.Slots.Select(x => $"{x.Slot}={x.Battery}"))}") ?? [])}] " +
         $"column=[{string.Join(",", _arrangement?.Column ?? [])}] title={(TitleText.Visibility == Visibility.Visible ? TitleText.Text : "-")} shown={_shown:0.##} dialog={Scaled.Height:0.#} compact={Picture.DiagnosticState} topmost={WindowInterop.IsTopmost(this)} bounds={_bounds}";
 
@@ -529,13 +531,20 @@ public sealed partial class ConnectionPopupWindow : Window
     }
 
     private static bool SameImages(PopupBatteryArrangement a, PopupBatteryArrangement b) =>
-        a.ImagesVisible == b.ImagesVisible && a.Groups.Select(g => (g.Group, g.Image)).SequenceEqual(b.Groups.Select(g => (g.Group, g.Image)));
+        a.ImagesVisible == b.ImagesVisible && a.ForegroundVisible == b.ForegroundVisible
+        && a.Groups.Select(g => (g.Group, g.Image)).SequenceEqual(b.Groups.Select(g => (g.Group, g.Image)));
 
-    /// <summary>The stand-in pictures (earbuds / case) above the levels when the video is not shown.</summary>
+    /// <summary>
+    /// The stand-in pictures (earbuds / case) above the levels when the video is not shown, or the
+    /// pack's foreground animation. Both enter together after <c>resShowDelay</c>.
+    /// </summary>
     private void BuildImages(PopupBatteryArrangement arrangement)
     {
         ImageLayer.Children.Clear();
-        if (!arrangement.ImagesVisible || _packRoot is null) return;
+        _foreground = null;
+        if (_packRoot is null) return;
+        if (arrangement.ForegroundVisible) AddForeground();
+        if (!arrangement.ImagesVisible) return;
         foreach (var group in arrangement.Groups)
         {
             string? relative = group.Image switch
@@ -559,6 +568,33 @@ public sealed partial class ConnectionPopupWindow : Window
             host.Children.Add(image);
             ImageLayer.Children.Add(host);
         }
+    }
+
+    /// <summary>
+    /// The foreground animation (an animated WebP, looping at its own timing) in its band above the
+    /// levels. It stays invisible until the file has loaded as an animation, so
+    /// neither the generic illustration nor an empty band ever shows.
+    /// </summary>
+    private void AddForeground()
+    {
+        if (_layout.ForegroundAnimation is not { } relative) return;
+        string file = Path.GetFullPath(Path.Combine(_packRoot!, relative));
+        if (!file.StartsWith(_packRoot!, StringComparison.OrdinalIgnoreCase) || !File.Exists(file)) return;
+        var rect = PopupLayout.ForegroundRect;
+        var foreground = new DeviceModelView
+        {
+            Width = rect.Width,
+            Height = rect.Height,
+            Opacity = 0,
+            IsHitTestVisible = false,
+            IsTabStop = false,
+        };
+        foreground.ModelAvailabilityChanged += (_, available) => foreground.Opacity = available ? 1 : 0;
+        Canvas.SetLeft(foreground, rect.X);
+        Canvas.SetTop(foreground, rect.Y);
+        foreground.ModelPath = file;
+        ImageLayer.Children.Add(foreground);
+        _foreground = foreground;
     }
 
     /// <summary>

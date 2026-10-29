@@ -21,12 +21,15 @@ public class OppoDeviceControllerTests
         public OppoDeviceController Controller { get; }
         public bool AllowExperimental { get; set; }
 
-        public Harness(OppoModelDefinition? model = null)
+        public Harness(OppoModelDefinition? model = null, bool leAudioTransport = false)
         {
             Store.Reset(DeviceState.Empty with { Device = X4, Connection = DeviceConnectionState.ControlConnecting });
             Session = new OppoSession(Device.Channel);
             Session.Start();
-            Controller = new OppoDeviceController(Session, new OppoDeviceProfile(model ?? OppoModels.EncoX4), X4, Store, () => AllowExperimental);
+            Controller = new OppoDeviceController(Session, new OppoDeviceProfile(model ?? OppoModels.EncoX4), X4, Store, () => AllowExperimental)
+            {
+                IsLeAudioTransport = leAudioTransport,
+            };
         }
 
         public async ValueTask DisposeAsync()
@@ -37,6 +40,47 @@ public class OppoDeviceControllerTests
     }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    /// <summary>The X4 bitmap without bit 64 (0x0136/0x0433), as the Enco X3 reports it.</summary>
+    private static readonly byte[] CapabilitiesWithoutLeBrSwitch = Convert.FromHexString("FF775AEEEE8FA65F1600000000000000");
+
+    private static bool SentLeAudioTransport(FakeOppoDevice device)
+    {
+        lock (device.Received)
+            return device.Received.Any(f => f.Command == OppoCommand.SetFeature && f.Payload.AsSpan().SequenceEqual(new byte[] { 0x1F, 0x01 }));
+    }
+
+    [Fact]
+    public async Task Initialize_OverLeAudio_WithoutLeBrSwitch_ReportsLeTransport()
+    {
+        await using var h = new Harness(leAudioTransport: true);
+        h.Device.Capabilities = CapabilitiesWithoutLeBrSwitch;
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        Assert.True(SentLeAudioTransport(h.Device));
+    }
+
+    [Theory]
+    [InlineData(true, false)]   // X4: has the LE/BR switch, verified without feature 0x1F
+    [InlineData(false, true)]   // Classic link: the transport is not LE
+    public async Task Initialize_DoesNotReportLeTransport_OnClassicOrWithLeBrSwitch(bool leAudioTransport, bool withoutLeBrSwitch)
+    {
+        await using var h = new Harness(leAudioTransport: leAudioTransport);
+        if (withoutLeBrSwitch) h.Device.Capabilities = CapabilitiesWithoutLeBrSwitch;
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        Assert.False(SentLeAudioTransport(h.Device));
+    }
+
+    [Theory]
+    [InlineData(true, true, CommandStatus.Success)]
+    [InlineData(true, false, CommandStatus.Unsupported)]  // X4: the LE/BR switch replaces 0x1F
+    [InlineData(false, true, CommandStatus.NotConnected)] // control still on Classic
+    public async Task ReportLeAudioTransport_AnswersByTransportAndFirmware(bool leAudioTransport, bool withoutLeBrSwitch, CommandStatus expected)
+    {
+        await using var h = new Harness(leAudioTransport: leAudioTransport);
+        if (withoutLeBrSwitch) h.Device.Capabilities = CapabilitiesWithoutLeBrSwitch;
+        Assert.True(await h.Controller.InitializeAsync(Ct));
+        Assert.Equal(expected, (await h.Controller.ReportLeAudioTransportAsync(Ct)).Status);
+    }
 
     [Fact]
     public async Task Initialize_PopulatesStateFromDevice()

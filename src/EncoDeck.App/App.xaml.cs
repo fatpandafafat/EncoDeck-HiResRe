@@ -149,7 +149,12 @@ public partial class App : Application
             string? artworkDirectory = artworkArg >= 0 && artworkArg + 1 < commandLine.Length ? commandLine[artworkArg + 1] : null;
             int profileArg = Array.FindIndex(commandLine, a => string.Equals(a, "--profile", StringComparison.OrdinalIgnoreCase));
             string? profileId = profileArg >= 0 && profileArg + 1 < commandLine.Length ? commandLine[profileArg + 1] : null;
-            _ = UiSnapshot.RunAsync(this, outDir, _dispatcher, modelFile, artworkDirectory, profileId).ContinueWith(
+            int bridgeArg = Array.FindIndex(commandLine, a => string.Equals(a, "--bridge-instance", StringComparison.OrdinalIgnoreCase));
+            string? bridgeInstance = bridgeArg >= 0 && bridgeArg + 1 < commandLine.Length ? commandLine[bridgeArg + 1] : null;
+            // --language ja-JP: render in that UI language (a normal start re-applies the user's setting).
+            int languageArg = Array.FindIndex(commandLine, a => string.Equals(a, "--language", StringComparison.OrdinalIgnoreCase));
+            if (languageArg >= 0 && languageArg + 1 < commandLine.Length) ApplyLanguage(commandLine[languageArg + 1]);
+            _ = UiSnapshot.RunAsync(this, outDir, _dispatcher, modelFile, artworkDirectory, profileId, bridgeInstance).ContinueWith(
                 t =>
                 {
                     if (t.Exception is { } ex) File.WriteAllText(Path.Combine(outDir, "fatal.txt"), ex.ToString());

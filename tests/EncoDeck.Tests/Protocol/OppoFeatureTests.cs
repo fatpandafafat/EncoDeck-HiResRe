@@ -26,12 +26,12 @@ public class OppoFeatureTests
         public OppoSession Session { get; }
         public OppoDeviceController Controller { get; }
 
-        public Harness(OppoModelDefinition? model = null)
+        public Harness(OppoModelDefinition? model = null, TimeProvider? time = null)
         {
             Store.Reset(DeviceState.Empty with { Device = X4, Connection = DeviceConnectionState.ControlConnecting });
             Session = new OppoSession(Device.Channel);
             Session.Start();
-            Controller = new OppoDeviceController(Session, new OppoDeviceProfile(model ?? OppoModels.EncoX4), X4, Store);
+            Controller = new OppoDeviceController(Session, new OppoDeviceProfile(model ?? OppoModels.EncoX4), X4, Store, time: time);
         }
 
         public DeviceState State => Store.Current;
@@ -49,9 +49,9 @@ public class OppoFeatureTests
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private static async Task<Harness> StartAsync(Action<FakeOppoDevice>? configure = null)
+    private static async Task<Harness> StartAsync(Action<FakeOppoDevice>? configure = null, TimeProvider? time = null)
     {
-        var h = new Harness();
+        var h = new Harness(time: time);
         configure?.Invoke(h.Device);
         Assert.True(await h.Controller.InitializeAsync(Ct));
         return h;
@@ -326,9 +326,19 @@ public class OppoFeatureTests
     }
 
     [Fact]
+    public async Task MultiConnect_ConnectWaitsWhileTheEarbudsPageThePhone()
+    {
+        // Seen on an Enco X4: the phone connected about 4 s after the acknowledgement, past the usual settle reads.
+        await using var h = await StartAsync(d => d.ConnectSettleQueries = 5, new FastTimeProvider(20));
+        Assert.True((await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct)).IsSuccess);
+        Assert.True(h.State.SourceDevices!.Value.Single(d => d.Name == "Phone").IsConnected);
+        Assert.False(h.State.IsPending("multi-connect"));
+    }
+
+    [Fact]
     public async Task MultiConnect_AcknowledgementWithoutStateChangeIsNotSuccess()
     {
-        await using var h = await StartAsync();
+        await using var h = await StartAsync(time: new FastTimeProvider(20));
         h.Device.ApplySets = false;
         var result = await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct);
         Assert.Equal(CommandStatus.Rejected, result.Status);
@@ -504,4 +514,13 @@ public class OppoFeatureTests
         Assert.Equal(CommandStatus.Unsupported, (await h.Controller.MultiConnectAsync(MultiConnectOperation.Connect, PhoneAddress, Ct)).Status);
         Assert.DoesNotContain(h.Device.Received, f => f.Command is OppoCommand.SetSpatialAudio or OppoCommand.FindEarbuds or OppoCommand.FitTest);
     }
+}
+
+/// <summary>The system clock with timers <paramref name="factor"/> times faster: long settle waits without slow tests.</summary>
+internal sealed class FastTimeProvider(int factor) : TimeProvider
+{
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+        System.CreateTimer(callback, state, Scale(dueTime), Scale(period));
+
+    private TimeSpan Scale(TimeSpan span) => span <= TimeSpan.Zero ? span : span / factor;
 }

@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TIANLI0/EncoDeck/releases">Download installer</a> ·
+  <a href="https://github.com/TIANLI0/EncoDeck/releases/latest">Download installer</a> ·
   <a href="README.md">简体中文</a> ·
   <a href="docs/COMPATIBILITY.md">Compatibility</a> ·
   <a href="docs/DEVELOPMENT.md">Development</a>
@@ -143,6 +143,14 @@ Before using it, **pair and connect your earbuds in Windows Bluetooth settings**
 The non-Store x64 build can optionally integrate [LHDC-Win](https://github.com/Wayne-u/LHDC-Win). After downloading the separate component from the Labs page, you can pick an audio device, set playback parameters, and try enabling LHDC or restoring the original Windows audio configuration.
 
 This is not a regular earbud control feature: it involves test-signed drivers, admin rights and system audio configuration, and requires Windows 11 22H2+, x64 and earbuds that support LHDC V5. **The Store version doesn't support it, and real-world playback compatibility is still unverified on hardware.** EncoDeck never changes Secure Boot or system test mode on its own. Read the [LHDC guide and recovery steps](docs/LHDC.md) before trying it.
+
+### A2DP Bridge (optional / experimental)
+
+The non-Store build can download and manage [A2DP Windows Bridge](https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge) from the Labs page: it takes over a **dedicated USB Bluetooth adapter** and sends audio in LDAC, LHDC V5, aptX HD and more, without test-signed drivers. EncoDeck downloads it (an unmodified copy of the official build), starts its background process, connects and disconnects, sets the volume, manages the adapter's driver, and recognizes earbuds connected through it on the home page.
+
+It needs a second USB Bluetooth adapter; while the earbuds are connected only through the bridge, Windows cannot see them, so battery and earbud settings are unavailable (earbuds with dual-device connection can also connect to the PC's Bluetooth). The Store version only connects to an A2DP Windows Bridge you installed and started yourself. See the [A2DP Bridge guide](docs/A2DP_BRIDGE.md).
+
+The LHDC and A2DP Bridge components have their own releases, so updating EncoDeck does not download them again; each can be checked for updates, updated and uninstalled from the Labs page, and every download is verified by size and SHA-256.
 
 ## Building
 

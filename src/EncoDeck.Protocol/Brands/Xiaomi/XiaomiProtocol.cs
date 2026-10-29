@@ -18,6 +18,17 @@ public static class XiaomiProtocol
     /// <summary>XIAOAI SPP service (non-standard base <c>…008584D01810</c>), the older fallback.</summary>
     public static readonly Guid XiaoAiSppUuid = new("00001101-0000-1000-8000-008584D01810");
 
+    /// <summary>
+    /// The same frames over BLE GATT (service <c>0xAF00</c>, written on <c>0xAF07</c>, answered on
+    /// <c>0xAF08</c>), as redmi-buds-bar documents for the REDMI Buds 8 Pro. Its LE Audio endpoint needs
+    /// no auth. Used when SPP cannot open, e.g. one earbud worn on LE Audio without a Classic link.
+    /// </summary>
+    public static readonly Guid MmaGattServiceUuid = new("0000AF00-0000-1000-8000-00805F9B34FB");
+
+    public static readonly Guid MmaGattWriteUuid = new("0000AF07-0000-1000-8000-00805F9B34FB");
+
+    public static readonly Guid MmaGattNotifyUuid = new("0000AF08-0000-1000-8000-00805F9B34FB");
+
     /// <summary>Type byte of phone requests that expect a reply.</summary>
     public const byte KindRequest = 0xC4;
 

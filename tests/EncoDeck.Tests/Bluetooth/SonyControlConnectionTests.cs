@@ -76,10 +76,13 @@ public sealed class SonyControlConnectionTests
         Assert.Equal(channel, RfcommChannelConnector.ResolveRfcommChannel(serviceName));
 
     [Fact]
-    public void KnownSonyChannelIsOnlyForTheVerifiedModel()
+    public void KnownSonyChannelIsOnlyForTheVerifiedModels()
     {
         Assert.Equal(RfcommChannelConnector.SonyMdrV2Channel, RfcommChannelConnector.KnownSonyControlChannel("WH-1000XM6"));
-        Assert.Null(RfcommChannelConnector.KnownSonyControlChannel("WH-1000XM5"));
+        // WH-1000XM5 publishes RFCOMM:00000000 too; channel 9 answered the MDR version request on hardware.
+        Assert.Equal(RfcommChannelConnector.SonyMdrV2Channel, RfcommChannelConnector.KnownSonyControlChannel("WH-1000XM5"));
+        Assert.Null(RfcommChannelConnector.KnownSonyControlChannel("WH-1000XM4"));
+        Assert.Null(RfcommChannelConnector.KnownSonyControlChannel("WF-1000XM5"));
         Assert.Null(RfcommChannelConnector.KnownSonyControlChannel(null));
     }
 }

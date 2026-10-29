@@ -50,7 +50,8 @@ internal sealed partial class GitHubJsonContext : JsonSerializerContext;
 /// </summary>
 public sealed partial class GitHubUpdateClient(HttpClient http, string downloadDirectory, SemanticVersion current, Uri? releasesApi = null) : IDisposable
 {
-    public static Uri DefaultReleasesApi { get; } = new("https://api.github.com/repos/TIANLI0/EncoDeck/releases?per_page=20");
+    /// <summary>Component releases (lhdc-v…, a2dpwb-v…) share this list; their tags never parse as app versions.</summary>
+    public static Uri DefaultReleasesApi { get; } = new("https://api.github.com/repos/TIANLI0/EncoDeck/releases?per_page=30");
 
     private const long MaxMetadata = 4L * 1024 * 1024;
     private const long MaxChecksumFile = 64 * 1024;

@@ -109,15 +109,26 @@ public sealed partial class DeviceViewModel : ObservableObject
 
     /// <summary>The audio runs over LE Audio (shown as an "LC3" tag next to the status).</summary>
     [ObservableProperty] public partial bool IsLeAudio { get; set; }
-    /// <summary>Classic (A2DP) codec the earbuds report, shown as a tag like "LC3" (null when unknown or on LE Audio).</summary>
-    [ObservableProperty] public partial string? ClassicCodec { get; set; }
-    [ObservableProperty] public partial bool HasClassicCodec { get; set; }
+    /// <summary>
+    /// A2DP Windows Bridge streams to these earbuds but neither it nor Windows carries their control channel. The
+    /// "A2DP Bridge" tag already names the bridge in every other case, so only this one takes room above the page.
+    /// </summary>
+    [ObservableProperty] public partial bool HasBridgeNotice { get; set; }
+    /// <summary>Connected only through the bridge: Windows does not see the earbuds, so their controls are unavailable.</summary>
+    [ObservableProperty] public partial bool IsBridgeOnly { get; set; }
+    [ObservableProperty] public partial string BridgeMessage { get; set; } = string.Empty;
+    /// <summary>A2DP Windows Bridge streams to these earbuds: an "A2DP Bridge" tag next to the status.</summary>
+    [ObservableProperty] public partial bool HasBridgeBadge { get; set; }
+    [ObservableProperty] public partial string BridgeBadgeDescription { get; set; } = string.Empty;
+    /// <summary>Audio codec or link evidence, with its source visible in the label.</summary>
+    [ObservableProperty] public partial string CodecLabel { get; set; } = string.Empty;
+    [ObservableProperty] public partial string CodecDescription { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool HasCodec { get; set; }
     [ObservableProperty] public partial string? DeviceImagePath { get; set; }
     [ObservableProperty] public partial string? LeftArtworkPath { get; set; }
     [ObservableProperty] public partial string? RightArtworkPath { get; set; }
     [ObservableProperty] public partial string? CaseArtworkPath { get; set; }
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDeviceMotion))] public partial bool HasComponentArtwork { get; set; }
-    [ObservableProperty] public partial bool IsRepresentativeArtwork { get; set; }
     /// <summary>HeyMelody's 360° device model (turntable WebP) for the home page, when available.</summary>
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDeviceMotion)), NotifyPropertyChangedFor(nameof(IsGenericMotion))] public partial string? DeviceModelPath { get; set; }
     [ObservableProperty, NotifyPropertyChangedFor(nameof(HasDeviceMotion)), NotifyPropertyChangedFor(nameof(IsGenericMotion))] public partial string? DeviceMotionPath { get; set; }
@@ -309,26 +320,47 @@ public sealed partial class DeviceViewModel : ObservableObject
         IsControlUnavailable = state.Connection == DeviceConnectionState.ControlUnavailable;
         IsLinkDown = state.Connection is DeviceConnectionState.PairedNotConnected or DeviceConnectionState.Disconnected;
         IsLeAudio = state.IsLeAudio && !IsLinkDown;
-        ClassicCodec = state.IsLeAudio || IsLinkDown ? null : state.Codec?.Value switch
+        // A2DP Windows Bridge streams to these earbuds over its own adapter: Windows (and so the control
+        // channel) may not see them at all, but they are connected, and the codec is the bridge's.
+        IsBridgeOnly = state.Bridge is not null && !state.Connection.IsLinkUp();
+        HasBridgeNotice = IsBridgeOnly && state.Bridge is { IsStreaming: true };
+        BridgeMessage = HasBridgeNotice ? Loc.Format("Home_Bridge_Only", DescribeBridge(state.Bridge!)) : string.Empty;
+        HasBridgeBadge = state.Device?.Transport == DeviceTransport.Bluetooth && state.Bridge is { IsStreaming: true };
+        // With A2DPWB 2.0.2 the control channel itself can run through the bridge.
+        BridgeBadgeDescription = HasBridgeBadge
+            ? Loc.Format(IsBridgeOnly ? "Badge_Bridge_AudioOnly" : state.LinkViaBridge ? "Badge_Bridge_Control" : "Badge_Bridge_Windows", DescribeBridge(state.Bridge!))
+            : string.Empty;
+        if (state.Bridge is { } bridge && IsBridgeOnly)
         {
-            AudioCodec.Sbc => "SBC",
-            AudioCodec.Aac => "AAC",
-            AudioCodec.Ldac => "LDAC",
-            AudioCodec.AptX => "aptX",
-            AudioCodec.AptXHd => "aptX HD",
-            AudioCodec.AptXAdaptive => "aptX Adaptive",
-            AudioCodec.Lhdc => "LHDC",
-            _ => null,
+            ConnectionText = Loc.Get(bridge.IsStreaming ? "Connection_Bridge" : "Connection_BridgeConnecting");
+            IsLinkDown = false;
+            IsBusyConnecting = !bridge.IsStreaming;
+            IsLeAudio = false;
+        }
+        var codecDisplay = CodecDisplay.Resolve(state);
+        CodecLabel = codecDisplay.Kind switch
+        {
+            // The "A2DP Bridge" tag beside a bridge stream already names its source.
+            CodecDisplayKind.DeviceReport or CodecDisplayKind.BridgeStream => codecDisplay.Codec!,
+            CodecDisplayKind.LeLink => "LE Audio",
+            // An unknown codec shows no tag at all (the diagnostics still record why).
+            _ => string.Empty,
         };
-        HasClassicCodec = ClassicCodec is not null;
-        // A single-body LC3 headset has only the one LE identity, so one link is all of it. Warn
-        // only for a pair whose other earbud is bonded, or earbuds whose other half was never found.
-        if (state.IsLeAudio && state.LeAudioLinks.ConnectedEarbuds == 1 && profile?.Form != DeviceForm.Headphones
-            && (state.LeAudioLinks.SecondaryBonded || profile is OppoDeviceProfile))
+        CodecDescription = codecDisplay.Kind switch
+        {
+            CodecDisplayKind.DeviceReport => Loc.Format("Codec_ReportedDescription", codecDisplay.Codec),
+            CodecDisplayKind.BridgeStream => Loc.Format("Codec_BridgeDescription", codecDisplay.Codec),
+            CodecDisplayKind.LeLink => Loc.Get("Codec_LeAudioDescription"),
+            _ => string.Empty,
+        };
+        HasCodec = CodecLabel.Length > 0;
+        // One earbud worn while the other charges is ordinary use; warn only when the other should be up.
+        if (LeAudioStatus.IsMissingEarbud(state, warnWithoutWear: profile is OppoDeviceProfile))
             ConnectionText = Loc.Get("Connection_LeAudioSingleEar");
         // Switched to LE Audio but LC3 is not up (e.g. after the case reopened): the earbuds only come
-        // back over LE once they advertise; EncoDeck keeps the existing bond ready to reconnect.
-        if (state.IsLeAudioBonded && !state.IsLeAudio && state.Connection != DeviceConnectionState.ControlReady)
+        // back over LE once they advertise; EncoDeck keeps the existing bond ready to reconnect. OPPO
+        // control waits for that link; Classic-controlled earbuds show their own state meanwhile.
+        if (LeAudioStatus.IsWaitingForLeAudio(state, controlNeedsLeAudio: profile is OppoDeviceProfile) && !IsBridgeOnly)
             ConnectionText = Loc.Get("Connection_WaitingForLeAudio");
         // Until the earbuds connect and report their ids, use the ones remembered from last time
         // (restored by the device cache) or the model's own product id, so the art shows at once.
@@ -340,7 +372,6 @@ public sealed partial class DeviceViewModel : ObservableObject
         {
             var image = ResourceKey is { } key ? _resources.Resolve(key, DeviceResourceRole.Device) : null;
             DeviceImagePath = image?.Path ?? DeviceImages.Resolve(profile?.ImageKey);
-            IsRepresentativeArtwork = image?.RepresentativeArtwork ?? false;
             LeftArtworkPath = ResourceKey is { } kl ? _resources.Resolve(kl, DeviceResourceRole.LeftBud)?.Path : null;
             RightArtworkPath = ResourceKey is { } kr ? _resources.Resolve(kr, DeviceResourceRole.RightBud)?.Path : null;
             CaseArtworkPath = ResourceKey is { } kc ? _resources.Resolve(kc, DeviceResourceRole.Case)?.Path : null;
@@ -554,7 +585,7 @@ public sealed partial class DeviceViewModel : ObservableObject
     private string BuildToolTip()
     {
         if (!HasDevice) return "EncoDeck";
-        var parts = new List<string> { $"{DeviceName} · {ConnectionText}" };
+        var parts = new List<string> { $"{DeviceName} · {ConnectionText}" + (HasBridgeBadge ? " · A2DP Bridge" : string.Empty) };
         if (IsHeadphones)
         {
             if (Left.HasValue) parts.Add($"{Left.Label} {Left.LevelText}");
@@ -581,6 +612,16 @@ public sealed partial class DeviceViewModel : ObservableObject
     }
 
     public static string DescribeConnection(DeviceConnectionState state) => Loc.Get($"Connection_{state}");
+
+    /// <summary>"LDAC · 990 kbps · 96 kHz" for the bridge's stream (what is known of it).</summary>
+    internal static string DescribeBridge(BridgeAudioLink link)
+    {
+        var parts = new List<string>();
+        if (link.Codec is { } codec) parts.Add(codec);
+        if (link.BitrateKbps > 0) parts.Add($"{link.BitrateKbps} kbps");
+        if (link.SampleRate > 0) parts.Add((link.SampleRate / 1000.0).ToString(link.SampleRate % 1000 == 0 ? "0" : "0.#", System.Globalization.CultureInfo.CurrentCulture) + " kHz");
+        return parts.Count > 0 ? string.Join(" · ", parts) : "A2DP";
+    }
 
     private static bool IsAllowed(CapabilitySupport support) => support == CapabilitySupport.Supported;
 

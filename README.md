@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TIANLI0/EncoDeck/releases">下载安装包</a> ·
+  <a href="https://github.com/TIANLI0/EncoDeck/releases/latest">下载安装包</a> ·
   <a href="README_EN.md">English</a> ·
   <a href="docs/COMPATIBILITY.md">设备兼容性</a> ·
   <a href="docs/DEVELOPMENT.md">开发文档</a>
@@ -110,7 +110,7 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 | **vivo / iQOO** | 约 43 款；电量等状态，以及部分型号的降噪、EQ、查找耳机、游戏模式；回读后开放手势、佩戴检测开关和双设备列表（TWS 3e / TWS 5 依据社区真机记录，其他型号为实验功能）；无经典蓝牙控制服务时改用 BLE | 协议移植，部分功能有社区真机记录，EncoDeck 未真机验证 |
 | **华为** | 27 款；电量及按型号提供的降噪/档位、通透人声增强、EQ、佩戴检测、低延迟、双设备及设备列表；设备确认后开放独立空间音频/头部跟踪、智能音量、点头/摇头 | 协议移植，部分功能有社区真机记录，EncoDeck 未真机验证 |
 | **小米 / Redmi** | 按系列识别，48 条型号能力记录；电量、降噪/档位、EQ、游戏低延迟、双设备、空间音频/头部跟踪、提示音量按型号与回读开放 | 协议实现，未真机验证 |
-| **索尼** | 46 个内置型号名称；电量/充电、降噪/环境声、设备预设 EQ；环境声档位与级别、说话即对话、DSEE、摘下暂停、多点连接与触控开关、按键分配、自动关机按回读开放；LE Audio 下经 BLE 控制，手动 / 自定义 EQ 可调 10 段增益 | WH-1000XM6 的 LE Audio 控制（握手、电量、降噪）已由贡献者真机验证；其他型号为 MDR 协议及模拟设备测试 |
+| **索尼** | 46 个内置型号名称；电量/充电、降噪/环境声、设备预设 EQ；环境声档位与级别、说话即对话、DSEE、摘下暂停、多点连接与触控开关、按键分配、自动关机按回读开放；LE Audio 下经 BLE 控制，手动 / 自定义 EQ 可调 10 段增益 | WH-1000XM6 的 LE Audio 控制（握手、电量、降噪）已由贡献者真机验证；WH-1000XM5 固件 2.5.1 经经典 RFCOMM 通道 9 真机验证（握手、电量、降噪读写、EQ 与开关回读）；其他型号为 MDR 协议及模拟设备测试 |
 | **AKG** | N400NC、N700NCM2、N200NC、Y600：经 BLE（经典蓝牙备用）读取电量 / 充电、固件，降噪 / 环境感知 / 对话模式、预设 EQ、入耳自动播放/暂停；N5/N9 Hybrid 使用 Airoha RACE（电量、充电盒电量，降噪为实验功能）；N700NC 仅识别和素材 | 协议实现，未真机验证 |
 | **漫步者** | W820NB、W200BT / W200BT Plus、W860NB PRO、花再 Evo Pro、FitBuds Turbo、FitClip Ultra、X5 Pro；Atom / Lolli 系列 28 个型号的识别、SPP / BLE 与双耳 / 盒电量；降噪 / 环境声、游戏模式、按键控制、音效与定时关机按型号和回读开放 | 协议实现，未真机验证；[范围说明](docs/COMPATIBILITY.md#漫步者) |
 | **水月雨 MOONDROP** | 18 个型号档案及通用识别（非完整型号支持）；GAIA BLE / RFCOMM、电量、按型号降噪 / 抗风噪、增益；能力发现后开放 LED、提示音开关 / 音量、双耳 TOUCHV2、LHDC / 双设备互斥、出厂 EQ 预设与用户 PEQ；实验性加入 LDAC / LC3、入耳检测、空间音频 / 头部跟踪、动态低音、左右声道交换 | EDGE 固件 1.3.0 已在 Windows 真机验证 RFCOMM 控制连接与基础状态读取；EDGE、太空漫游2 的 EQ 读写有社区真机记录；新增设置及其他型号仍以协议移植与模拟验证为主；推断及新增功能须实验性启用 |
@@ -143,6 +143,14 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 非商店 x64 版可按需接入 [LHDC-Win](https://github.com/Wayne-u/LHDC-Win)。在“实验室”页面下载独立组件后，可以选择音频设备、设置播放参数，并尝试启用 LHDC 或恢复 Windows 原有音频配置。
 
 这不是普通耳机控制功能：它涉及测试签名驱动、管理员权限和系统音频配置，要求 Windows 11 22H2+、x64 及支持 LHDC V5 的耳机。**商店版不支持，实际播放兼容性仍待真机验证。** EncoDeck 不会自动修改 Secure Boot 或系统测试模式。操作前请先阅读 [LHDC 说明与恢复方法](docs/LHDC.md)。
+
+### A2DP Bridge（可选 / 实验性）
+
+非商店版可在“实验室”页面下载并管理 [A2DP Windows Bridge](https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge)：它接管一个**独立的 USB 蓝牙适配器**，以 LDAC、LHDC V5、aptX HD 等编码向耳机发送声音，不需要测试签名驱动。EncoDeck 负责下载（上游官方构建的原样副本）、启动后台、连接与断开、音量和适配器驱动管理，并在首页识别通过它连接的耳机。
+
+需要第二个 USB 蓝牙适配器；只经 Bridge 连接时 Windows 看不到耳机，电量与耳机设置不可用（支持双设备连接的耳机可同时连接电脑蓝牙）。商店版只连接你自行安装并启动的 A2DP Windows Bridge。详见 [A2DP Bridge 说明](docs/A2DP_BRIDGE.md)。
+
+LHDC 与 A2DP Bridge 组件都有各自独立的 Release，更新 EncoDeck 不会重新下载它们；组件可以在实验室页单独检查更新、更新和卸载，下载内容按大小与 SHA-256 校验。
 
 ## 编译
 

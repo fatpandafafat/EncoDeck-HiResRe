@@ -71,6 +71,7 @@ ShowLanguageDialog=auto
 [Languages]
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [CustomMessages]
 chinesesimplified.TaskDesktopIcon=创建桌面快捷方式
@@ -85,6 +86,12 @@ english.TaskGroupOptions=Additional options:
 english.LaunchApp=Launch EncoDeck
 english.DeleteUserData=Also delete EncoDeck's settings, logs, cache and custom resources?%n%n(located in %1)
 english.UnofficialNote=EncoDeck is an unofficial community project, not affiliated with OPPO, OnePlus or realme.
+japanese.TaskDesktopIcon=デスクトップにショートカットを作成する
+japanese.TaskAutostart=Windows の起動時に EncoDeck をバックグラウンドで起動する
+japanese.TaskGroupOptions=その他のオプション:
+japanese.LaunchApp=EncoDeck を起動する
+japanese.DeleteUserData=EncoDeck の設定、ログ、キャッシュ、カスタムリソースも削除しますか？%n%n（場所: %1）
+japanese.UnofficialNote=EncoDeck は非公式のコミュニティプロジェクトであり、OPPO、OnePlus、realme とは一切関係ありません。
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:TaskDesktopIcon}"; GroupDescription: "{cm:TaskGroupOptions}"; Flags: unchecked

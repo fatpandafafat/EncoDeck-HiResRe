@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using EncoDeck.Bluetooth;
+using EncoDeck.Bluetooth.Discovery;
 using EncoDeck.Bluetooth.Rfcomm;
 using EncoDeck.Core.Profiles;
 using EncoDeck.Core.State;
@@ -23,11 +24,23 @@ internal static class MonitorCommand
 
         var store = new DeviceStateStore();
         var registry = new DeviceProfileRegistry(BuiltInProfiles.Create());
+
+        // --device pins the runtime to one paired device; without it the manager's own selection wins.
+        string? deviceQuery = options.Get("device");
+        string? selectedId = null;
+        if (deviceQuery is not null)
+        {
+            var catalog = new BluetoothDeviceCatalog();
+            var picked = await DeviceSelector.SelectAsync(catalog, options, ct).ConfigureAwait(false);
+            if (picked is null) return 2;
+            selectedId = picked.DeviceId;
+        }
+
         await using var manager = new DeviceManager(
             registry,
             store,
             new RfcommChannelConnector(registry, loggers.CreateLogger<RfcommChannelConnector>()),
-            preferredDeviceId: () => null,
+            preferredDeviceId: () => selectedId,
             allowExperimental: static () => false,
             loggers,
             trace: options.Has("trace") ? new ConsoleTrace(printRaw: false) : null);
@@ -40,6 +53,11 @@ internal static class MonitorCommand
         };
         manager.ActiveDeviceLinkConnected += (_, id) => Console.WriteLine($"*** link connected: {id.Name} (popup trigger)");
         manager.Start();
+        if (selectedId is not null)
+        {
+            Console.WriteLine($"*** pinned device: {deviceQuery} -> {selectedId}");
+            await manager.SelectDeviceAsync(selectedId, ct).ConfigureAwait(false);
+        }
 
         int seconds = options.GetInt("seconds", 30);
         var deadline = Task.Delay(TimeSpan.FromSeconds(seconds), ct);
@@ -129,7 +147,7 @@ internal static class MonitorCommand
         if (s.Wear is { } w) parts.Add($"ear L={w.Value.LeftInEar} R={w.Value.RightInEar}");
         if (s.NoiseControl is { } n) parts.Add($"noise={n.Value.Mode}/{n.Value.LevelId ?? "-"}({n.Source})");
         if (s.Equalizer is { } e) parts.Add($"eq={e.Value.RawPresetValue}");
-        if (s.Firmware is { } f) parts.Add($"fw={string.Join("/", f.Value.Extra.Values)}");
+        if (s.Firmware is { } f) parts.Add($"fw={f.Value.Version}");
         if (s.Toggles.Count > 0) parts.Add("toggles=" + string.Join(",", s.Toggles.Select(t => $"{t.Key}:{t.Value.Value}")));
         if (s.PendingCommands.Count > 0) parts.Add($"pending={s.PendingCommands.Count}");
         if (s.LastError is { } err) parts.Add($"error=\"{err.Message}\"");

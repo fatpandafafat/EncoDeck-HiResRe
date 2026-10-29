@@ -9,6 +9,7 @@
 | 标记 | 含义 |
 |---|---|
 | **[X4 实测]** | 用 `EncoDeck.Probe` 在真实 OPPO Enco X4 上发送/接收并确认（2026-10-20，固件 左 116 / 右 116 / 盒 100） |
+| **[贡献者实测]** | 贡献者在 Windows 真机上用 EncoDeck / `EncoDeck.Probe` 验证，条目注明型号与固件 |
 | **[协议实现]** | 按已知协议格式实现并有单元测试覆盖，尚未在真机上验证 |
 | **[社区]** | 来自参考项目（OppoPodsWindows / OppoPodsManager / OppoPods；华为 / 荣耀见 §11，小米 / Redmi 见 §12，vivo / iQOO 见 §13，漫步者见 §14，索尼 / AKG 见 §15，USB 2.4G 接收器见 §16）的源码或说明 |
 | **[推测]** | 由以上证据推断，尚未验证 |
@@ -175,7 +176,8 @@ EncoDeck 的顺序（全部在 X4 上验证）：
 | `0x0124` / `0x041B [min][max][cur]` | BassWave 档位（有符号） | 读取 [X4 实测]（−5..5，当前 0）；写入 [协议实现] |
 | `0x0134` / `0x0431 [0/1]` | 点头/摇头接听的对应关系 | 读取 [X4 实测]；写入 [协议实现] |
 | `0x0136` / `0x0433 [0/1]` | LE/BR 开关（“游戏低延迟 + LE Audio”）：回复 `[st][bits]`，bit0 开、bit1 owner、bit2 reset；能力位 64 | **[X4 实测]**（`00 02` → 写 1 后 `00 03`）。有回复即说明固件支持 LE Audio；Windows 上使用 LE Audio **不需要**打开它。打开时经 LE 控制通道写 `0x0404 01 01 …`（切换降噪）与 `0x0433 00` 均回状态 `01`，`0x0404 02 …`（降噪循环）、EQ、低音仍成功；关闭时 LE 下切换降噪成功，但耳机反复回落到传统蓝牙 **[X4 实测]**。切换入口写为打开 |
-| `0x0114` | 当前 A2DP 编码：回复 `[st][codec]`，1 SBC、2 AAC、3 LDAC、4 aptX、5 aptX HD、6 aptX Adaptive、7/8 LHDC | 映射 [协议实现]；LE Audio 下回复 `01 01`（无经典编码）**[X4 实测]**；EncoDeck 只读并在连接状态旁显示 |
+| `0x0403 [1F][0/1]` | 功能开关 0x1F：告诉耳机主机的音频传输是 LE（1）还是传统蓝牙（0）；不在功能状态列表中，也不受能力位图限制 | [协议实现]；没有 LE/BR 开关（能力位 64）的固件（如 Enco X3）由它把本机的 LE 绑定同步给另一只耳机。EncoDeck 在 LE 控制通道建立后对这类耳机写 `1`，有 `0x0433` 的 X4 不写 |
+| `0x0114` | 耳机报告的 A2DP 编码：回复 `[st][codec]`，1 SBC、2 AAC、3 LDAC、4 aptX、5 aptX HD、6 aptX Adaptive、7/8 LHDC | 映射 [协议实现]；LE Audio 下回复 `01 01`（无经典编码）**[X4 实测]**；EncoDeck 只读并在连接状态旁显示。回复的是耳机设置的高清编码，不一定是当前链路协商的编码 [推测]：Enco Air5s 连接 Windows 时回复 LHDC。Windows 自带的蓝牙音频没有 LDAC，LHDC 需要 LHDC-Win 服务，因此 EncoDeck 不显示 LDAC，LHDC 只在该服务启用时显示 |
 | `0x0424 [type][value]` | LE Audio 相关动作，不是模式切换 | [推测]；不使用 |
 | `0x0122` / `0x0418 [act][min][max][id][nl][name][n]{f,g}` | 自定义 EQ（1 添加，2 选择/修改，3 删除） | 读取 [X4 实测]（1 组，id 4）；写入 [协议实现]，“添加”字节有单元测试覆盖 |
 | `0x0112` / `0x0429 01/02/03 <MAC>` | 双设备连接：连接/断开/移除；MAC 按显示顺序（列表中为反序） | 读取 [X4 实测]（3 台：本机电脑、手机、手表）；写入 [协议实现] |
@@ -379,7 +381,7 @@ Free4 标准版 / 丹拿版的支持范围见 [设备兼容性](COMPATIBILITY.md
 
 ## 15. 索尼 MDR 与 AKG（独立于 OPPO）
 
-来源：[SonyHeadphonesClient `4061cf3`](https://github.com/mos9527/SonyHeadphonesClient/tree/4061cf353fd0044e559e9a1f1b7f2faa334d09c6)（libmdr 协议定义及 WH-1000XM3 4.5.2、WF-1000XM5 6.1.0、WF-LC900 2.0.3 真机抓包）、[SonyPods `3f701ff`](https://github.com/Mercury000/SonyPods/tree/3f701ff8f9b30c6909b9dbe8d99248f20d55560e)（GATT 特征 UUID）、[akg_earbud_control `184d2e2`](https://github.com/tthayer/akg_earbud_control/tree/184d2e21542d0f419e4d5789cc555e5c41c9863e)（N400NC 真机记录）、[jbl-control `a276b85`](https://github.com/AhmadRun/jbl-control/tree/a276b8561c15fc5a3effa76cb75500847219d750)（同一 GATT 服务的交叉核对）、[Raito `5804b65`](https://github.com/kalicyh/Raito/tree/5804b657e7d6aa5fcd17d33a3c6f13ce4602086a)（N9 Hybrid 真机记录）。本项目均未在 Windows 真机上验证。
+来源：[SonyHeadphonesClient `4061cf3`](https://github.com/mos9527/SonyHeadphonesClient/tree/4061cf353fd0044e559e9a1f1b7f2faa334d09c6)（libmdr 协议定义及 WH-1000XM3 4.5.2、WF-1000XM5 6.1.0、WF-LC900 2.0.3 真机抓包）、[SonyPods `3f701ff`](https://github.com/Mercury000/SonyPods/tree/3f701ff8f9b30c6909b9dbe8d99248f20d55560e)（GATT 特征 UUID）、[akg_earbud_control `184d2e2`](https://github.com/tthayer/akg_earbud_control/tree/184d2e21542d0f419e4d5789cc555e5c41c9863e)（N400NC 真机记录）、[jbl-control `a276b85`](https://github.com/AhmadRun/jbl-control/tree/a276b8561c15fc5a3effa76cb75500847219d750)（同一 GATT 服务的交叉核对）、[Raito `5804b65`](https://github.com/kalicyh/Raito/tree/5804b657e7d6aa5fcd17d33a3c6f13ce4602086a)（N9 Hybrid 真机记录）。除 WH-1000XM5 固件 2.5.1（见 15.1 末条）外，本项目均未在 Windows 真机上验证。
 
 ### 15.1 索尼 MDR
 
@@ -393,6 +395,7 @@ Free4 标准版 / 丹拿版的支持范围见 [设备兼容性](COMPATIBILITY.md
 - **[社区]** EQ：预设名称为空时（WF-LC900 2.0.3、XM3）按编号显示名称；选择预设时频段数为 0，否则固件会切到 Custom。WH-1000XM6（固件 3.0.0 起）只应用 0x30–0x33、0xA0 与用户设置，其余上报的编号隐藏。ULT 组合 EQ 未实现。
 - **[社区]** WF-C700N 固件 2.0.5 会确认并回显 NC/ASM 写入但不生效，2.0.7 修复；EncoDeck 在 2.0.5 上拒绝写入。
 - **[社区]** BLE GATT：服务 `5b833e20-6bc7-4802-8e9a-723ceca4bd8f`，写 `5b833c60-…`、通知 `5b833c61-…`，承载与 RFCOMM 相同的 MDR 字节流。SonyHeadphonesClient PR #43 取服务中第一个可写 / 第一个可通知特征；EncoDeck 优先使用上述命名特征，找不到时同样回退到第一个。**[推测]** 该 PR 优先无响应写入，EncoDeck 在特征支持时使用有响应写入，未发现影响。GATT 只在两个 RFCOMM 服务都失败后尝试。
+- **[贡献者实测]** WH-1000XM5 固件 2.5.1：主控制服务 `956c7b26-…` 的 SDP 记录存在（服务名 `Serial HPC`），但协议描述符是 `RFCOMM:00000000`，Windows 解析出的通道号为 0，无法用它建立连接；`96cc203e-…` 在 SDP 中不出现。经典链路在线时直连通道 9 可完成握手（`CONNECT_RET_PROTOCOL_INFO` 返回 8 字节，即 v2），功能表 33 项，电量、NC/ASM、EQ、摘下暂停、多点连接、说话即对话、DSEE、触控开关均可读；降噪 Off ↔ 降噪 写入后回读一致（62–211 ms）。该固件在会话空闲约 10–25 秒后主动关闭 RFCOMM 连接，需重连后重新握手。
 
 ### 15.2 AKG N400NC / N200NC / N700NCM2 / Y600
 

@@ -16,6 +16,40 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  # Decides whether this run publishes a release. A push to main releases the newest CHANGELOG.md version
+  # ("## [1.12.0-beta.2] - 2026-10-28 · optional title") once no release exists for it yet; pushing its tag by
+  # hand still works. "## [Unreleased]" on top releases nothing.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.pick.outputs.version }}
+      release: ${{ steps.pick.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: pick
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $top = [regex]::Match($changelog, '(?m)^## \[([^\]]+)\]').Groups[1].Value
+          $version = ''
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -like 'v*') { $version = $env:GITHUB_REF_NAME.Substring(1) }
+          elseif ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -eq 'refs/heads/main' -and $top -and $top -ne 'Unreleased') { $version = $top }
+          $release = $false
+          if ($version) {
+            $prefix = [regex]::Match((Get-Content Directory.Build.props -Raw), '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value
+            if (($version -split '[-+]')[0] -ne $prefix) { throw "CHANGELOG/tag version $version does not match VersionPrefix $prefix in Directory.Build.props." }
+            gh release view "v$version" --json tagName 2>$null | Out-Null
+            $release = $LASTEXITCODE -ne 0
+            if (-not $release) { Write-Host "Release v$version already exists; nothing to publish." }
+          }
+          $global:LASTEXITCODE = 0
+          Write-Host "version=$version release=$release"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "release=$($release.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
+
   build-test:
     runs-on: windows-latest
     steps:
@@ -45,8 +79,10 @@ jobs:
           path: TestResults
 
   package:
-    needs: build-test
+    needs: [version, build-test]
     runs-on: windows-latest
+    env:
+      RELEASE_VERSION: ${{ needs.version.outputs.release == 'true' && needs.version.outputs.version || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +93,8 @@ jobs:
       - name: Publish app (win-x64, self-contained, unpackaged)
         shell: pwsh
         run: |
-          $suffix = if ($env:GITHUB_REF_TYPE -eq 'tag') { '' } else { "ci.$env:GITHUB_RUN_NUMBER" }
+          # A pre-release (1.11.0-beta.1) keeps its suffix; a CI build is ci.<run>.
+          $suffix = if (-not $env:RELEASE_VERSION) { "ci.$env:GITHUB_RUN_NUMBER" } elseif ($env:RELEASE_VERSION -match '-(.+)$') { $Matches[1] } else { '' }
           dotnet publish src/EncoDeck.App -c Release -r win-x64 -p:Platform=x64 -p:VersionSuffix=$suffix -o artifacts/EncoDeck-win-x64
           dotnet publish tools/EncoDeck.Probe -c Release -r win-x64 --self-contained -p:VersionSuffix=$suffix -o artifacts/EncoDeck.Probe-win-x64
           Copy-Item LICENSE, THIRD_PARTY_NOTICES.md, README.md, README_EN.md artifacts/EncoDeck-win-x64/
@@ -73,7 +110,7 @@ jobs:
         run: |
           $props = Get-Content Directory.Build.props -Raw
           $prefix = [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { "$prefix-ci.$env:GITHUB_RUN_NUMBER" }
+          $version = if ($env:RELEASE_VERSION) { $env:RELEASE_VERSION } else { "$prefix-ci.$env:GITHUB_RUN_NUMBER" }
           ./build/build-installer.ps1 -SkipTests -Version $version
 
       - uses: actions/upload-artifact@v4
@@ -85,84 +122,71 @@ jobs:
             artifacts/installer/*.exe
             artifacts/installer/*.sha256
 
-  lhdc-runtime:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build-test
-    runs-on: windows-2025-vs2026
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-      - name: Install matching SDK and WDK
-        shell: pwsh
-        run: |
-          # Use Microsoft's package manager on this disposable runner; no custom download-and-execute installer.
-          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-            Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Scope CurrentUser -Force
-            Import-Module Microsoft.WinGet.Client
-            Repair-WinGetPackageManager -AllUsers
-          }
-          $winget = (Get-Command winget -ErrorAction SilentlyContinue).Source
-          if (-not $winget) {
-            $location = (Get-AppxPackage Microsoft.DesktopAppInstaller).InstallLocation
-            if (-not $location) { throw 'Microsoft WinGet is unavailable.' }
-            $winget = Join-Path $location 'winget.exe'
-          }
-          $kits = (Get-ItemProperty 'HKLM:/SOFTWARE/Microsoft/Windows Kits/Installed Roots').KitsRoot10
-          foreach ($kit in @(@{Id='Microsoft.WindowsSDK.10.0.28000';Path='Include/10.0.28000.0/um/Windows.h'},@{Id='Microsoft.WindowsWDK.10.0.28000';Path='Include/10.0.28000.0/km/wdm.h'})) {
-            if (Test-Path -LiteralPath (Join-Path $kits $kit.Path)) { continue }
-            & $winget install --id $kit.Id --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-            if ($LASTEXITCODE -notin @(0,3010)) { throw "Kit installation failed: $($kit.Id) ($LASTEXITCODE)" }
-          }
-      - name: Fetch upstream and compile this release's LHDC runtime
-        shell: pwsh
-        run: |
-          $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          ./build/publish-lhdc-runtime.ps1 -Version $version -PowerShellDirectory $PSHOME -OutputDirectory artifacts/lhdc-release
-          if ($LASTEXITCODE -ne 0) { throw 'LHDC runtime build failed.' }
-      - uses: actions/upload-artifact@v4
-        with:
-          name: EncoDeck-LHDC-runtime
-          if-no-files-found: error
-          path: |
-            artifacts/lhdc-release/EncoDeck-LHDC-*.zip
-            artifacts/lhdc-release/EncoDeck-LHDC-*.zip.sha256
-
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [package, lhdc-runtime]
+    if: needs.version.outputs.release == 'true'
+    needs: [version, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Two pushes in a row must not both publish the same version.
+    concurrency:
+      group: release-${{ needs.version.outputs.version }}
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
+
+      # Components (LHDC, A2DP Bridge) have their own releases (components.yml). An app must not ship a pin
+      # that cannot be downloaded: check every pinned package is published with exactly its size and digest.
+      - name: Verify component pins
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: ./build/verify-components.ps1
+
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: pwsh
+        run: |
+          $pattern = '(?ms)^## \[' + [regex]::Escape($env:VERSION) + '\]([^\r\n]*)\r?\n(.*?)(?=^## |\z)'
+          $section = [regex]::Match((Get-Content CHANGELOG.md -Raw), $pattern)
+          $notes = $section.Groups[2].Value.Trim()
+          if (-not $notes) { throw "Release notes missing for $env:VERSION." }
+          Set-Content release-notes.md $notes -Encoding utf8
+          # "## [1.12.0] - 2026-10-28 · Title" names the release "EncoDeck 1.12.0 · Title".
+          $title = [regex]::Match($section.Groups[1].Value, '\u00B7\s*(.+?)\s*$').Groups[1].Value
+          "name=EncoDeck $env:VERSION$(if ($title) { " · $title" })" >> $env:GITHUB_OUTPUT
+
       - uses: actions/download-artifact@v4
         with:
           name: EncoDeck-win-x64
-      - uses: actions/download-artifact@v4
-        with:
-          name: EncoDeck-LHDC-runtime
-      - name: Create draft release
+          path: dist
+
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ steps.notes.outputs.name }}
+          draft: false
+          prerelease: ${{ contains(env.VERSION, '-') }}
+          make_latest: ${{ !contains(env.VERSION, '-') }}
+          body_path: release-notes.md
           fail_on_unmatched_files: true
           files: |
-            EncoDeck-win-x64.zip
-            EncoDeck.Probe-win-x64.zip
-            installer/*.exe
-            installer/*.sha256
-            EncoDeck-LHDC-*.zip
-            EncoDeck-LHDC-*.zip.sha256
+            dist/EncoDeck-win-x64.zip
+            dist/EncoDeck.Probe-win-x64.zip
+            dist/installer/*.exe
+            dist/installer/*.sha256
 
   # Microsoft Store: build the MSIX bundle and submit it to Partner Center (certification + publish).
   # Uses build/submit-store.ps1 (Partner Center submission API). Needs the STORE_* secrets from a Microsoft Entra app added in Partner Center (Account settings →
   # User management → Microsoft Entra applications, role Manager). Without them the job is skipped.
   # Also runnable by hand (Actions → CI → Run workflow) to resubmit the version in Directory.Build.props.
   store:
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: build-test
+    # Pre-releases (1.11.0-beta.1) are GitHub-only; the Store gets stable versions.
+    if: (needs.version.outputs.release == 'true' && !contains(needs.version.outputs.version, '-')) || github.event_name == 'workflow_dispatch'
+    needs: [version, build-test]
     runs-on: windows-latest
     env:
       STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
@@ -181,7 +205,7 @@ jobs:
         run: |
           dotnet restore src/EncoDeck.App
           $props = Get-Content Directory.Build.props -Raw
-          $version = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value }
+          $version = if ('${{ needs.version.outputs.version }}') { '${{ needs.version.outputs.version }}' } else { [regex]::Match($props, '<VersionPrefix>([^<]+)</VersionPrefix>').Groups[1].Value }
           ./build/build-msix.ps1 -SkipTests -Version $version
           # Keep the upload apart from the build output.
           New-Item -ItemType Directory -Force artifacts/store | Out-Null

@@ -28,6 +28,12 @@ public sealed record DeviceState
     /// <summary>The earbuds were switched to LE Audio on this PC, whether or not that link is up now.</summary>
     public bool IsLeAudioBonded { get; init; }
 
+    /// <summary>A2DP Windows Bridge is connecting or streaming to this device over its own adapter; null otherwise.</summary>
+    public BridgeAudioLink? Bridge { get; init; }
+
+    /// <summary>Only A2DP Windows Bridge's adapter is linked to the earbuds (Windows is not): control runs through it.</summary>
+    public bool LinkViaBridge { get; init; }
+
     public BatteryStatus Battery { get; init; } = BatteryStatus.Unknown;
 
     public Observed<WearStatus>? Wear { get; init; }
@@ -43,8 +49,11 @@ public sealed record DeviceState
 
     public Observed<FirmwareInfo>? Firmware { get; init; }
 
-    /// <summary>A2DP codec reported by the earbuds; null when unknown or not on Classic audio (e.g. LE Audio).</summary>
+    /// <summary>Accepted A2DP codec reported by the earbuds; not independent proof of the PC's negotiated stream.</summary>
     public Observed<AudioCodec>? Codec { get; init; }
+
+    /// <summary>Raw OPPO codec id from a successful query, including values rejected for this model.</summary>
+    public Observed<byte>? ReportedCodecId { get; init; }
 
     /// <summary>24-bit product id reported by the device (e.g. 0x06EC10 for Enco X4).</summary>
     public uint? ProductId { get; init; }

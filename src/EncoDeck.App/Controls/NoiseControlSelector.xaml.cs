@@ -26,6 +26,7 @@ public sealed partial class NoiseControlSelector : UserControl
     public NoiseControlSelector()
     {
         InitializeComponent();
+        foreach (var label in new[] { AncLabel, AdaptiveLabel, TransparencyLabel, OffLabel }) FitLabel.Attach(label);
         // Moving the control to another parent (HomePage on wide windows) can raise Unloaded after the
         // new Loaded; detaching then would leave the buttons deaf to the device state.
         Unloaded += (_, _) => { if (!IsLoaded) Detach(ViewModel); };
@@ -138,9 +139,10 @@ public sealed partial class NoiseControlSelector : UserControl
             LevelsHost.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             var button = new ToggleButton
             {
-                Content = new TextBlock { Text = level.Label, TextTrimming = TextTrimming.CharacterEllipsis, HorizontalAlignment = HorizontalAlignment.Center },
+                Content = FitLabel.Create(level.Label),
                 Tag = level.Id,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
                 MinHeight = 36,
                 Padding = new Thickness(4, 6, 4, 6),
                 CornerRadius = new CornerRadius(6),

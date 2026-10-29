@@ -33,14 +33,14 @@
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
 
-  <!-- The app supports Chinese and English. Native WinUI MUI files bypass the .NET
+  <!-- The app supports Chinese, English and Japanese. Native WinUI MUI files bypass the .NET
        SatelliteResourceLanguages filter, so filter these explicitly at publish time. -->
   <Target Name="FilterWinUILocalizations" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
           Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb' and '$(CopyOutputSymbolsToPublishDirectory)' == 'false'" />
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-          Condition="'%(ResolvedFileToPublish.Extension)' == '.mui' and !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^(?i:en-us|zh-cn)[\\/]'))" />
+          Condition="'%(ResolvedFileToPublish.Extension)' == '.mui' and !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^(?i:en-us|zh-cn|ja-jp)[\\/]'))" />
     </ItemGroup>
   </Target>
 

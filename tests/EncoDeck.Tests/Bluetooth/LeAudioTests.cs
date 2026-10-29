@@ -145,4 +145,39 @@ public class LeAudioTests
     {
         Assert.False(LeAudioPairing.TryParseSecondaryAddress(Primary, Convert.FromHexString(hex), out _));
     }
+
+    [Fact]
+    public async Task LeTransportReport_RetriesUntilControlRunsOverLe()
+    {
+        int calls = 0;
+        bool reported = await LeAudioPairing.ReportLeTransportAsync(
+            _ => Task.FromResult(++calls < 3 ? CommandResult.NotConnected : CommandResult.Ok), _ => { },
+            TestContext.Current.CancellationToken, TimeSpan.FromSeconds(10), TimeSpan.Zero);
+        Assert.True(reported);
+        Assert.Equal(3, calls);
+    }
+
+    [Theory]
+    [InlineData(CommandStatus.Unsupported)]
+    [InlineData(CommandStatus.Rejected)]
+    public async Task LeTransportReport_StopsOnADefiniteAnswer(CommandStatus status)
+    {
+        int calls = 0;
+        bool reported = await LeAudioPairing.ReportLeTransportAsync(
+            _ => { calls++; return Task.FromResult(new CommandResult(status)); }, _ => { },
+            TestContext.Current.CancellationToken, TimeSpan.FromSeconds(10), TimeSpan.Zero);
+        Assert.False(reported);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task LeTransportReport_GivesUpAfterTheTimeout()
+    {
+        var log = new List<string>();
+        bool reported = await LeAudioPairing.ReportLeTransportAsync(
+            _ => throw new InvalidOperationException("closed"), log.Add,
+            TestContext.Current.CancellationToken, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(10));
+        Assert.False(reported);
+        Assert.Contains(log, l => l.StartsWith("LE transport report before secondary: TransportError", StringComparison.Ordinal));
+    }
 }

@@ -21,7 +21,7 @@ namespace EncoDeck.App.ViewModels;
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
-    private static readonly string[] Languages = ["", "zh-CN", "en-US"];
+    private static readonly string[] Languages = ["", "zh-CN", "en-US", "ja-JP"];
 
     private readonly ISettingsStore _settings;
     private readonly StartupRegistration _startup;
@@ -198,7 +198,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public int LanguageIndex
     {
         get => Math.Max(0, Array.IndexOf(Languages, S.Language ?? string.Empty));
-        set => Update(s => s with { Language = value is > 0 and < 3 ? Languages[value] : null }, nameof(LanguageIndex));
+        set => Update(s => s with { Language = value > 0 && value < Languages.Length ? Languages[value] : null }, nameof(LanguageIndex));
     }
 
     /// <summary>The informational version (VersionPrefix-VersionSuffix), e.g. "0.5.0" or "0.6.0-beta.1".</summary>

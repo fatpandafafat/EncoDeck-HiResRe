@@ -23,6 +23,8 @@ internal static class ProbeApp
                 "devices" => await ListDevicesAsync(options, ct),
                 "usb-devices" => await UsbDevicesCommand.RunAsync(ct),
                 "services" => await ListServicesAsync(options, ct),
+                "sony-services" => await SonyServicesCommand.RunAsync(options, ct),
+                "sony-probe" => await SonyProbeCommand.RunAsync(options, ct),
                 "query" => await QueryCommands.QueryAsync(options, ct),
                 "listen" => await QueryCommands.ListenAsync(options, ct),
                 "watch" => await QueryCommands.WatchAsync(options, ct),
@@ -34,6 +36,8 @@ internal static class ProbeApp
                 "le-audio" => await LeAudioCommand.RunAsync(options, ct),
                 "multipoint-off" => await LeAudioCommand.DisableMultipointCommandAsync(options, ct),
                 "render-model" => await RenderModelCommand.RunAsync(options, ct),
+                "bridge" => await BridgeCommand.RunAsync(options, ct),
+                "components" => await ComponentsCommand.RunAsync(options, ct),
                 _ => Unknown(options.Command),
             };
         }
@@ -71,10 +75,12 @@ internal static class ProbeApp
                                           (handshake, product id, event codes, feature status,
                                           battery, noise control, equalizer). Prints every frame.
                        [--eq-list]        Also query the equalizer preset list.
+                       [--codec]          Also query the raw vendor codec report (0x0114).
                        [--only a,b]       Run only the named queries.
               listen [--seconds N]        Subscribe to device events and print them (default 60 s).
               watch  [--seconds N]        Subscribe and also poll battery / noise control / features,
                      [--interval-ms N]    printing only changes (default 120 s, 2000 ms).
+                     [--codec]            Also poll codec reports; vendor ids need model validation.
               get --cmd 0x01NN            Send exactly one read (GET-group) request.
                   [--payload HEX]         Commands outside 0x01xx are refused.
 
@@ -92,9 +98,24 @@ internal static class ProbeApp
                        [--seconds N]     Default 60 seconds. Audio streaming remains unverified.
                        [--pair --confirm-write]  Confirm multipoint off, then wait for pairing mode and replace this PC's bonds.
                        [--legacy-pairing]  With --pair, use explicit addresses without Windows set discovery for comparison.
+                       [--restore --confirm-write]  Remove this PC's LE Audio pairings (pair again in Windows Settings).
               monitor [--seconds N]       Run the app's device runtime headlessly, print state changes
                                           and finally every feature value the session start read.
                       [--set-anc a,b --confirm-write]  Also run commands (off|anc|transparency|adaptive|smart|deep|medium|light|less|standard|more).
+
+            A2DP Windows Bridge:
+              bridge [--seconds N]        Connect to the A2DPWB core's pipe, print its state and changes.
+                     [--diag]             Also print A2DPWB's diagnostic text (addresses masked).
+                     [--rfcomm <uuid>]    Open that RFCOMM service through the core to the device it streams to
+                                          (A2DPWB 2.0.2+) and print what the device sends for --seconds.
+                     [--instance <name>]  A side-by-side test core (A2DPWB_INSTANCE).
+                     [--start <folder> [--config-dir <dir>]]  Start that core first (--background).
+                     [--quit]             Ask the core to exit afterwards.
+
+            Components:
+              components                  List the component pins of this build (LHDC, A2DP Bridge).
+                         [--install lhdc|a2dpwb --root <folder>]  Download and unpack one as the app does.
+                         [--check [--floor <x.y.z-rN>]]  Look for component releases online as the Labs page does.
 
             Diagnostics:
               render-model --file <x.vfxms> --out <dir>  Render a HeyMelody 3D model off screen to PNG

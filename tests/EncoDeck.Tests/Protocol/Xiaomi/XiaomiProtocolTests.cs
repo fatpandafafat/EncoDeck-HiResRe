@@ -236,14 +236,26 @@ public class XiaomiProtocolTests
     }
 
     [Fact]
-    public void Profiles_AreGenericXiaomiOnFastConnectThenXiaoAiSpp()
+    public void Profiles_AreGenericXiaomiOnFastConnectThenXiaoAiSppThenMmaGatt()
     {
         foreach (var profile in XiaomiProfiles.CreateBuiltIn().Cast<IControllableProfile>())
         {
             Assert.Equal("xiaomi", profile.Brand);
             Assert.True(profile.IsGeneric);
             Assert.Equal(profile.ModelId, profile.ImageKey);
-            Assert.Equal([new Guid("0000FD2D-0000-1000-8000-00805F9B34FB"), new Guid("00001101-0000-1000-8000-008584D01810")], profile.ControlServiceUuids);
+            Assert.Equal([new Guid("0000FD2D-0000-1000-8000-00805F9B34FB"), new Guid("00001101-0000-1000-8000-008584D01810"), new Guid("0000AF00-0000-1000-8000-00805F9B34FB")], profile.ControlServiceUuids);
         }
+    }
+
+    [Fact]
+    public void MmaGatt_IsOpenedOnTheEarbudsLeAudioBondsOnly()
+    {
+        var endpoint = EncoDeck.Protocol.Brands.GattStreamEndpoints.Find(XiaomiProtocol.MmaGattServiceUuid);
+        Assert.NotNull(endpoint);
+        Assert.Equal(new Guid("0000AF07-0000-1000-8000-00805F9B34FB"), endpoint.Write);
+        Assert.Equal(new Guid("0000AF08-0000-1000-8000-00805F9B34FB"), endpoint.Notify);
+        Assert.True(endpoint.BondedLeIdentities);
+        // Never bound to a nearby advertiser by name: only the earbuds' own bonds are tried.
+        Assert.False(endpoint.NameMatchedLeFallback);
     }
 }

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 using System.Globalization;
+using Microsoft.UI.Xaml;
 using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace EncoDeck.App.Services;
@@ -25,4 +26,21 @@ internal static class Loc
 
     public static string Format(string key, params object?[] args) =>
         string.Format(CultureInfo.CurrentCulture, Get(key), args);
+
+    /// <summary>
+    /// Gives a window's content the UI language chosen in Settings. WinUI keeps the system language for
+    /// XAML text otherwise, and Japanese on Chinese Windows would render with Chinese glyphs and fonts.
+    /// </summary>
+    public static void ApplyLanguage(Window window)
+    {
+        try
+        {
+            string language = Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride;
+            if (!string.IsNullOrEmpty(language) && window.Content is FrameworkElement root) root.Language = language;
+        }
+        catch (Exception)
+        {
+            // No override in this configuration: the system language is used.
+        }
+    }
 }

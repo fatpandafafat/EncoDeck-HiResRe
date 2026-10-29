@@ -41,24 +41,26 @@ public class LeAudioSetPairingTests
     }
 
     [Theory]
-    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b2", true)]
-    [InlineData("bluetoothle#bluetoothleaa:bb:cc:dd:ee:ff-11:22:33:44:A1:B2", true)]
-    [InlineData("Bluetooth#Bluetoothaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b2", false)]
-    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:55:66", false)]
-    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b3", false)]
-    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-aa:bb:cc:44:a1:b2", false)]
-    [InlineData("OPPO Enco X4", false)]
-    [InlineData("", false)]
-    public void OnlyTheExactAdvertisedLePeerCanBePaired(string id, bool expected)
+    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b2", "AdvertisedPeer")]
+    [InlineData("bluetoothle#bluetoothleaa:bb:cc:dd:ee:ff-11:22:33:44:A1:B2", "AdvertisedPeer")]
+    // Enco X3: the other earbud's LE Audio identity is not the scan-response address.
+    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b3", "SetMember")]
+    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-5a:bb:cc:44:a1:b2", "SetMember")]
+    [InlineData("Bluetooth#Bluetoothaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b2", "Rejected")]
+    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:55:66", "Rejected")]
+    [InlineData("BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1", "Rejected")]
+    [InlineData("OPPO Enco X4", "Rejected")]
+    [InlineData("", "Rejected")]
+    public void SetMembers_AdvertisedPeerPreferred_OtherLeMembersAccepted_PrimaryAndClassicRejected(string id, string expected)
     {
-        Assert.Equal(expected, LeAudioSetPairing.IsExpectedPeer(id, Primary, Secondary));
+        Assert.Equal(expected, LeAudioSetPairing.Classify(id, Primary, Secondary).ToString());
     }
 
     [Fact]
-    public void InvalidPeerIdentityCannotAuthorizeSetPairing()
+    public void WithoutAHint_MembersAreStillClassifiedByAddress()
     {
         const string id = "BluetoothLE#BluetoothLEaa:bb:cc:dd:ee:ff-11:22:33:44:a1:b2";
-        Assert.False(LeAudioSetPairing.IsExpectedPeer(id, Secondary, Secondary));
-        Assert.False(LeAudioSetPairing.IsExpectedPeer(id, Primary, 0));
+        Assert.Equal(LeAudioSetPairing.MemberKind.SetMember, LeAudioSetPairing.Classify(id, Primary, 0));
+        Assert.Equal(LeAudioSetPairing.MemberKind.Rejected, LeAudioSetPairing.Classify(id, Secondary, Secondary));
     }
 }

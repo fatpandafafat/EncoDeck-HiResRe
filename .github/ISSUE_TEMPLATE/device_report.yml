@@ -1,0 +1,83 @@
+name: 设备兼容性报告 / Device compatibility report
+description: 反馈某款耳机的实际可用情况，或请求适配新型号 / Report how a model works, or request support for a new one
+body:
+  - type: markdown
+    attributes:
+      value: |
+        兼容性报告对项目最有价值。请先按 [docs/TESTING.md](https://github.com/TIANLI0/EncoDeck/blob/main/docs/TESTING.md) 运行 `EncoDeck.Probe devices / services / query --report report.json`。
+        Compatibility reports help the most. Please run `EncoDeck.Probe devices / services / query --report report.json` as described in docs/TESTING.md first.
+
+        ⚠️ Probe 默认已脱敏；请勿公开 `--show-sensitive` 的输出或完整蓝牙地址。
+        Probe output is redacted by default; never post `--show-sensitive` output or full Bluetooth addresses.
+
+  - type: input
+    id: device
+    attributes:
+      label: 品牌与型号 / Brand and model
+      placeholder: "OnePlus Buds Pro 3"
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: 固件版本 / Firmware version
+    validations:
+      required: true
+
+  - type: input
+    id: product-id
+    attributes:
+      label: 产品 ID / Product ID
+      description: Probe 输出中可以看到 / Shown in Probe output
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: 当前状态 / Current status
+      options:
+        - 能识别，部分功能可用 / Detected, some features work
+        - 能识别，所有列出的功能均可用 / Detected, all listed features work
+        - 能识别，但控制无效 / Detected, but controls have no effect
+        - 无法识别 / Not detected
+        - 不在兼容列表中（请求适配） / Not in the compatibility list (support request)
+    validations:
+      required: true
+
+  - type: textarea
+    id: features
+    attributes:
+      label: 功能测试结果 / Feature results
+      description: 逐项写明可用 / 不可用 / 未测试 / List each feature as working, broken or untested
+      placeholder: |
+        - 电量 / Battery: ✅
+        - 降噪 / ANC: ✅
+        - 自定义 EQ / Custom EQ: ❌ 写入后回读不一致 / readback mismatch
+        - 空间音频 / Spatial audio: 未测试 / untested
+
+  - type: input
+    id: version
+    attributes:
+      label: EncoDeck 版本 / EncoDeck version
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本与蓝牙适配器 / Windows version and Bluetooth adapter
+    validations:
+      required: true
+
+  - type: textarea
+    id: probe
+    attributes:
+      label: Probe 输出 / Probe output
+      description: 粘贴 `devices`、`services`、`query` 的输出；`report.json` 可直接拖入下方附件 / Paste the output; drag `report.json` into the box below
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 附件与其他信息 / Attachments and notes
+      description: report.json、截图、日志等 / report.json, screenshots, logs, etc.

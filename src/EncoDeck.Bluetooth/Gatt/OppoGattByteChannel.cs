@@ -80,6 +80,9 @@ internal sealed class OppoGattByteChannel : IDuplexByteChannel
     /// </summary>
     public TimeSpan? KeepAliveInterval => TimeSpan.FromSeconds(30);
 
+    /// <summary>OPPO GATT control is only opened on the bonded LE Audio identities.</summary>
+    public bool IsLeAudioTransport => true;
+
     public string Description => $"OPPO GATT 079A ({_endpoints.Length} earbud(s); joined {string.Join(", ", _endpoints.Select(e => e.Device.BluetoothAddress == _primaryAddress ? "primary" : "secondary"))})";
 
     /// <summary>

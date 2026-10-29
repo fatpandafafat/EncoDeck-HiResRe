@@ -25,6 +25,7 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
     private static readonly TimeSpan AuthVerdictTimeout = TimeSpan.FromMilliseconds(1500);
 
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan WriteTimeout = TimeSpan.FromSeconds(5);
 
     private readonly XiaomiFrameDecoder _decoder = new();
     private readonly Lock _gate = new();
@@ -48,13 +49,17 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
 
     protected override async Task<bool> StartSessionAsync(CancellationToken cancellationToken)
     {
+        Logger.LogInformation("Xiaomi handshake: authentication starting");
         await AuthenticateAsync(cancellationToken).ConfigureAwait(false);
+        Logger.LogInformation("Xiaomi handshake: reading device info");
         if (!await ReadTargetInfoAsync(cancellationToken).ConfigureAwait(false))
         {
             Logger.LogInformation("Xiaomi earbuds did not answer the device-info query");
             return false;
         }
+        Logger.LogInformation("Xiaomi handshake: discovering settings");
         await ReadFeaturesAsync(discover: true, cancellationToken).ConfigureAwait(false);
+        Logger.LogInformation("Xiaomi handshake completed");
         return true;
     }
 
@@ -224,14 +229,30 @@ internal sealed partial class XiaomiDeviceController : BrandControllerBase
         return answer is not null;
     }
 
-    /// <summary>Sends <paramref name="frame"/> and waits for the first response <paramref name="accepts"/> matches; null on timeout or write failure.</summary>
+    /// <summary>Sends a frame and waits for a matching response. An unanswered request returns null;
+    /// a stalled write ends the session because its frame may be incomplete.</summary>
     private async Task<XiaomiFrame?> RequestAsync(XiaomiFrame frame, Func<XiaomiFrame, bool> accepts, TimeSpan timeout, CancellationToken cancellationToken)
     {
         var waiter = new Waiter(f => f.IsResponse && f.Sequence == frame.Sequence && accepts(f), new TaskCompletionSource<XiaomiFrame>(TaskCreationOptions.RunContinuationsAsynchronously));
         lock (_gate) _waiters.Add(waiter);
         try
         {
-            if (!await WriteAsync(frame.Encode(), cancellationToken).ConfigureAwait(false)) return null;
+            using (var writeTimeout = new CancellationTokenSource(WriteTimeout, Context.Time))
+            using (var writeCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeTimeout.Token))
+            {
+                try
+                {
+                    if (!await WriteAsync(frame.Encode(), writeCancellation.Token).ConfigureAwait(false)) return null;
+                }
+                catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && writeTimeout.IsCancellationRequested)
+                {
+                    // A cancelled write may have sent only part of a frame. Reopen the transport
+                    // instead of treating this as an unanswered optional auth/config request.
+                    EndSession();
+                    Logger.LogWarning("Xiaomi write timed out: opcode {Opcode:X2}, sequence {Sequence}", frame.OpCode, frame.Sequence);
+                    throw new IOException("Xiaomi control write timed out; the session must be reopened.", ex);
+                }
+            }
             return await waiter.Completion.Task.WaitAsync(timeout, Context.Time, cancellationToken).ConfigureAwait(false);
         }
         catch (TimeoutException)

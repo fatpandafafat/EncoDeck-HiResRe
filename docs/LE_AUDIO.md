@@ -2,7 +2,11 @@
 
 部分 OPPO 耳机的固件同时支持传统蓝牙（A2DP）和 LE Audio（LC3）。在 OPPO 手机上，LE Audio 由系统蓝牙自行切换；Windows 的“添加设备”找不到这些耳机的 LE 身份，所以总是按传统蓝牙配对。EncoDeck 的“实验室”页提供一个实验性开关，帮 Windows 通过 LE Audio 配对这类耳机。
 
-目前只在 **OPPO Enco X4** 上真机验证过。Enco X4、Enco X3 提供实验性入口；其他 OPPO 型号须回复 LE/BR 开关查询（`0x0136`）或已有 LE 配对，才会显示入口。Enco X3 尚未完成 Windows 真机配对与双耳播放验证。
+目前只在 **OPPO Enco X4** 上真机验证过。Enco X4、Enco X3 提供实验性入口；其他 OPPO 型号须回复 LE/BR 开关查询（`0x0136`）或已有 LE 配对，才会显示入口。Enco X3 尚未完成 Windows 真机配对与双耳播放验证：它的另一只耳机以自己的 LE 地址广播，EncoDeck 接受 Windows 按 LE Audio 集合协议找到的这只耳机，并在副耳配对前尝试上报主机已改用 LE 传输（功能开关 `0x1F`），X4 不需要这一步（[#12](https://github.com/TIANLI0/EncoDeck/issues/12)）。
+
+X3 的配对流程先完成主耳 LE 配对，等待本机绑定可见并开放 GATT 控制，尝试上报 `0x0403 [1F 01]`，再发起副耳配对。Windows 提前报告的集合成员会等待这一步结束，保留系统发现的身份。上报成功后等待 3 秒；上报失败会记录结果并继续尝试副耳，不能把上报 ACK 当作双耳配对成功。
+
+X3 真机测试（Intel 适配器）结果：主耳 LE 配对成功，`0x1F` 上报被耳机确认，副耳随即开始以自己的公共地址发出可连接的扩展广播；但 Windows 向副耳发起的 LE 连接在建立后收不到副耳的任何数据包，几个连接间隔后以 `0x3E`（连接建立失败）断开，配对尚未开始。改变连接参数（15 / 60 / 180 ms 间隔）结果相同。Windows 只绑定一只耳机时不会创建 LE Audio 播放端点，所以 X3 暂时仍不能在 Windows 上以 LE Audio 双耳播放；恢复经典蓝牙即可正常使用。
 
 ## 开始之前
 
@@ -57,7 +61,7 @@ EncoDeck 在打开传统蓝牙控制通道前检查 Windows 的 LE 配对记录�
 
 LC3 切换的首个必要步骤是通过控制器写入双设备连接关闭并回读确认。缺少控制通道、写入/回读失败、超时或设备拒绝都会停止后续模式切换和配对操作；不能仅信任缓存里的“已关闭”。保留 LE 配对时，OPPO 控制器拒绝从应用重新开启双设备连接；需要恢复传统蓝牙后才能重新开启。该保护不能约束手机重新修改耳机设置或手动切换设备，不能作为永久排他连接保证。
 
-诊断命令：`EncoDeck.Probe le-audio --device "OPPO Enco X4" --seconds 120` 使用现有 LE 绑定测试重连并记录双耳链路变化；添加 `--pair --confirm-write` 才会先关闭并确认双设备连接、等待配对广播并替换本机配对。`EncoDeck.Probe multipoint-off --device "OPPO Enco X4" --confirm-write` 仅关闭双设备连接并回读，不更换配对。上述命令不验证声学同步。
+诊断命令：`EncoDeck.Probe le-audio --device "OPPO Enco X4" --seconds 120` 使用现有 LE 绑定测试重连并记录双耳链路变化；添加 `--pair --confirm-write` 才会先关闭并确认双设备连接、等待配对广播并替换本机配对；`--restore --confirm-write` 删除本机的 LE Audio 配对（之后在 Windows 设置中重新配对）。`EncoDeck.Probe multipoint-off --device "OPPO Enco X4" --confirm-write` 仅关闭双设备连接并回读，不更换配对。上述命令不验证声学同步。
 
 ## 工作原理
 

@@ -101,6 +101,9 @@ public sealed record AppSettings
     /// <summary>System-wide noise-control hotkeys; none are set by default (a hotkey takes the combination away from every other app).</summary>
     public HotkeyBindings? Hotkeys { get; init; }
 
+    /// <summary>Start the A2DP Windows Bridge core (in the background) when EncoDeck starts, if it is installed and not running.</summary>
+    public bool A2dpBridgeAutoStart { get; init; }
+
     /// <summary>The main window's last size and position, or null for the default (centered).</summary>
     public WindowBounds? MainWindowBounds { get; init; }
 

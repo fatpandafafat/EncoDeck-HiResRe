@@ -61,11 +61,13 @@ public enum PopupEdge
 public sealed record PopupGroupContent(PopupGroup Group, PopupImage Image, IReadOnlyList<(PopupSlot Slot, PopupBattery Battery)> Slots);
 
 /// <summary>What the pop-up shows for the battery levels known right now.</summary>
+/// <param name="ForegroundVisible">The pack's foreground animation plays over the video (HeyMelody's flag 8).</param>
 public sealed record PopupBatteryArrangement(
     bool VideoVisible,
     bool ImagesVisible,
     IReadOnlyList<PopupGroupContent> Groups,
-    IReadOnlyList<PopupBattery> Column);
+    IReadOnlyList<PopupBattery> Column,
+    bool ForegroundVisible = false);
 
 /// <summary>A colour with an optional night variant (HeyMelody picks the night one in dark mode when set).</summary>
 public sealed record PopupColor(string? Day, string? Night = null)
@@ -108,6 +110,12 @@ public sealed record PopupLayout
     public const double GroupBottom = Height * 0.55;
     /// <summary>Title band: from the 0.58 guideline to 68 dp above the bottom, 24 dp from the sides.</summary>
     public static readonly PopupRect TitleBand = new(24, Height * 0.58, Width - 48, Height - 68 - Height * 0.58);
+    /// <summary>
+    /// The foreground animation (<c>connected_foreground_anim</c>): full width, 100 dp high, 34 dp from
+    /// the top, the picture fitted and centred in it. Packs draw the product there (e.g. Enco Free4
+    /// Dynaudio: earbuds and case over a video of the brand's logo alone).
+    /// </summary>
+    public static readonly PopupRect ForegroundRect = new(0, 34, Width, 100);
 
     /// <summary>Compact layout: gap between the battery row and the title, and below the title (dp).</summary>
     public const double CompactTitleGap = 19;
@@ -178,8 +186,10 @@ public sealed record PopupLayout
 
     public bool ShowImageRes { get; init; }
 
-    /// <summary>The state has <c>fgAnimRes</c> (a foreground animation EncoDeck does not draw).</summary>
-    public bool HasForegroundAnimation { get; init; }
+    /// <summary>Pack-relative path of the state's <c>fgAnimRes</c> (an animated WebP), or null.</summary>
+    public string? ForegroundAnimation { get; init; }
+
+    public bool HasForegroundAnimation => ForegroundAnimation is not null;
 
     /// <summary>The state plays a video segment (<c>startTime</c> set); otherwise HeyMelody shows pictures only.</summary>
     public bool HasVideoSegment { get; init; }
@@ -231,7 +241,7 @@ public sealed record PopupLayout
                 BudsImage = String(Object(state, "budsImageRes"), "path"),
                 BoxImage = String(Object(state, "boxImageRes"), "path"),
                 ShowImageRes = state.TryGetProperty("showImageRes", out var showImage) && showImage.ValueKind == JsonValueKind.True,
-                HasForegroundAnimation = String(Object(state, "fgAnimRes"), "path") is not null,
+                ForegroundAnimation = String(Object(state, "fgAnimRes"), "path"),
                 HasVideoSegment = state.TryGetProperty("startTime", out var start) && start.ValueKind == JsonValueKind.Number,
             };
             // Style 1 is HeyMelody's vertical column. Newer packs (style 3, e.g. Enco X4) place the
@@ -282,10 +292,11 @@ public sealed record PopupLayout
         {
             if (HasForegroundAnimation || (hasVideo && HasVideoSegment && !ShowImageRes))
             {
-                // The usual case: levels under the earbuds and under the case of the video.
+                // The usual case: levels under the earbuds and under the case of the video, or of
+                // the foreground animation when the pack draws them there.
                 return new PopupBatteryArrangement(videoVisible, false,
                     [Group(PopupGroup.Buds, PopupImage.None, (PopupSlot.Left, PopupBattery.Left), (PopupSlot.Right, PopupBattery.Right)),
-                     Group(PopupGroup.Box, PopupImage.None, (PopupSlot.Center, PopupBattery.Case))], []);
+                     Group(PopupGroup.Box, PopupImage.None, (PopupSlot.Center, PopupBattery.Case))], [], HasForegroundAnimation);
             }
             if (BoxImage is null)
             {

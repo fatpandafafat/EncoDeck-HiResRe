@@ -466,7 +466,7 @@ internal static partial class OppoCatalog
         If(m.Flag("controlAutoVolumeSupport") == 1, 0x1C);
         If(m.Flag("collectLogs") == 1, 0x1E);
         If(m.Has("gameEqPkgList"), 0x21);
-        // 0x1F (LE audio) is only sent by ColorOS phones with LE audio.
+        // 0x1F (LE transport) is not a user toggle: the controller reports it on LE Audio links.
         If(m.Flag("spineHealth") is 1 or 2, 0x22, 0x23, 0x24);
         If(m.Flag("spineHealth") == 2, 0x3C);
         If(m.GameSoundTypes.Count > 0, 0x27, 0x28);

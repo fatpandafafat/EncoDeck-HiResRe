@@ -47,6 +47,14 @@ internal sealed class FakeOppoDevice
 
     private (byte Id, byte Value, int Remaining)? _pendingFeature;
 
+    /// <summary>
+    /// A source device connects only after this many further list queries (the earbuds page the phone after
+    /// acknowledging the request).
+    /// </summary>
+    public int ConnectSettleQueries { get; set; }
+
+    private (byte[] WireAddress, int Remaining)? _pendingConnect;
+
     /// <summary>When true SET commands are swallowed (no acknowledgement).</summary>
     public bool DropSets { get; set; }
 
@@ -206,6 +214,11 @@ internal sealed class FakeOppoDevice
             case OppoCommand.QueryEqualizerList:
                 return [new OppoFrame(rsp, seq, [0x00, .. EqListBody()])];
             case OppoCommand.QueryConnectedDevices:
+                if (_pendingConnect is { } connect)
+                {
+                    if (connect.Remaining <= 0) { SetSourceState(connect.WireAddress, 2); _pendingConnect = null; }
+                    else _pendingConnect = connect with { Remaining = connect.Remaining - 1 };
+                }
                 return [new OppoFrame(rsp, seq, [0x00, .. SourceListBody()])];
             case OppoCommand.QueryPriorityDevice:
                 return PreferredWireAddress is { } wire
@@ -284,6 +297,7 @@ internal sealed class FakeOppoDevice
                 if (i >= 0)
                 {
                     if (p[0] == 0x03) Sources.RemoveAt(i);
+                    else if (p[0] == 0x01 && ConnectSettleQueries > 0) _pendingConnect = (wireAddress, ConnectSettleQueries);
                     else Sources[i] = Sources[i] with { State = p[0] == 0x01 ? (byte)2 : (byte)3 };
                 }
                 return [Ack(request), new OppoFrame(OppoCommand.DeviceEvent, 0x42, [0x06, .. SourceListBody()])];
@@ -338,6 +352,12 @@ internal sealed class FakeOppoDevice
             }
         }
         return [.. bytes];
+    }
+
+    private void SetSourceState(byte[] wireAddress, byte state)
+    {
+        int i = Sources.FindIndex(s => s.WireAddress.SequenceEqual(wireAddress));
+        if (i >= 0) Sources[i] = Sources[i] with { State = state };
     }
 
     private byte[] SourceListBody()

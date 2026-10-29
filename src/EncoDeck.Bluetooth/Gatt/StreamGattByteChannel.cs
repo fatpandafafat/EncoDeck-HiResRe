@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Channels;
+using EncoDeck.Bluetooth.LeAudio;
 using EncoDeck.Protocol.Brands;
 using EncoDeck.Protocol.Transport;
 using Microsoft.Extensions.Logging;
@@ -14,13 +15,15 @@ namespace EncoDeck.Bluetooth.Gatt;
 
 /// <summary>
 /// Ordinary byte stream over a write characteristic and a notifying characteristic (Sony MDR over
-/// GATT, AKG BES, Airoha RACE). The brand codecs re-frame the stream, so notifications may split or
-/// join frames. The LE endpoint is bound to the selected headset's address; only endpoints marked
-/// <see cref="GattStreamEndpoint.NameMatchedLeFallback"/> may fall back to one name-matched LE advertiser.
+/// GATT, AKG BES, Airoha RACE, Xiaomi MMA). The brand codecs re-frame the stream, so notifications
+/// may split or join frames. The LE endpoint is bound to the selected headset's address (or, for
+/// <see cref="GattStreamEndpoint.BondedLeIdentities"/>, to the earbuds' own LE Audio bonds); only
+/// endpoints marked <see cref="GattStreamEndpoint.NameMatchedLeFallback"/> may fall back to one
+/// name-matched LE advertiser.
 /// </summary>
 internal sealed class StreamGattByteChannel : IDuplexByteChannel
 {
-    /// <summary>Minimum ATT payload; unacknowledged writes are split to fit it.</summary>
+    /// <summary>Minimum ATT payload; unacknowledged writes fit it when the MTU is unknown.</summary>
     private const int MinimumAttPayload = 20;
 
     private readonly BluetoothLEDevice _device;
@@ -53,8 +56,52 @@ internal sealed class StreamGattByteChannel : IDuplexByteChannel
     /// one name-matched LE advertiser (see <see cref="LeCompanionResolver"/>).
     /// </summary>
     internal static Task<ChannelOpenResult> OpenAsync(ulong address, string? name, GattStreamEndpoint endpoint, ILogger logger, CancellationToken cancellationToken) =>
-        LeCompanionResolver.OpenAsync(address, name, endpoint, LeCompanionCache.Shared,
-            (target, expectedName, ct) => OpenAtAsync(address, target, expectedName, endpoint, ct), ScanAsync, logger, cancellationToken);
+        endpoint.BondedLeIdentities
+            ? OpenOnBondedLeAsync(address, name, endpoint, logger, cancellationToken)
+            : LeCompanionResolver.OpenAsync(address, name, endpoint, LeCompanionCache.Shared,
+                (target, expectedName, ct) => OpenAtAsync(address, target, expectedName, endpoint, ct), ScanAsync, logger, cancellationToken);
+
+    /// <summary>
+    /// Opens <paramref name="endpoint"/> on a connected LE Audio identity of these earbuds: the one at the
+    /// public address or the other earbud's bond, so one earbud worn alone answers whichever it is. Only
+    /// bonds of the selected earbuds are tried, and none when they are not on LE Audio.
+    /// </summary>
+    private static async Task<ChannelOpenResult> OpenOnBondedLeAsync(ulong address, string? name, GattStreamEndpoint endpoint, ILogger logger, CancellationToken cancellationToken)
+    {
+        var connected = new List<LeTarget>();
+        try
+        {
+            // Retryable, like the Classic outcome it follows: a Classic-only pairing still answers over SPP once its link settles.
+            if (!await LeAudioLink.IsBondedAsync(address, cancellationToken).ConfigureAwait(false))
+                return ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, $"{endpoint.Name}: the earbuds are not bonded over LE.");
+            using (var primary = await BluetoothLEDevice.FromBluetoothAddressAsync(address, BluetoothAddressType.Public).AsTask(cancellationToken).ConfigureAwait(false))
+            {
+                if (primary?.ConnectionStatus == BluetoothConnectionStatus.Connected) connected.Add(new(address, false));
+            }
+            var secondaries = await LeAudioPairing.FindSecondaryBondsAsync(address, name, cancellationToken).ConfigureAwait(false);
+            foreach (var le in secondaries)
+            {
+                using (le)
+                {
+                    if (le.ConnectionStatus == BluetoothConnectionStatus.Connected)
+                        connected.Add(new(le.BluetoothAddress, le.BluetoothAddressType == BluetoothAddressType.Random));
+                }
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or COMException)
+        {
+            return ChannelOpenResult.Failed(ChannelOpenStatus.ConnectFailed, $"{endpoint.Name}: 0x{ex.HResult:X8}");
+        }
+        ChannelOpenResult? failure = null;
+        foreach (var target in connected)
+        {
+            var result = await OpenAtAsync(address, target, null, endpoint, cancellationToken).ConfigureAwait(false);
+            if (result.Status == ChannelOpenStatus.Opened) return result;
+            logger.LogInformation("{Endpoint} on an LE Audio identity failed: {Detail}", endpoint.Name, result.Detail);
+            failure = result;
+        }
+        return failure ?? ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, $"{endpoint.Name}: no LE Audio link is up.");
+    }
 
     /// <summary>Opens <paramref name="endpoint"/> at the classic address (<paramref name="target"/> null) or at an LE companion.</summary>
     private static async Task<ChannelOpenResult> OpenAtAsync(ulong address, LeTarget? target, string? expectedName, GattStreamEndpoint endpoint, CancellationToken cancellationToken)
@@ -231,7 +278,7 @@ internal sealed class StreamGattByteChannel : IDuplexByteChannel
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         // Acknowledged writes may use long writes; unacknowledged ones must fit the minimum ATT payload.
-        int chunk = _writeOption == GattWriteOption.WriteWithResponse ? Math.Max(data.Length, 1) : MinimumAttPayload;
+        int chunk = _writeOption == GattWriteOption.WriteWithResponse ? Math.Max(data.Length, 1) : UnacknowledgedPayload();
         for (int offset = 0; offset < data.Length; offset += chunk)
         {
             var part = data.Slice(offset, Math.Min(chunk, data.Length - offset));
@@ -240,6 +287,19 @@ internal sealed class StreamGattByteChannel : IDuplexByteChannel
                 : part.ToArray().AsBuffer();
             var result = await _write.WriteValueAsync(buffer, _writeOption).AsTask(cancellationToken).ConfigureAwait(false);
             if (result != GattCommunicationStatus.Success) throw new IOException($"{Description} write: {result}");
+        }
+    }
+
+    /// <summary>Negotiated ATT MTU minus the 3-byte header, so a frame stays in one write where the MTU allows.</summary>
+    private int UnacknowledgedPayload()
+    {
+        try
+        {
+            return Math.Max(MinimumAttPayload, _service.Session.MaxPduSize - 3);
+        }
+        catch (Exception ex) when (ex is COMException or ObjectDisposedException or InvalidOperationException)
+        {
+            return MinimumAttPayload;
         }
     }
 

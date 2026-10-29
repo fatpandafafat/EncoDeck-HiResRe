@@ -1,0 +1,90 @@
+name: 问题反馈 / Bug report
+description: 连不上、设置不生效、界面异常或崩溃 / Connection failures, settings not applied, UI glitches or crashes
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先搜索是否已有相同的 issue。
+        Thanks for the report! Please search existing issues first.
+
+        ⚠️ 请勿粘贴未脱敏的完整蓝牙地址；日志和 Probe 输出默认已脱敏，`--show-sensitive` 的输出不要公开。
+        Do not paste full Bluetooth addresses. Logs and Probe output are redacted by default; never post `--show-sensitive` output.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述 / Description
+      description: 发生了什么？你期望的结果是什么？ / What happened, and what did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1. 连接耳机 / Connect the earbuds
+        2. 在托盘面板切换到通透 / Switch to transparency from the tray panel
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: EncoDeck 版本 / EncoDeck version
+      description: 在「关于」页可以看到 / See the About page
+      placeholder: "1.11.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: 安装来源 / Install source
+      options:
+        - Microsoft Store
+        - GitHub 安装包 / GitHub installer
+        - 自行编译 / Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: 耳机型号与固件版本 / Earbud model and firmware
+      placeholder: "OPPO Enco X4, 固件 / firmware 1.0.0.xx"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows 版本 / Windows version
+      description: 运行 `winver` 查看 / Run `winver`
+      placeholder: "Windows 11 24H2 (26100.xxxx)"
+    validations:
+      required: true
+
+  - type: input
+    id: adapter
+    attributes:
+      label: 蓝牙适配器 / Bluetooth adapter
+      description: 设备管理器 → 蓝牙 / Device Manager → Bluetooth
+      placeholder: "Intel Wireless Bluetooth / Realtek / USB 适配器型号"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / Logs
+      description: |
+        日志位于 `%LOCALAPPDATA%\EncoDeck\logs\encodeck-yyyyMMdd.log`（已脱敏），请附上出问题当天的相关片段。
+        Logs are at `%LOCALAPPDATA%\EncoDeck\logs\encodeck-yyyyMMdd.log` (redacted). Attach the relevant part from that day.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他信息 / Additional context
+      description: 截图、Probe 报告（见 docs/TESTING.md）、是否同时连接了手机等 / Screenshots, Probe report (see docs/TESTING.md), whether a phone is also connected, etc.

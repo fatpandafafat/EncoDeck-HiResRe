@@ -1,0 +1,103 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Component releases, separate from app releases: lhdc-v<version> is compiled from the pinned LHDC-Win commit,
+# a2dpwb-v<version> mirrors the official A2DP Windows Bridge builds byte for byte. Each runs once per component
+# version (push its tag); an app release only checks that its pins are published (build/verify-components.ps1).
+# The app accepts exactly the sizes and SHA-256 digests pinned in src/EncoDeck.Platform/Components/components.json.
+name: Components
+
+on:
+  push:
+    tags: ["lhdc-v*", "a2dpwb-v*"]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: Build or check a component without publishing it
+        type: choice
+        options: [lhdc, a2dpwb]
+
+permissions:
+  contents: read
+
+jobs:
+  lhdc:
+    if: startsWith(github.ref, 'refs/tags/lhdc-v') || inputs.component == 'lhdc'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag against the pin
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $pin = (Get-Content src/EncoDeck.Platform/Components/components.json -Raw | ConvertFrom-Json).components | Where-Object id -eq 'lhdc'
+          if ($pin.tag -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME does not match the pinned $($pin.tag)." }
+
+      - name: Install matching SDK and WDK
+        shell: pwsh
+        run: |
+          # Use Microsoft's package manager on this disposable runner; no custom download-and-execute installer.
+          if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+            Install-Module -Name Microsoft.WinGet.Client -Repository PSGallery -Scope CurrentUser -Force
+            Import-Module Microsoft.WinGet.Client
+            Repair-WinGetPackageManager -AllUsers
+          }
+          $winget = (Get-Command winget -ErrorAction SilentlyContinue).Source
+          if (-not $winget) {
+            $location = (Get-AppxPackage Microsoft.DesktopAppInstaller).InstallLocation
+            if (-not $location) { throw 'Microsoft WinGet is unavailable.' }
+            $winget = Join-Path $location 'winget.exe'
+          }
+          $kits = (Get-ItemProperty 'HKLM:/SOFTWARE/Microsoft/Windows Kits/Installed Roots').KitsRoot10
+          foreach ($kit in @(@{Id='Microsoft.WindowsSDK.10.0.28000';Path='Include/10.0.28000.0/um/Windows.h'},@{Id='Microsoft.WindowsWDK.10.0.28000';Path='Include/10.0.28000.0/km/wdm.h'})) {
+            if (Test-Path -LiteralPath (Join-Path $kits $kit.Path)) { continue }
+            & $winget install --id $kit.Id --exact --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            if ($LASTEXITCODE -notin @(0,3010)) { throw "Kit installation failed: $($kit.Id) ($LASTEXITCODE)" }
+          }
+
+      - name: Build the pinned LHDC component (and publish it for a tag)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $publish = $env:GITHUB_REF_TYPE -eq 'tag'
+          ./build/publish-lhdc-runtime.ps1 -PowerShellDirectory $PSHOME -OutputDirectory artifacts/lhdc-release -Publish:$publish
+          if ($LASTEXITCODE -ne 0) { throw 'LHDC component build failed.' }
+          # The pin to copy into components.json.
+          '```json' >> $env:GITHUB_STEP_SUMMARY
+          Get-Content artifacts/lhdc-release/component-pin.json >> $env:GITHUB_STEP_SUMMARY
+          '```' >> $env:GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EncoDeck-LHDC-component
+          if-no-files-found: error
+          path: |
+            artifacts/lhdc-release/EncoDeck-LHDC-*.zip
+            artifacts/lhdc-release/EncoDeck-LHDC-*.zip.sha256
+            artifacts/lhdc-release/component-pin.json
+
+  a2dpwb:
+    if: startsWith(github.ref, 'refs/tags/a2dpwb-v') || inputs.component == 'a2dpwb'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag against the pin
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $pin = (Get-Content src/EncoDeck.Platform/Components/components.json -Raw | ConvertFrom-Json).components | Where-Object id -eq 'a2dpwb'
+          if ($pin.tag -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME does not match the pinned $($pin.tag)." }
+
+      - name: Mirror the pinned official builds (and publish them for a tag)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $publish = $env:GITHUB_REF_TYPE -eq 'tag'
+          ./build/mirror-a2dpwb.ps1 -OutputDirectory artifacts/a2dpwb-mirror -Publish:$publish

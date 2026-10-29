@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using System.Runtime.InteropServices;
 using EncoDeck.Bluetooth.Control;
 using EncoDeck.Bluetooth.Discovery;
+using EncoDeck.Bluetooth.Rfcomm;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.Connection;
 using EncoDeck.Core.Devices;
@@ -73,6 +75,7 @@ public sealed class DeviceManager : IDeviceManager
     private long _selectedAt;
     private bool _startupTracked;
     private long _startedAt;
+    private IReadOnlyList<PairedDevice> _bridgeDevices = [];
 
     public DeviceManager(
         IDeviceProfileRegistry profiles,
@@ -103,9 +106,13 @@ public sealed class DeviceManager : IDeviceManager
         get
         {
             string? activeId = _usbIdentity?.DeviceId ?? _active?.Identity.DeviceId;
-            return _watcher.Devices.Concat(_usbWatcher.Devices)
+            var paired = _watcher.Devices;
+            var bridgeOnly = _bridgeDevices.Where(b => !paired.Any(p => p.Identity.Address == b.Identity.Address)).ToList();
+            return paired.Concat(bridgeOnly).Concat(_usbWatcher.Devices)
                 .Select(d => (Device: d, Profile: _profiles.Match(d.Identity)))
                 .Where(x => x.Profile is not null)
+                // Only the bridge links earbuds Windows never paired: their control channel must be one it can open.
+                .Where(x => !bridgeOnly.Contains(x.Device) || IsBridgeable(x.Profile!))
                 // A USB endpoint name can also contain a Bluetooth model name; never open Bluetooth control for it.
                 .Where(x => x.Device.Identity.Transport != DeviceTransport.Usb || x.Profile is UsbHeadsetProfile)
                 // The read-only generic profile matches by name ("OPPO …"), which also hits phones and
@@ -117,6 +124,24 @@ public sealed class DeviceManager : IDeviceManager
     }
 
     public event EventHandler? KnownDevicesChanged;
+
+    /// <summary>
+    /// Opens control channels through A2DP Windows Bridge, for earbuds only the bridge is linked to; null without
+    /// one. Read when a device is selected.
+    /// </summary>
+    public IChannelConnector? BridgeConnector { get; set; }
+
+    /// <summary>
+    /// Earbuds A2DP Windows Bridge has connection profiles for, connected while it streams to them. Those Windows has
+    /// not paired (paired with the bridge's own adapter alone) are listed as devices of their own, with ids that are
+    /// not Windows': nothing opens them through Windows.
+    /// </summary>
+    public void SetBridgeDevices(IReadOnlyList<PairedDevice> devices)
+    {
+        if (devices.SequenceEqual(_bridgeDevices)) return;
+        _bridgeDevices = devices;
+        OnPairedDevicesChanged(this, EventArgs.Empty);
+    }
 
     public event EventHandler<DeviceIdentity>? ActiveDeviceLinkConnected;
 
@@ -197,7 +222,9 @@ public sealed class DeviceManager : IDeviceManager
                 ?? candidates.FirstOrDefault(c => c.Identity.DeviceId == _active?.Identity.DeviceId)
                 ?? candidates.OrderByDescending(c => c.Profile.MatchScore(c.Identity)).FirstOrDefault();
 
-            if (choice?.Identity.DeviceId == (_usbIdentity?.DeviceId ?? _active?.Identity.DeviceId)) return;
+            if (choice?.Identity.DeviceId == (_usbIdentity?.DeviceId ?? _active?.Identity.DeviceId)
+                // Windows had no radio for it: open it again (the radio may be back) unless the bridge carries it now.
+                && _active is not { WindowsUnavailable: true, BridgeOnly: false, Link.IsConnected: false }) return;
 
             await StopUsbAsync().ConfigureAwait(false);
 
@@ -246,10 +273,26 @@ public sealed class DeviceManager : IDeviceManager
                 }
             }
 
-            var link = await BluetoothLinkMonitor.CreateAsync(
-                choice.Identity.DeviceId,
-                profile.Form == DeviceForm.Headphones,
-                cancellationToken).ConfigureAwait(false);
+            ILinkStateSource? link;
+            bool bridgeable = BridgeConnector is not null && IsBridgeable(profile);
+            // Paired with A2DP Windows Bridge alone: Windows does not know the device.
+            bool bridgeOnly = _bridgeDevices.Any(d => d.Identity.DeviceId == choice.Identity.DeviceId);
+            try
+            {
+                link = bridgeOnly ? null : await BluetoothLinkMonitor.CreateAsync(
+                    choice.Identity.DeviceId,
+                    profile.Form == DeviceForm.Headphones,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            // 0x800710DF (device not ready): Windows has no Bluetooth radio left, typically because A2DP Windows
+            // Bridge took the only adapter over (WinUSB). The bridge's own link is then the only way to the earbuds.
+            catch (COMException ex) when (bridgeable)
+            {
+                _logger.LogWarning("Windows cannot open {Device} (0x{HResult:X8}): control only through A2DP Windows Bridge", choice.Identity, ex.HResult);
+                link = null;
+            }
+            bool windowsUnavailable = link is null && bridgeable;
+            if (windowsUnavailable) link = new NoWindowsLink();
             if (link is null)
             {
                 _logger.LogWarning("Could not open {Device} for link monitoring", choice.Identity);
@@ -263,11 +306,20 @@ public sealed class DeviceManager : IDeviceManager
                 return;
             }
 
-            var supervisor = new ControlChannelSupervisor(choice.Identity, controllable, link, _connector, _store, _policy, _allowExperimental, _loggers, trace: _trace);
+            // While A2DP Windows Bridge alone streams to the earbuds, their control channel runs through it.
+            ILinkStateSource supervised = link;
+            var connector = _connector;
+            if (BridgeConnector is { } bridge && controllable.ControlServiceUuids.Any(RfcommChannelConnector.IsRfcommService))
+            {
+                var bridged = new BridgedLinkState(link, _store, choice.Identity.DeviceId);
+                supervised = bridged;
+                connector = new BridgeRoutingConnector(_connector, bridge, bridged);
+            }
+            var supervisor = new ControlChannelSupervisor(choice.Identity, controllable, supervised, connector, _store, _policy, _allowExperimental, _loggers, trace: _trace);
             var identity = choice.Identity;
             supervisor.LinkConnected += (_, _) => ActiveDeviceLinkConnected?.Invoke(this, identity);
             supervisor.CaseLidOpened += (_, _) => ActiveDeviceCaseLidOpened?.Invoke(this, identity);
-            _active = new ActiveDevice(identity, link, supervisor);
+            _active = new ActiveDevice(identity, supervised, supervisor, windowsUnavailable, bridgeOnly);
             supervisor.Start();
             KnownDevicesChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -285,6 +337,9 @@ public sealed class DeviceManager : IDeviceManager
     }
 
     private static bool IsGeneric(IDeviceProfile profile) => profile is IControllableProfile { IsGeneric: true };
+
+    private static bool IsBridgeable(IDeviceProfile profile) =>
+        profile is IControllableProfile { ControlServiceUuids: var uuids } && uuids.Any(RfcommChannelConnector.IsRfcommService);
 
     private IDeviceController? Controller => _active?.Supervisor.Controller;
 
@@ -311,6 +366,8 @@ public sealed class DeviceManager : IDeviceManager
     public Task<CommandResult> SetSpatialAudioAsync(SpatialAudioMode mode, CancellationToken cancellationToken = default) => WithController(c => c.SetSpatialAudioAsync(mode, cancellationToken));
 
     public Task<CommandResult> SetLeBrSwitchAsync(bool enabled, CancellationToken cancellationToken = default) => WithController(c => c.SetLeBrSwitchAsync(enabled, cancellationToken));
+
+    public Task<CommandResult> ReportLeAudioTransportAsync(CancellationToken cancellationToken = default) => WithController(c => c.ReportLeAudioTransportAsync(cancellationToken));
 
     public Task<CommandResult> SetGameSoundAsync(int type, CancellationToken cancellationToken = default) => WithController(c => c.SetGameSoundAsync(type, cancellationToken));
 
@@ -467,7 +524,9 @@ public sealed class DeviceManager : IDeviceManager
         catch (Exception ex) { _logger.LogWarning(ex, "USB monitoring stopped"); }
     }
 
-    private sealed record ActiveDevice(DeviceIdentity Identity, BluetoothLinkMonitor Link, ControlChannelSupervisor Supervisor) : IAsyncDisposable
+    /// <param name="WindowsUnavailable">Windows could not open the device (no radio): only the bridge can link it.</param>
+    /// <param name="BridgeOnly">Paired with A2DP Windows Bridge alone: Windows does not know it, opening it again changes nothing.</param>
+    private sealed record ActiveDevice(DeviceIdentity Identity, ILinkStateSource Link, ControlChannelSupervisor Supervisor, bool WindowsUnavailable = false, bool BridgeOnly = false) : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
         {

@@ -65,8 +65,20 @@ $probe = "tools\EncoDeck.Probe\bin\Debug\net10.0-windows10.0.26100.0\EncoDeck.Pr
 & $probe services --device "Enco X4"     # SDP：应出现 0000079A-… "ELNK"
 & $probe query --device "Enco X4" --eq-list --report x4-query.json   # 只读查询
 & $probe watch --device "Enco X4" --seconds 120                      # 订阅事件 + 轮询，只打印变化
-& $probe monitor --seconds 30            # 运行与应用完全相同的设备运行时
+& $probe monitor --device "Enco X4" --seconds 30   # 钉住一个设备跑与应用相同的运行时；不带 --device 时按管理器自己的选择
 ```
+
+### 索尼 MDR 机型
+
+`query` / `watch` / `set-anc` 等命令是 OPPO 协议专用，索尼耳机只能用通用运行时和下面的索尼诊断命令：
+
+```powershell
+& $probe sony-services --device "WH-1000XM5"                  # 打印两个 MDR 控制服务的 SDP 记录与解析出的通道号
+& $probe sony-probe --device "WH-1000XM5" --channel 9         # 向指定通道发送只读的协议版本请求，确认有 ACK
+& $probe monitor --device "WH-1000XM5" --seconds 30           # 期望 AudioConnected → ControlConnecting → ControlReady
+```
+
+Windows 常把 XM5 / XM6 的 `956c7b26-…` 记录报成 `RFCOMM:00000000`，此时 `sony-services` 的 `resolved channel` 为 0；应用与 `monitor` 会按已知通道 9 直连，`sony-probe` 用于确认该通道确实可用。
 
 ### 预期输出（Enco X4）
 

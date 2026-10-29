@@ -38,6 +38,7 @@ public sealed partial class QuickSettingsPanelWindow : Window
     public QuickSettingsPanelWindow()
     {
         InitializeComponent();
+        Loc.ApplyLanguage(this);
         SystemBackdrop = new AlwaysActiveAcrylicBackdrop();
         WindowInterop.MakeFlyout(this, noActivate: true);
         // Layered, so the window's own alpha does the fades (fading the content would leave the backdrop).

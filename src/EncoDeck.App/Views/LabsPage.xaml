@@ -12,6 +12,7 @@
                        Text="Experimental audio features. They change Windows Bluetooth or audio settings and are not guaranteed to work on every device." />
             <controls:LeAudioSettings />
             <controls:LhdcSettings />
+            <controls:A2dpBridgeSettings />
         </StackPanel>
         </Grid>
     </ScrollViewer>

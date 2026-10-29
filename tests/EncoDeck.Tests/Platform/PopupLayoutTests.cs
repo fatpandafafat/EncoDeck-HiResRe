@@ -33,6 +33,41 @@ public sealed class PopupLayoutTests
         Assert.Null(Free4.Background.Day);
     }
 
+    /// <summary>Enco Free4 Dynaudio: the video shows the brand's logo; the earbuds and case are the foreground animation.</summary>
+    private const string ForegroundPack = """
+        {"videoRes":{"path":"res/video{NIGHT}/boot.mp4"},"discoveryStates":{"connectedState":{"startTime":11800,"endTime":15850,"loopTime":11800,
+          "animation":1,"resShowDelay":1000,"resInAnim":"rightSlideIn","autoCrop":true,
+          "bgImageRes":{"path":"res/image/connected_background.png"},"fgAnimRes":{"path":"res/image/connected_foreground.webp"},
+          "boxImageRes":{"path":"res/image/connected_box.png"},"budsImageRes":{"path":"res/image/connected_buds.png"},
+          "batteriesRes":{"textColor":"#FFFFFFFF"}}}}
+        """;
+
+    [Fact]
+    public void ForegroundAnimationPack_PlaysItOverTheVideoOnceTheLevelsAreKnown()
+    {
+        var layout = PopupLayout.Parse(ForegroundPack)!;
+        Assert.Equal("res/image/connected_foreground.webp", layout.ForegroundAnimation);
+        Assert.True(layout.IsCompact);
+
+        var all = layout.Arrange(80, 75, 60, hasVideo: true);
+        Assert.True(all.ForegroundVisible);
+        Assert.True(all.VideoVisible);
+        // The animation draws the earbuds and the case: the stand-in pictures stay hidden.
+        Assert.False(all.ImagesVisible);
+        Assert.Equal([PopupGroup.Buds, PopupGroup.Box], all.Groups.Select(g => g.Group));
+
+        // Without a pack colour the video plays from the start, and the animation with it.
+        Assert.True(layout.Arrange(80, 75, 0, hasVideo: true).ForegroundVisible);
+        // Without the video only the case level is known: the pictures, as HeyMelody shows them.
+        var caseOnly = layout.Arrange(0, 0, 60, hasVideo: false);
+        Assert.False(caseOnly.ForegroundVisible);
+        Assert.True(caseOnly.ImagesVisible);
+
+        Assert.False(Free4.Arrange(80, 75, 60, hasVideo: true).ForegroundVisible);
+        // connected_foreground_anim: full width, 100 dp high, 34 dp from the top (the 960 × 300 WebP at 3×).
+        Assert.Equal(new PopupRect(0, 34, 320, 100), PopupLayout.ForegroundRect);
+    }
+
     [Fact]
     public void GroupsStandOnHeyMelodysGuidelines()
     {

@@ -3,7 +3,8 @@
 // (https://github.com/wh201906/mEDIFIER, 10056b5, MIT, Copyright (c) 2023 Self Not Found; MIT notice in
 // THIRD_PARTY_NOTICES.md); W860NB PRO, 花再 Evo Pro and FitBuds Turbo frames from HyperEars
 // docs/edifier-bes-protocol.md (https://github.com/silverpoetry/HyperEars, 361d279, GPL-3.0-only);
-// X5 Pro noise group from BudsLink deviceConfigs/X5Pro.js (https://github.com/maniacx/BudsLink, ba3160d, GPL-3.0).
+// X5 Pro noise group from BudsLink deviceConfigs/X5Pro.js (https://github.com/maniacx/BudsLink, ba3160d, GPL-3.0);
+// W830NB frames from devicePEQ bluetooth_tools/cli_tools/EDIFIER_W830NB_FINDINGS.md (https://github.com/jeromeof/devicePEQ, 0617f38, 0BSD).
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.Devices;
@@ -98,6 +99,17 @@ public sealed class EdifierSettingsTests
     }
 
     [Fact]
+    public void BesV2_XorFramesMatchTheDevicePeqW830nbCapture()
+    {
+        // Sound-effect query and its answer (preset 0), and a preset-0 write.
+        Assert.Equal(Hex("AA EC D5 00 00 6B"), EdifierFrameCodec.EncodeV2(0xD5, []));
+        Assert.Equal(Hex("AA EC C4 00 01 A5 00"), EdifierFrameCodec.EncodeV2(0xC4, [0x00], xor: true));
+        var frame = Assert.Single(new EdifierFrameDecoder(version2: true).Feed(Hex("BB EC D5 00 01 A5 22")));
+        Assert.Equal(0xD5, frame.Command);
+        Assert.Equal(0, frame.Payload[0] ^ EdifierConstants.PayloadXor);
+    }
+
+    [Fact]
     public void TwsState_CaseMarkedOfflineIsNotShown()
     {
         var online = EdifierDeviceController.ParseTwsBattery([3, 80, 70, 60, 1], DateTimeOffset.UnixEpoch, StateSource.QueryResponse)!;
@@ -140,6 +152,7 @@ public sealed class EdifierSettingsTests
     [InlineData("W820NB双金标版", "edifier-w820nb-double-gold")]
     [InlineData("EDIFIER W820NB", "edifier-w820nb")]
     [InlineData("EDIFIER W860NB Pro", "edifier-w860nb-pro")]
+    [InlineData("EDIFIER W830NB", "edifier-w830nb")]
     [InlineData("漫步者・花再 Evo Pro", "edifier-evo-pro")]
     [InlineData("EDIFIER FitBuds Turbo", "edifier-fitbuds-turbo")]
     [InlineData("EDIFIER FitClip Ultra", "edifier-fitclip-ultra")]
@@ -269,6 +282,27 @@ public sealed class EdifierSettingsTests
     }
 
     [Fact]
+    public async Task W830nb_ReadsBatteryOverXorFramingWithoutV1OrNoiseQueries()
+    {
+        var device = new FakeEdifier(Hex("10 05"), version2: true, xor: true) { Battery = [55] };
+        await RunAsync("EDIFIER W830NB", device, true, async (controller, store) =>
+        {
+            Assert.Equal(55, store.Current.Battery.Left?.Value.Level);
+            var profile = Assert.IsType<EdifierProfile>(store.Current.Profile);
+            Assert.Equal("edifier-w830nb", profile.ModelId);
+            Assert.Empty(profile.NoiseControlOptions);
+            Assert.Equal(CapabilitySupport.Unknown, profile.Capabilities.Get(DeviceCapability.NoiseCancellation).Support);
+            Assert.Null(store.Current.NoiseControl);
+            Assert.Equal(CommandStatus.Unsupported, (await controller.SetNoiseControlAsync(new(NoiseControlMode.NoiseCancellation), Ct)).Status);
+            Assert.Equal(CommandStatus.Success, (await controller.RefreshAsync(Ct)).Status);
+            // The first frame is already v2 with an XOR payload: no v1 frame ever reaches the headset.
+            Assert.Equal(Hex("AA EC D0 00 00 66"), device.Written[0]);
+            Assert.All(device.Written, w => Assert.Equal(EdifierConstants.AppCode, w[1]));
+            Assert.All(device.Requests, r => Assert.Equal(0xD0, r.Command));
+        });
+    }
+
+    [Fact]
     public async Task EvoPro_ReadsTheCapturedStateAndOffersWindNoise()
     {
         var device = new FakeEdifier(Hex("1B 06"), version2: true, xor: true) { State = Hex("03 64 62 00 03 11") };
@@ -341,6 +375,123 @@ public sealed class EdifierSettingsTests
                 Assert.DoesNotContain(device.Requests, r => r.Command == 0xFC);
             }
         });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task V1HeadsetOnBesFraming_FallsBackToBatteryOnly(bool xor)
+    {
+        // Matched as a W820NB variant but ignoring every v1 frame, like the W820NB 三金标版 diagnostics.
+        var device = new FakeEdifier(Hex("02 06"), version2: true, xor: xor) { Battery = [70] };
+        await RunAsync("EDIFIER W820NB三金标版", device, true, async (controller, store) =>
+        {
+            Assert.Equal(70, store.Current.Battery.Left?.Value.Level);
+            var profile = Assert.IsType<EdifierProfile>(store.Current.Profile);
+            Assert.Equal("edifier-w820nb", profile.ModelId);
+            Assert.Empty(profile.NoiseControlOptions);
+            Assert.Empty(profile.Toggles);
+            Assert.Null(store.Current.NoiseControl);
+            Assert.Equal(CommandStatus.Unsupported, (await controller.SetNoiseControlAsync(new(NoiseControlMode.NoiseCancellation), Ct)).Status);
+            Assert.Equal(CommandStatus.Unsupported, (await controller.SetToggleAsync(DeviceToggle.GamingMode, true, Ct)).Status);
+            Assert.Equal(CommandStatus.Success, (await controller.RefreshAsync(Ct)).Status);
+            // Over v2 only the read-only battery query is ever sent.
+            Assert.All(device.Requests, r => Assert.Equal(0xD0, r.Command));
+        });
+    }
+
+    [Fact]
+    public async Task RawTrace_LogsKnownPayloadsButOnlyTheLengthOfOthers()
+    {
+        var device = new FakeEdifier(Hex("02 06"));
+        var trace = new RecordingTrace();
+        var identity = Device("EDIFIER W820NB");
+        var profile = (IControllableProfile)new DeviceProfileRegistry(EdifierProfiles.CreateBuiltIn()).Match(identity)!;
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = identity, Profile = profile });
+        var context = new ControllerContext(identity, store, () => false, NullLoggerFactory.Instance, TimeProvider.System, trace);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var emulator = Task.Run(() => device.RunAsync(stop.Token), Ct);
+        await using var controller = profile.CreateController(device.Channel, context);
+        try
+        {
+            Assert.True(await controller.InitializeAsync(Ct));
+            // An unsolicited frame with a command outside the known set (e.g. a name) and stray bytes.
+            device.Channel.Receive(EdifierFrameCodec.Encode(EdifierConstants.ResponseHeadBb, 0xC9, "Secret"u8));
+            device.Channel.Receive([0x01, 0x02, 0x03, 0x04]);
+            await Task.Delay(100, Ct);
+            Assert.Contains("TX EDIFIER v1 D0 ", trace.Lines);
+            Assert.Contains("RX EDIFIER v1 D0 50", trace.Lines);
+            Assert.Contains("RX EDIFIER v1 CC 0206", trace.Lines);
+            Assert.Contains("RX EDIFIER v1 C9 <6 bytes> unsolicited", trace.Lines);
+            Assert.Contains("RX EDIFIER no complete frame in 4 bytes, head 010203", trace.Lines);
+            Assert.DoesNotContain(trace.Lines, l => l.Contains("536563726574", StringComparison.Ordinal));
+        }
+        finally
+        {
+            await stop.CancelAsync();
+            await emulator;
+        }
+    }
+
+    [Fact]
+    public async Task W830nb_RawTraceShowsShortUnsolicitedFramesInPlaintextWithoutReacting()
+    {
+        // Issue #18: a noise change pushed in a command nobody recorded must be visible in the trace,
+        // XOR removed, while an address-sized payload still shows only its length.
+        var device = new FakeEdifier(Hex("10 05"), version2: true, xor: true) { Battery = [55] };
+        var trace = new RecordingTrace();
+        var identity = Device("EDIFIER W830NB");
+        var profile = (IControllableProfile)new DeviceProfileRegistry(EdifierProfiles.CreateBuiltIn()).Match(identity)!;
+        var store = new DeviceStateStore();
+        store.Reset(DeviceState.Empty with { Device = identity, Profile = profile });
+        var context = new ControllerContext(identity, store, () => false, NullLoggerFactory.Instance, TimeProvider.System, trace);
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var emulator = Task.Run(() => device.RunAsync(stop.Token), Ct);
+        await using var controller = profile.CreateController(device.Channel, context);
+        try
+        {
+            Assert.True(await controller.InitializeAsync(Ct));
+            int written = device.Written.Count;
+            device.Channel.Receive(EdifierFrameCodec.EncodeV2(0x3A, [0x02], EdifierConstants.ResponseHeadBb, xor: true));
+            device.Channel.Receive(EdifierFrameCodec.EncodeV2(0xC8, [0x11, 0x22, 0x33, 0x44, 0x55, 0x66], EdifierConstants.ResponseHeadBb, xor: true));
+            await Task.Delay(100, Ct);
+            Assert.Contains("TX EDIFIER v2 D0 ", trace.Lines);
+            Assert.Contains("RX EDIFIER v2 D0 37", trace.Lines);
+            Assert.Contains("RX EDIFIER v2 3A 02 unsolicited", trace.Lines);
+            Assert.Contains("RX EDIFIER v2 C8 <6 bytes> unsolicited", trace.Lines);
+            Assert.DoesNotContain(trace.Lines, l => l.Contains("112233", StringComparison.Ordinal));
+            Assert.Null(store.Current.NoiseControl);
+            Assert.Equal(written, device.Written.Count);
+        }
+        finally
+        {
+            await stop.CancelAsync();
+            await emulator;
+        }
+    }
+
+    private sealed class RecordingTrace : EncoDeck.Protocol.Oppo.IProtocolTrace
+    {
+        private readonly List<string> _lines = [];
+
+        public IReadOnlyList<string> Lines
+        {
+            get { lock (_lines) return [.. _lines]; }
+        }
+
+        public void OnFrame(EncoDeck.Protocol.Oppo.FrameDirection direction, EncoDeck.Protocol.Oppo.OppoFrame frame, DateTimeOffset timestamp)
+        {
+        }
+
+        public void OnRawReceived(ReadOnlySpan<byte> data, DateTimeOffset timestamp)
+        {
+        }
+
+        public void OnBrandFrame(EncoDeck.Protocol.Oppo.FrameDirection direction, string summary, DateTimeOffset timestamp)
+        {
+            lock (_lines) _lines.Add($"{(direction == EncoDeck.Protocol.Oppo.FrameDirection.Sent ? "TX" : "RX")} {summary}");
+        }
     }
 
     [Fact]
@@ -462,7 +613,8 @@ public sealed class EdifierSettingsTests
                     var writes = Channel.Written;
                     for (; handled < writes.Count; handled++)
                     {
-                        var (command, payload) = Parse(writes[handled]);
+                        // A request in the other framing goes unanswered, as on the headset.
+                        if (Parse(writes[handled]) is not (var command, var payload)) continue;
                         lock (_requests) _requests.Add((command, payload));
                         if (!Silent.Contains(command) && Answer(command, payload) is { } reply) Channel.Receive(Encode(reply.Head, command, reply.Payload));
                     }
@@ -472,10 +624,11 @@ public sealed class EdifierSettingsTests
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         }
 
-        private (byte Command, byte[] Payload) Parse(byte[] request)
+        private (byte Command, byte[] Payload)? Parse(byte[] request)
         {
+            bool isVersion2 = request[1] == EdifierConstants.AppCode;
+            if (isVersion2 != version2) return null;
             if (!version2) return (request[2], request[3..^2]);
-            Assert.Equal(EdifierConstants.AppCode, request[1]);
             byte[] payload = request[5..^1];
             if (xor) EdifierFrameCodec.Xor(payload);
             return (request[2], payload);

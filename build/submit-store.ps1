@@ -18,7 +18,8 @@ param(
     [string] $AppId = "9PN6D8G1K9WZ",
     [string] $ReleaseNotes,
     [string] $DescriptionDirectory = (Join-Path $PSScriptRoot "..\packaging\store"),
-    # Delete a pending (uncommitted) submission first, e.g. the draft left behind by a failed run.
+    # Delete a pending (uncommitted or CommitFailed) submission first, e.g. the one left behind by a failed run;
+    # Partner Center cannot commit a CommitFailed submission again.
     [switch] $ReplacePending,
     [string] $ReleaseNotesUrl = "https://github.com/TIANLI0/EncoDeck/releases"
 )
@@ -52,7 +53,7 @@ $headers = @{ Authorization = "Bearer $token" }
 $app = Invoke-RestMethod "$api" -Headers $headers
 if ($app.pendingApplicationSubmission -and $ReplacePending) {
     $pending = Invoke-RestMethod "$api/submissions/$($app.pendingApplicationSubmission.id)" -Headers $headers
-    if ($pending.status -ne "PendingCommit") {
+    if ($pending.status -notin "PendingCommit", "CommitFailed") {
         throw "Submission $($pending.id) is $($pending.status) in Partner Center; it can no longer be replaced."
     }
     Invoke-RestMethod -Method Delete "$api/submissions/$($pending.id)" -Headers $headers | Out-Null

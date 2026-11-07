@@ -7,6 +7,7 @@ using EncoDeck.Core.Profiles;
 using EncoDeck.Core.State;
 using EncoDeck.Platform.A2dpBridge;
 using EncoDeck.Platform.Cache;
+using EncoDeck.Platform.LeAudioSync;
 using EncoDeck.Platform.Logging;
 using EncoDeck.Platform.Packaging;
 using EncoDeck.Platform.Paths;
@@ -37,6 +38,11 @@ public sealed class AppHost : IAsyncDisposable
             settings, Path.Combine(paths.UpdatesDirectory, "last-check.txt"), loggers.CreateLogger<UpdateManager>());
         StoreUpdates = new StoreUpdateService(loggers.CreateLogger<StoreUpdateService>());
         Bridge = new A2dpBridgeCompanion(Path.Combine(paths.Root, "Components"), store, settings, loggers.CreateLogger<A2dpBridgeCompanion>());
+        LeAudioSync = new LeAudioSyncCompanion(store, settings, loggers.CreateLogger<LeAudioSyncCompanion>());
+        LeAudioCodec = new LeAudioCodecCompanion(LeAudioSync, settings, loggers.CreateLogger<LeAudioCodecCompanion>());
+        WindowsCodec = new WindowsCodecCompanion(paths.Root, store, loggers.CreateLogger<WindowsCodecCompanion>());
+        A2dpDriver = new A2dpDriverCompanion(store, loggers.CreateLogger<A2dpDriverCompanion>());
+        LeAudioTransport = new LeAudioTransportKeeper(store, devices, loggers.CreateLogger<LeAudioTransportKeeper>());
         if (devices is DeviceManager manager)
         {
             manager.BridgeConnector = new A2dpBridgeChannelConnector(() => Bridge.Monitor, loggers.CreateLogger<A2dpBridgeChannelConnector>());
@@ -82,6 +88,21 @@ public sealed class AppHost : IAsyncDisposable
     /// <summary>A2DP Windows Bridge: the optional component, its core and the "connected through the bridge" state.</summary>
     public A2dpBridgeCompanion Bridge { get; internal set; }
 
+    /// <summary>Labs: keeps LE Audio earbuds' left and right channels aligned on Intel offload PCs.</summary>
+    public LeAudioSyncCompanion LeAudioSync { get; }
+
+    /// <summary>Labs: the LE Audio bitrate / transport choice and the link it produced.</summary>
+    public LeAudioCodecCompanion LeAudioCodec { get; }
+
+    /// <summary>The A2DP codec Windows logs, shown instead of the earbuds' report once authorized.</summary>
+    public WindowsCodecCompanion WindowsCodec { get; }
+
+    /// <summary>Which driver carries the active device's A2DP: the LHDC component's replaces Windows' (and its log).</summary>
+    public A2dpDriverCompanion A2dpDriver { get; }
+
+    /// <summary>Puts earbuds switched to LC3 back on LC3 after they lost it (EncoDeck restarted, sleep, case closed).</summary>
+    public LeAudioTransportKeeper LeAudioTransport { get; }
+
     public StartupRegistration Startup { get; } = new();
 
     public ConnectionPopupPolicy PopupPolicy { get; } = new();
@@ -112,6 +133,7 @@ public sealed class AppHost : IAsyncDisposable
         var store = new DeviceStateStore();
         var cache = new DeviceStateCache(paths.DeviceCacheFile, store, loggers.CreateLogger<DeviceStateCache>());
         var registry = new DeviceProfileRegistry(BuiltInProfiles.Create());
+        EncoDeck.Bluetooth.LeAudio.LeAudioOnlyDevices.Configure(Path.Combine(paths.Root, "le-audio-devices.json"));
         var devices = new DeviceManager(
             registry,
             store,
@@ -120,7 +142,8 @@ public sealed class AppHost : IAsyncDisposable
             // Experimental MOONDROP, AKG Hybrid, vivo and EDIFIER settings remain opt-in and read this preference dynamically.
             allowExperimental: () => EncoDeck.App.ViewModels.FeaturesViewModel.OffersExperimental(store.Current.Profile) && settings.Current.EnableExperimentalFeatures,
             loggers,
-            trace: new RawProtocolLog(loggers.CreateLogger("EncoDeck.Protocol.Raw"), () => settings.Current.RawProtocolLogging));
+            trace: new RawProtocolLog(loggers.CreateLogger("EncoDeck.Protocol.Raw"), () => settings.Current.RawProtocolLogging),
+            disconnected: new SettingsDisconnectedDevices(settings));
 
         loggers.CreateLogger<AppHost>().LogInformation(
             "EncoDeck {Version} starting on {OS}",
@@ -140,14 +163,29 @@ public sealed class AppHost : IAsyncDisposable
         ResourceSync.Start();
         Devices.Start();
         Bridge.Start();
+        LeAudioSync.Start();
+        LeAudioCodec.Start();
+        WindowsCodec.Start();
+        A2dpDriver.Start();
+        LeAudioTransport.Start();
         // The Store updates the MSIX build; GitHub Releases are for the installer build only.
         if (!PackageIdentity.IsPackaged) Updates.Start();
     }
 
     public async ValueTask DisposeAsync()
     {
+        // EncoDeck's own LE Audio stream goes before the control channel: closing control ends the earbuds' Classic
+        // link and they drop LE with it, and an LE link dropped mid-stream can leave Windows' LE Audio output unusable
+        // ("device in use") until Bluetooth restarts (Enco X4 on Intel). Give Windows a moment to close the stream.
+        LeAudioTransport.Dispose();
+        bool streaming = LeAudioSync.Guard.Status.State is not (LeAudioSyncState.Off or LeAudioSyncState.Unsupported or LeAudioSyncState.WaitingForDevice);
+        await LeAudioSync.DisposeAsync();
+        if (streaming) await Task.Delay(500);
         await Devices.DisposeAsync();
         await Bridge.DisposeAsync();
+        LeAudioCodec.Dispose();
+        WindowsCodec.Dispose();
+        A2dpDriver.Dispose();
         await ResourceSync.DisposeAsync();
         await Updates.DisposeAsync();
         ResourceClient.Dispose();
@@ -155,5 +193,22 @@ public sealed class AppHost : IAsyncDisposable
         Resources.Dispose();
         Loggers.Dispose();
         FileLog.Dispose();
+    }
+}
+
+/// <summary>Keeps the devices disconnected in EncoDeck in the settings file, so they stay left alone after a restart.</summary>
+internal sealed class SettingsDisconnectedDevices(ISettingsStore settings) : IUserDisconnectedDevices
+{
+    public bool Contains(string deviceId) =>
+        settings.Current.DisconnectedDeviceIds?.Contains(deviceId, StringComparer.OrdinalIgnoreCase) == true;
+
+    public void Set(string deviceId, bool disconnected)
+    {
+        if (Contains(deviceId) == disconnected) return;
+        settings.Update(s =>
+        {
+            var ids = (s.DisconnectedDeviceIds ?? []).Where(id => !string.Equals(id, deviceId, StringComparison.OrdinalIgnoreCase));
+            return s with { DisconnectedDeviceIds = (disconnected ? ids.Append(deviceId) : ids).ToArray() };
+        });
     }
 }

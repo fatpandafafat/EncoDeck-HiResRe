@@ -37,7 +37,34 @@
     <!-- Wide: the device stage stays fixed on the left and only the controls scroll (SideScroll);
          narrow: stage and controls stack in MainScroll. HomePage.xaml.cs moves SidePanel between the two. -->
     <Grid>
-        <Grid x:Name="PageRoot" MaxWidth="1180" Padding="32,12,32,0" ColumnSpacing="28" RowSpacing="16" SizeChanged="OnPageSizeChanged">
+        <!-- Low battery (LowBatteryStates): that level in the critical colour. -->
+        <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup x:Name="LeftLevelStates">
+                    <VisualState x:Name="LeftNormal" />
+                    <VisualState x:Name="LeftLow">
+                        <VisualState.Setters>
+                            <Setter Target="LeftLevelText.Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+                <VisualStateGroup x:Name="RightLevelStates">
+                    <VisualState x:Name="RightNormal" />
+                    <VisualState x:Name="RightLow">
+                        <VisualState.Setters>
+                            <Setter Target="RightLevelText.Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+                <VisualStateGroup x:Name="CaseLevelStates">
+                    <VisualState x:Name="CaseNormal" />
+                    <VisualState x:Name="CaseLow">
+                        <VisualState.Setters>
+                            <Setter Target="CaseLevelText.Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid x:Name="PageRoot" MaxWidth="1180" Padding="32,12,32,0" ColumnSpacing="28" SizeChanged="OnPageSizeChanged">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="11*" />
                 <ColumnDefinition Width="9*" />
@@ -47,16 +74,21 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Messages and the no-device / unavailable states. -->
-            <StackPanel Grid.ColumnSpan="2" Spacing="16">
+            <!-- Messages and the no-device / unavailable states. Each takes its own space below it and collapses
+                 when not shown (a closed InfoBar still counts for Spacing), so without any the row has no height. -->
+            <StackPanel Grid.ColumnSpan="2">
                 <InfoBar
+                    Margin="0,0,0,16"
                     IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}"
                     Severity="Error"
                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                     CloseButtonCommand="{x:Bind ViewModel.DismissErrorCommand}" />
                 <InfoBar
                     x:Uid="Home_GenericModel"
+                    Margin="0,0,0,16"
                     IsOpen="{x:Bind ViewModel.IsGenericModel, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.IsGenericModel, Mode=OneWay}"
                     IsClosable="False"
                     Severity="Informational"
                     Title="Unrecognized model"
@@ -64,7 +96,9 @@
                 <!-- A2DP Windows Bridge streams to these earbuds over its own adapter, but their controls are unreachable. -->
                 <InfoBar
                     x:Uid="Home_Bridge"
+                    Margin="0,0,0,16"
                     IsOpen="{x:Bind ViewModel.HasBridgeNotice, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.HasBridgeNotice, Mode=OneWay}"
                     IsClosable="False"
                     Severity="Informational"
                     Title="Connected through A2DP Bridge"
@@ -74,7 +108,7 @@
                     </InfoBar.ActionButton>
                 </InfoBar>
 
-                <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind services:Ui.Collapsed(ViewModel.HasDevice), Mode=OneWay}">
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16" Visibility="{x:Bind services:Ui.Collapsed(ViewModel.HasDevice), Mode=OneWay}">
                     <StackPanel Spacing="12">
                         <TextBlock x:Uid="Home_NoDevice_Title" Text="No supported earbuds found" Style="{StaticResource SubtitleTextBlockStyle}" />
                         <TextBlock x:Uid="Home_NoDevice_Body" TextWrapping="Wrap" Style="{StaticResource BodyTextBlockStyle}"
@@ -83,7 +117,7 @@
                     </StackPanel>
                 </Border>
 
-                <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind ViewModel.IsControlUnavailable, Mode=OneWay}">
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16" Visibility="{x:Bind ViewModel.IsControlUnavailable, Mode=OneWay}">
                     <StackPanel Spacing="8">
                         <TextBlock x:Uid="Home_Unavailable_Title" Text="Earbud controls are unavailable" Style="{StaticResource BodyStrongTextBlockStyle}" />
                         <TextBlock x:Uid="Home_Unavailable_Body" TextWrapping="Wrap" Style="{StaticResource BodyTextBlockStyle}"
@@ -107,27 +141,27 @@
                         HorizontalAlignment="Left" Visibility="Collapsed">
                     <StackPanel Orientation="Horizontal" Spacing="10" Padding="4,0,0,0">
                         <TextBlock Text="{x:Bind ViewModel.DeviceName, Mode=OneWay}" Style="{StaticResource TitleLargeTextBlockStyle}" TextTrimming="CharacterEllipsis" />
-                        <FontIcon Glyph="&#xE70D;" FontSize="14" VerticalAlignment="Center" Margin="0,6,0,0" />
+                        <controls:FluentIcon Symbol="chevron_down" FontSize="14" VerticalAlignment="Center" Margin="0,6,0,0" />
                     </StackPanel>
                     <Button.Flyout>
                         <MenuFlyout x:Name="DeviceMenu" Placement="BottomEdgeAlignedLeft" Opening="OnDeviceMenuOpening" />
                     </Button.Flyout>
                 </Button>
                 <StackPanel Orientation="Horizontal" Spacing="14">
-                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Left.HasValue, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Left.HasValue, Mode=OneWay}" Opacity="{x:Bind ViewModel.BatteryOpacity, Mode=OneWay}">
                         <Border Style="{StaticResource BadgeStyle}" Visibility="{x:Bind ViewModel.Right.IsVisible, Mode=OneWay}"><TextBlock Text="L" Style="{StaticResource BadgeTextStyle}" /></Border>
-                        <TextBlock Text="{x:Bind ViewModel.Left.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
-                        <FontIcon Glyph="&#xE945;" FontSize="12" Visibility="{x:Bind ViewModel.Left.IsCharging, Mode=OneWay}" />
+                        <TextBlock x:Name="LeftLevelText" Text="{x:Bind ViewModel.Left.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
+                        <controls:FluentIcon Symbol="flash" FontSize="12" Visibility="{x:Bind ViewModel.Left.IsCharging, Mode=OneWay}" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Right.HasVisibleValue, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Right.HasVisibleValue, Mode=OneWay}" Opacity="{x:Bind ViewModel.BatteryOpacity, Mode=OneWay}">
                         <Border Style="{StaticResource BadgeStyle}"><TextBlock Text="R" Style="{StaticResource BadgeTextStyle}" /></Border>
-                        <TextBlock Text="{x:Bind ViewModel.Right.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
-                        <FontIcon Glyph="&#xE945;" FontSize="12" Visibility="{x:Bind ViewModel.Right.IsCharging, Mode=OneWay}" />
+                        <TextBlock x:Name="RightLevelText" Text="{x:Bind ViewModel.Right.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
+                        <controls:FluentIcon Symbol="flash" FontSize="12" Visibility="{x:Bind ViewModel.Right.IsCharging, Mode=OneWay}" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Case.HasVisibleValue, Mode=OneWay}">
-                        <Border Style="{StaticResource BadgeStyle}"><FontIcon Glyph="&#xE7F6;" FontSize="11" Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}" /></Border>
-                        <TextBlock Text="{x:Bind ViewModel.Case.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
-                        <FontIcon Glyph="&#xE945;" FontSize="12" Visibility="{x:Bind ViewModel.Case.IsCharging, Mode=OneWay}" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind ViewModel.Case.HasVisibleValue, Mode=OneWay}" Opacity="{x:Bind ViewModel.BatteryOpacity, Mode=OneWay}">
+                        <Border Style="{StaticResource BadgeStyle}"><controls:FluentIcon Symbol="headphones" FontSize="11" Foreground="{ThemeResource SolidBackgroundFillColorBaseBrush}" /></Border>
+                        <TextBlock x:Name="CaseLevelText" Text="{x:Bind ViewModel.Case.LevelText, Mode=OneWay}" Style="{StaticResource LevelTextStyle}" />
+                        <controls:FluentIcon Symbol="flash" FontSize="12" Visibility="{x:Bind ViewModel.Case.IsCharging, Mode=OneWay}" />
                     </StackPanel>
                     <Rectangle Width="1" Height="16" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" VerticalAlignment="Center" />
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
@@ -140,14 +174,25 @@
                                 AutomationProperties.Name="{x:Bind ViewModel.BridgeBadgeDescription, Mode=OneWay}">
                             <TextBlock Text="A2DP Bridge" Style="{StaticResource CodecBadgeSubtleTextStyle}" />
                         </Border>
-                        <Border Style="{StaticResource CodecBadgeStyle}" Visibility="{x:Bind ViewModel.HasCodec, Mode=OneWay}"
-                                ToolTipService.ToolTip="{x:Bind ViewModel.CodecDescription, Mode=OneWay}"
-                                AutomationProperties.Name="{x:Bind ViewModel.CodecDescription, Mode=OneWay}">
-                            <TextBlock Text="{x:Bind ViewModel.CodecLabel, Mode=OneWay}" Style="{StaticResource CodecBadgeTextStyle}" MaxWidth="220" TextTrimming="CharacterEllipsis" />
-                        </Border>
-                        <!-- Inline with no vertical padding, so showing/hiding it never changes the row height. -->
-                        <HyperlinkButton x:Uid="DeviceConnect" Click="OnOpenBluetoothSettings" Padding="2,0" MinHeight="0" VerticalAlignment="Center"
-                                         Visibility="{x:Bind ViewModel.IsLinkDown, Mode=OneWay}" />
+                        <controls:CodecBadge Visibility="{x:Bind ViewModel.HasCodec, Mode=OneWay}" Label="{x:Bind ViewModel.CodecLabel, Mode=OneWay}"
+                                          Description="{x:Bind ViewModel.CodecDescription, Mode=OneWay}" IsDetailed="{x:Bind ViewModel.CodecIsDetailed, Mode=OneWay}"
+                                          CanEnable="{x:Bind ViewModel.CodecCanEnable, Mode=OneWay}" MaxLabelWidth="220" />
+                        <!-- Plain icon buttons as in the earbuds panel (link connects, broken link disconnects); the negative
+                             margin keeps the row as tall as its text whether or not one shows. -->
+                        <Button x:Uid="Panel_Connect" Style="{StaticResource SubtleButtonStyle}" Width="28" Height="28" Padding="0" Margin="0,-6"
+                                VerticalAlignment="Center" Command="{x:Bind ViewModel.ConnectDeviceCommand}"
+                                Visibility="{x:Bind ViewModel.CanConnect, Mode=OneWay}"
+                                IsEnabled="{x:Bind services:Ui.Not(ViewModel.IsChangingConnection), Mode=OneWay}"
+                                ToolTipService.ToolTip="Connect to this PC" AutomationProperties.Name="Connect to this PC">
+                            <controls:FluentIcon Symbol="link" FontSize="16" />
+                        </Button>
+                        <Button x:Uid="Panel_Disconnect" Style="{StaticResource SubtleButtonStyle}" Width="28" Height="28" Padding="0" Margin="0,-6"
+                                VerticalAlignment="Center" Command="{x:Bind ViewModel.DisconnectDeviceCommand}"
+                                Visibility="{x:Bind ViewModel.CanDisconnect, Mode=OneWay}"
+                                IsEnabled="{x:Bind services:Ui.Not(ViewModel.IsChangingConnection), Mode=OneWay}"
+                                ToolTipService.ToolTip="Disconnect from this PC" AutomationProperties.Name="Disconnect from this PC">
+                            <controls:FluentIcon Symbol="link_dismiss" FontSize="16" />
+                        </Button>
                     </StackPanel>
                 </StackPanel>
                 <Grid Margin="0,8,0,0">
@@ -221,7 +266,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Uid="Home_Eq" Text="Earbud EQ" VerticalAlignment="Center" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.EqualizerText, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center" />
-                                <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" />
+                                <controls:FluentIcon Symbol="chevron_right" Grid.Column="2" FontSize="12" />
                             </Grid>
                         </Button>
                         <Button x:Name="SpatialRow" Style="{StaticResource NavigationRowStyle}" Click="OnOpenSound">
@@ -233,7 +278,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock x:Uid="Home_Spatial" Text="Spatial audio" VerticalAlignment="Center" />
                                 <TextBlock x:Name="SpatialValue" Grid.Column="1" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center" />
-                                <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" />
+                                <controls:FluentIcon Symbol="chevron_right" Grid.Column="2" FontSize="12" />
                             </Grid>
                         </Button>
                         <controls:SettingRow x:Name="GameRow" x:Uid="Home_GameMode" Header="Game mode" Margin="0,4,0,8">

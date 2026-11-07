@@ -230,7 +230,8 @@ public sealed partial class ControlsPage : Page
         // One setting for both earbuds everywhere: no left/right choice.
         bool perEar = model is not null && (model.GestureRows.Any(r => r.IsWritten && !r.IsCallControl && !r.BothEars) || (model.NoiseCycleIndices.Count > 0 && !model.NoiseCycleShared));
         EarSelector.Visibility = Show(perEar);
-        var (minVolume, maxVolume) = Features.State.Profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile
+        bool earFun = Features.State.Profile is EncoDeck.Protocol.Brands.EarFun.EarFunProfile;
+        var (minVolume, maxVolume) = Features.State.Profile is EncoDeck.Protocol.Brands.Moondrop.MoondropProfile or EncoDeck.Protocol.Brands.EarFun.EarFunProfile
             ? (0, 100) : model?.PromptVolumeRange ?? (1, 10);
         // Changing the range can un-coerce a previous value and raise ValueChanged; it is not a user edit.
         bool wasSyncing = _syncing;
@@ -239,6 +240,8 @@ public sealed partial class ControlsPage : Page
         {
             PromptVolumeSlider.Minimum = minVolume;
             PromptVolumeSlider.Maximum = maxVolume;
+            PromptVolumeSlider.StepFrequency = earFun ? 25 : 1;
+            PromptVolumeSlider.TickFrequency = earFun ? 25 : 1;
         }
         finally { _syncing = wasSyncing; }
     }
@@ -380,9 +383,8 @@ public sealed partial class ControlsPage : Page
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        // Device type icons: 1 phone, 2 computer, 3 tablet, 4 watch.
-        string glyph = device.DeviceType switch { 1 => "", 2 => "", 3 => "", 4 => "", _ => "" };
-        grid.Children.Add(new FontIcon { Glyph = glyph, FontSize = 20, VerticalAlignment = VerticalAlignment.Center });
+        string symbol = FluentIcons.ForDeviceType(device.DeviceType);
+        grid.Children.Add(new FluentIcon(symbol, 20) { VerticalAlignment = VerticalAlignment.Center });
         var text = new StackPanel { Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(new TextBlock { Text = DisplayName(device), TextTrimming = TextTrimming.CharacterEllipsis });
         text.Children.Add(new TextBlock
@@ -400,13 +402,17 @@ public sealed partial class ControlsPage : Page
         bool busy = device.State is 1 or 4;
         if (Features.CanConnectSourceDevices && !device.IsConnected && !busy)
         {
-            actions.Children.Add(ActionButton("Dual_Connect", device, ready, OnConnectSourceClick));
-            if (Features.CanManageSourceDevices) actions.Children.Add(ActionButton("Dual_Remove", device, ready, OnRemoveSourceClick));
+            actions.Children.Add(ActionButton("Dual_Connect", device, ready && Features.CanConnectAnother, OnConnectSourceClick));
+            if (Features.CanRemoveSourceDevices) actions.Children.Add(ActionButton("Dual_Remove", device, ready, OnRemoveSourceClick));
         }
         else if (Features.CanManageSourceDevices && device.IsConnected && !device.IsThisDevice)
         {
-            // This PC disconnects through Windows, as the official client does for the phone.
             actions.Children.Add(ActionButton("Dual_Disconnect", device, ready, OnDisconnectSourceClick));
+        }
+        else if (device.IsThisDevice && device.IsConnected && App.Instance.Device.CanDisconnect)
+        {
+            // This PC: EncoDeck's own Disconnect, which also keeps it from reconnecting the earbuds.
+            actions.Children.Add(ActionButton("Dual_Disconnect", device, !App.Instance.Device.IsChangingConnection, OnDisconnectThisPcClick));
         }
         Grid.SetColumn(actions, 2);
         grid.Children.Add(actions);
@@ -694,14 +700,26 @@ public sealed partial class ControlsPage : Page
     private async void OnConnectSourceClick(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: SourceDevice device }) return;
+        // Dual connection off: the earbuds leave this PC for the other device, and EncoDeck disconnects with them.
+        if (Features.ConnectHandsOverThisPc)
+        {
+            if (!await ConfirmAsync("Dual_HandOver_Title", Loc.Format("Dual_HandOver_Message", DisplayName(device)), "Dual_Connect")) return;
+        }
         // Official: with two devices already connected, connecting a third drops one of them.
         // Connect-only lists (Sennheiser) refuse instead of dropping a device, so there is nothing to confirm.
-        if (Features.CanManageSourceDevices && Features.SourceDevices.Count(d => d.IsConnected) >= 2
+        else if (Features.CanManageSourceDevices && Features.SourceDevices.Count(d => d.IsConnected) >= 2
             && !await ConfirmAsync("Dual_ConnectNew_Title", Loc.Format("Dual_ConnectNew_Message", DisplayName(device)), "Dual_Connect"))
         {
             return;
         }
-        await Features.MultiConnectAsync(MultiConnectOperation.Connect, device);
+        await Features.ConnectSourceAsync(device);
+        Sync();
+    }
+
+    private async void OnDisconnectThisPcClick(object sender, RoutedEventArgs e)
+    {
+        if (!await ConfirmAsync("Dual_DisconnectThisPc_Title", Loc.Get("Dual_DisconnectThisPc_Message"), "Dual_Disconnect")) return;
+        await Features.DisconnectThisPcAsync();
         Sync();
     }
 

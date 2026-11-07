@@ -28,6 +28,23 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
 
     public async Task<ChannelOpenResult> OpenAsync(string deviceId, IReadOnlyList<Guid> serviceUuids, CancellationToken cancellationToken)
     {
+        // LE-only earbuds have no Classic pairing any more: control runs over OPPO GATT alone.
+        if (LeAudioOnlyDevices.Find(deviceId) is { } leOnly && serviceUuids.Any(OppoServiceUuids.IsCandidate)
+            && !await IsBackOnClassicAsync(leOnly, cancellationToken).ConfigureAwait(false))
+        {
+            return await OppoControlChannelRouter.OpenAsync(
+                async () =>
+                {
+                    if (LeAudioLink.IsPairingChanging(leOnly.Address))
+                        throw new InvalidOperationException("The earbuds' pairing is being changed.");
+                    if (!await LeAudioLink.IsBondedAsync(leOnly.Address, cancellationToken).ConfigureAwait(false))
+                        throw new InvalidOperationException("LE Audio 配对已不存在，请重新配对耳机。");
+                    return true;
+                },
+                () => OppoGattByteChannel.OpenAsync(leOnly.Address, cancellationToken),
+                () => Task.FromResult(ChannelOpenResult.Failed(ChannelOpenStatus.DeviceUnreachable, "The earbuds are not connected over LE Audio."))).ConfigureAwait(false);
+        }
+
         BluetoothDevice? device;
         try
         {
@@ -62,7 +79,9 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
                         return bonded;
                     },
                     () => OppoGattByteChannel.OpenAsync(device.BluetoothAddress, cancellationToken),
-                    () => OpenClassicAsync(device, deviceId, serviceUuids, cancellationToken)).ConfigureAwait(false);
+                    () => OpenClassicAsync(device, deviceId, serviceUuids, cancellationToken),
+                    // Connecting RFCOMM to an unpaired device would make Windows pair it over Classic.
+                    () => guardsPartialLeBond && device.DeviceInformation.Pairing.IsPaired).ConfigureAwait(false);
             }
             return await OpenClassicAsync(device, deviceId, serviceUuids, cancellationToken).ConfigureAwait(false);
         }
@@ -75,6 +94,28 @@ public sealed class RfcommChannelConnector(IDeviceProfileRegistry profiles, ILog
     /// </summary>
     internal static bool GuardsPartialLeBond(IDeviceProfile? profile) =>
         profile is OppoDeviceProfile { Definition.SupportsLeAudioPairing: true };
+
+    /// <summary>
+    /// The user removed the LE bonds outside EncoDeck and paired the earbuds over Classic again: forget them as
+    /// LE-only. Unknown states keep them LE-only, which never opens Classic.
+    /// </summary>
+    private static async Task<bool> IsBackOnClassicAsync(LeAudioOnlyDevice device, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (LeAudioLink.IsPairingOperationRunning(device.Address)) return false;
+            if (await LeAudioLink.IsBondedAsync(device.Address, cancellationToken).ConfigureAwait(false)) return false;
+            if (await LeAudioLink.HasSecondaryBondAsync(device.Address, cancellationToken, device.Name).ConfigureAwait(false)) return false;
+            using var classic = await BluetoothDevice.FromIdAsync(device.DeviceId).AsTask(cancellationToken);
+            if (classic?.DeviceInformation.Pairing.IsPaired != true) return false;
+        }
+        catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
+        {
+            return false;
+        }
+        LeAudioOnlyDevices.Remove(device.Address);
+        return true;
+    }
 
     private async Task<ChannelOpenResult> OpenClassicAsync(BluetoothDevice device, string deviceId, IReadOnlyList<Guid> serviceUuids, CancellationToken cancellationToken)
     {

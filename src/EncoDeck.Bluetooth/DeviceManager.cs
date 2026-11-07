@@ -2,6 +2,8 @@
 using System.Runtime.InteropServices;
 using EncoDeck.Bluetooth.Control;
 using EncoDeck.Bluetooth.Discovery;
+using EncoDeck.Bluetooth.LeAudio;
+using EncoDeck.Bluetooth.Link;
 using EncoDeck.Bluetooth.Rfcomm;
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.Connection;
@@ -10,6 +12,7 @@ using EncoDeck.Core.Profiles;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Brands;
 using EncoDeck.Protocol.Oppo;
+using EncoDeck.Protocol.Oppo.Models;
 using EncoDeck.Protocol.Transport;
 using EncoDeck.Bluetooth.Usb;
 using EncoDeck.Protocol.Brands.Usb;
@@ -19,7 +22,16 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace EncoDeck.Bluetooth;
 
 /// <summary>A paired device EncoDeck has a profile for.</summary>
-public sealed record KnownDevice(DeviceIdentity Identity, IDeviceProfile Profile, bool IsConnected, bool IsActive);
+/// <param name="IsDisconnectedByUser">Disconnected in EncoDeck: EncoDeck leaves it alone until connected in EncoDeck again.</param>
+public sealed record KnownDevice(DeviceIdentity Identity, IDeviceProfile Profile, bool IsConnected, bool IsActive, bool IsDisconnectedByUser = false);
+
+/// <summary>The devices the user disconnected in EncoDeck, kept across restarts.</summary>
+public interface IUserDisconnectedDevices
+{
+    bool Contains(string deviceId);
+
+    void Set(string deviceId, bool disconnected);
+}
 
 public interface IDeviceManager : IDeviceCommandService, IAdvancedDeviceCommands, IAsyncDisposable
 {
@@ -40,6 +52,32 @@ public interface IDeviceManager : IDeviceCommandService, IAdvancedDeviceCommands
 
     /// <summary>Call after the system resumes from sleep: re-validates the control channel.</summary>
     void NotifySystemResumed();
+
+    /// <summary>
+    /// Closes the active earbuds' control channel and link watch, waits until their Classic link is down, then opens
+    /// them again (control reconnects Classic). Earbuds EncoDeck switches to LE Audio bring their LE links back when
+    /// this PC reconnects Classic (Enco X4); a quick reopen while Classic is still up does not. No-op for other devices.
+    /// </summary>
+    Task ReconnectClassicLinkAsync(ulong address, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Disconnects the earbuds from this PC and leaves them alone until <see cref="ConnectDeviceAsync"/>: closes the
+    /// control channel and stops keeping their LE links, asks Windows' audio drivers to disconnect, and forces the
+    /// Classic link down if it is still up after that. Remembered across restarts. <paramref name="handedOver"/>: the
+    /// earbuds are leaving this PC for another device (<see cref="HandOverAsync"/>), so the audio is not closed first.
+    /// </summary>
+    Task<CommandResult> DisconnectDeviceAsync(string deviceId, bool handedOver = false, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Has earbuds that keep one device (dual connection off) connect <paramref name="otherDevice"/>, then disconnects
+    /// this PC as <see cref="DisconnectDeviceAsync"/> does. Before the command EncoDeck already stops reconnecting control
+    /// and keeping the LE links: the earbuds drop this PC before they acknowledge it, and either would bring them back.
+    /// A refusal while this PC stays linked undoes that.
+    /// </summary>
+    Task<CommandResult> HandOverAsync(string deviceId, byte[] otherDevice, CancellationToken cancellationToken = default);
+
+    /// <summary>Undoes <see cref="DisconnectDeviceAsync"/>: makes the device the active one and connects it to this PC again.</summary>
+    Task<CommandResult> ConnectDeviceAsync(string deviceId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -58,6 +96,7 @@ public sealed class DeviceManager : IDeviceManager
     private readonly ILoggerFactory _loggers;
     private readonly ILogger _logger;
     private readonly IProtocolTrace? _trace;
+    private readonly IUserDisconnectedDevices _disconnected;
     private readonly SemaphoreSlim _selectionGate = new(1, 1);
     private readonly CancellationTokenSource _lifetime = new();
     private ActiveDevice? _active;
@@ -85,8 +124,10 @@ public sealed class DeviceManager : IDeviceManager
         Func<bool> allowExperimental,
         ILoggerFactory? loggers = null,
         ReconnectPolicy? policy = null,
-        IProtocolTrace? trace = null)
+        IProtocolTrace? trace = null,
+        IUserDisconnectedDevices? disconnected = null)
     {
+        _disconnected = disconnected ?? new InMemoryDisconnectedDevices();
         _profiles = profiles;
         _store = store;
         _connector = connector;
@@ -99,7 +140,18 @@ public sealed class DeviceManager : IDeviceManager
         _watcher = new PairedDeviceWatcher(_loggers.CreateLogger<PairedDeviceWatcher>());
         _watcher.Changed += OnPairedDevicesChanged;
         _usbWatcher.Changed += OnPairedDevicesChanged;
+        LeAudioLink.PairingOperationEnded += OnLePairingOperationEnded;
     }
+
+    /// <summary>The active earbuds' bonds changed (LE Audio switch): open them again so the link monitor sees the new bonds.</summary>
+    private void OnLePairingOperationEnded(ulong address)
+    {
+        if (_active?.Identity.Address.Value != address) return;
+        _reopenActive = true;
+        _ = ReselectAsync(_lifetime.Token);
+    }
+
+    private volatile bool _reopenActive;
 
     public IReadOnlyList<KnownDevice> KnownDevices
     {
@@ -118,7 +170,8 @@ public sealed class DeviceManager : IDeviceManager
                 // The read-only generic profile matches by name ("OPPO …"), which also hits phones and
                 // watches; only accept it for audio devices. Exact model profiles are trusted as-is.
                 .Where(x => !IsGeneric(x.Profile!) || x.Device.IsAudioDevice)
-                .Select(x => new KnownDevice(x.Device.Identity, x.Profile!, x.Device.IsConnected, x.Device.Identity.DeviceId == activeId))
+                .Select(x => new KnownDevice(x.Device.Identity, x.Profile!, x.Device.IsConnected, x.Device.Identity.DeviceId == activeId,
+                    x.Device.Identity.Transport == DeviceTransport.Bluetooth && _disconnected.Contains(x.Device.Identity.DeviceId)))
                 .ToList();
         }
     }
@@ -156,10 +209,43 @@ public sealed class DeviceManager : IDeviceManager
         await ReselectAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task ReconnectClassicLinkAsync(ulong address, CancellationToken cancellationToken = default)
+    {
+        await _selectionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (_active is not { } active || active.Identity.Address.Value != address) return;
+            _active = null;
+            await active.DisposeAsync().ConfigureAwait(false);
+            // Windows lets an idle Classic link go a second or two after its last channel closes.
+            using var classic = await Windows.Devices.Bluetooth.BluetoothDevice.FromBluetoothAddressAsync(address).AsTask(cancellationToken).ConfigureAwait(false);
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            while (classic?.ConnectionStatus == Windows.Devices.Bluetooth.BluetoothConnectionStatus.Connected && waited.Elapsed < TimeSpan.FromSeconds(15))
+                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Classic link {State} after {Ms} ms; opening the earbuds again",
+                classic?.ConnectionStatus.ToString() ?? "unknown", waited.ElapsedMilliseconds);
+        }
+        finally { _selectionGate.Release(); }
+        await ReselectAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public void NotifySystemResumed()
     {
         // Sockets opened before sleep are often dead without an error; force a clean reconnect.
-        _active?.Supervisor.RequestReconnect();
+        _active?.Supervisor?.RequestReconnect();
+        PageIfStranded();
+    }
+
+    /// <summary>
+    /// Earbuds EncoDeck switches to LE Audio drop their LE links whenever this PC's Classic link ends, and with neither
+    /// link up they wait to be paged (Enco X4). Page them once at the moments they are likely in use; never periodically,
+    /// so earbuds in the case or with a phone are left alone.
+    /// </summary>
+    private void PageIfStranded()
+    {
+        if (_active is { Link: { IsConnected: false, IsLeAudioBonded: true }, Supervisor: { } supervisor } active
+            && _profiles.Match(active.Identity) is OppoDeviceProfile { Definition.SupportsLeAudioPairing: true })
+            supervisor.RequestPage();
     }
 
     private void OnPairedDevicesChanged(object? sender, EventArgs e)
@@ -222,9 +308,11 @@ public sealed class DeviceManager : IDeviceManager
                 ?? candidates.FirstOrDefault(c => c.Identity.DeviceId == _active?.Identity.DeviceId)
                 ?? candidates.OrderByDescending(c => c.Profile.MatchScore(c.Identity)).FirstOrDefault();
 
+            bool reopen = _reopenActive;
+            _reopenActive = false;
             if (choice?.Identity.DeviceId == (_usbIdentity?.DeviceId ?? _active?.Identity.DeviceId)
                 // Windows had no radio for it: open it again (the radio may be back) unless the bridge carries it now.
-                && _active is not { WindowsUnavailable: true, BridgeOnly: false, Link.IsConnected: false }) return;
+                && _active is not { WindowsUnavailable: true, BridgeOnly: false, Link.IsConnected: false } && !reopen) return;
 
             await StopUsbAsync().ConfigureAwait(false);
 
@@ -273,6 +361,16 @@ public sealed class DeviceManager : IDeviceManager
                 }
             }
 
+            if (choice.Identity.Transport == DeviceTransport.Bluetooth && _disconnected.Contains(choice.Identity.DeviceId))
+            {
+                // No control channel, no LE links kept, no paging: nothing of EncoDeck's holds or brings back the link.
+                _logger.LogInformation("{Device} was disconnected in EncoDeck: leaving it alone", choice.Identity);
+                _store.TryUpdate(choice.Identity.DeviceId, s => s with { Connection = DeviceConnectionState.DisconnectedByUser });
+                _active = new ActiveDevice(choice.Identity, new NoWindowsLink(), null);
+                KnownDevicesChanged?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
             ILinkStateSource? link;
             bool bridgeable = BridgeConnector is not null && IsBridgeable(profile);
             // Paired with A2DP Windows Bridge alone: Windows does not know the device.
@@ -282,6 +380,7 @@ public sealed class DeviceManager : IDeviceManager
                 link = bridgeOnly ? null : await BluetoothLinkMonitor.CreateAsync(
                     choice.Identity.DeviceId,
                     profile.Form == DeviceForm.Headphones,
+                    profile.ManagesLeAudioLink,
                     cancellationToken).ConfigureAwait(false);
             }
             // 0x800710DF (device not ready): Windows has no Bluetooth radio left, typically because A2DP Windows
@@ -321,6 +420,7 @@ public sealed class DeviceManager : IDeviceManager
             supervisor.CaseLidOpened += (_, _) => ActiveDeviceCaseLidOpened?.Invoke(this, identity);
             _active = new ActiveDevice(identity, supervised, supervisor, windowsUnavailable, bridgeOnly);
             supervisor.Start();
+            PageIfStranded();
             KnownDevicesChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
@@ -341,7 +441,7 @@ public sealed class DeviceManager : IDeviceManager
     private static bool IsBridgeable(IDeviceProfile profile) =>
         profile is IControllableProfile { ControlServiceUuids: var uuids } && uuids.Any(RfcommChannelConnector.IsRfcommService);
 
-    private IDeviceController? Controller => _active?.Supervisor.Controller;
+    private IDeviceController? Controller => _active?.Supervisor?.Controller;
 
     public Task<CommandResult> SetNoiseControlAsync(NoiseControlState target, CancellationToken cancellationToken = default) =>
         Controller is { } c ? c.SetNoiseControlAsync(target, cancellationToken) : Task.FromResult(CommandResult.NotConnected);
@@ -407,17 +507,149 @@ public sealed class DeviceManager : IDeviceManager
     public Task<CommandResult> SetOptionAsync(string id, int value, CancellationToken cancellationToken = default) =>
         _usbSettings is { } usb ? usb.SetOptionAsync(id, value, cancellationToken) : WithController(c => c.SetOptionAsync(id, value, cancellationToken));
 
+    public Task<CommandResult> FactoryResetAsync(CancellationToken cancellationToken = default) => WithController(c => c.FactoryResetAsync(cancellationToken));
+
     public Task<CommandResult> ReconnectAsync(CancellationToken cancellationToken = default)
     {
         if (_usbIdentity is not null) return RefreshUsbAsync(cancellationToken, forceSettings: true);
-        if (_active is null) return Task.FromResult(CommandResult.NotConnected);
-        _active.Supervisor.RequestReconnect();
+        if (_active?.Supervisor is not { } supervisor) return Task.FromResult(CommandResult.NotConnected);
+        supervisor.RequestReconnect();
+        PageIfStranded();
         return Task.FromResult(CommandResult.Ok);
     }
+
+    public async Task<CommandResult> DisconnectDeviceAsync(string deviceId, bool handedOver = false, CancellationToken cancellationToken = default)
+    {
+        if (KnownDevices.FirstOrDefault(d => d.Identity.DeviceId == deviceId) is not { Identity.Transport: DeviceTransport.Bluetooth } device)
+            return CommandResult.NotConnected;
+        _logger.LogInformation("Disconnecting {Device} at the user's request{HandedOver}", device.Identity, handedOver ? " (handed over to another device)" : "");
+        ulong address = device.Identity.Address.Value;
+        // Audio first: closing control drops the Classic link, LE Audio earbuds drop their LE links with it (Enco X4), and
+        // an LE link dropped mid-stream can leave Windows' LE Audio output unusable until Bluetooth restarts. Earbuds
+        // handed over to another device are dropping this PC anyway, and waiting would let control reconnect them.
+        if (!handedOver)
+        {
+            var endpoints = await AudioEndpointIdsAsync(address, cancellationToken).ConfigureAwait(false);
+            var results = await Task.Run(() => BluetoothAudioLink.Send(endpoints, BluetoothAudioLinkRequest.Disconnect), cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Audio disconnect requests: {Results}", Describe(results));
+            if (results.Any(r => r.IsSuccess)) await Task.Delay(AudioReleaseGrace, cancellationToken).ConfigureAwait(false);
+        }
+
+        _disconnected.Set(deviceId, true);
+        await _selectionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // Closes the control channel and the LE links' MaintainConnection; reopened below without either.
+            if (_active is { } active && active.Identity.DeviceId == deviceId)
+            {
+                _active = null;
+                await active.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+        finally { _selectionGate.Release(); }
+        await ReselectAsync(cancellationToken).ConfigureAwait(false);
+        KnownDevicesChanged?.Invoke(this, EventArgs.Empty);
+        return await ReleaseClassicLinkAsync(device.Identity, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<CommandResult> HandOverAsync(string deviceId, byte[] otherDevice, CancellationToken cancellationToken = default)
+    {
+        if (_active is not { Supervisor: { Controller: { } controller } supervisor } active || active.Identity.DeviceId != deviceId)
+            return CommandResult.NotConnected;
+        _logger.LogInformation("Handing {Device} over to another device", active.Identity);
+        _disconnected.Set(deviceId, true);
+        supervisor.HoldReconnects();
+        active.Link.ReleaseMaintainedLinks();
+        var result = await controller.MultiConnectAsync(MultiConnectOperation.Connect, otherDevice, cancellationToken).ConfigureAwait(false);
+        // The earbuds often drop this PC before their acknowledgement arrives: the session closing is the answer then.
+        bool leaving = result.IsSuccess || result.Status is CommandStatus.NotConnected or CommandStatus.TransportError || !active.Link.IsConnected;
+        _logger.LogInformation("Hand-over command: {Result}; the earbuds are {State}", result, leaving ? "leaving" : "staying");
+        if (!leaving)
+        {
+            // Refused while still linked: nothing changed, so EncoDeck opens them as before.
+            _disconnected.Set(deviceId, false);
+            _reopenActive = true;
+            await ReselectAsync(cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+        await DisconnectDeviceAsync(deviceId, handedOver: true, cancellationToken).ConfigureAwait(false);
+        return CommandResult.Ok;
+    }
+
+    public async Task<CommandResult> ConnectDeviceAsync(string deviceId, CancellationToken cancellationToken = default)
+    {
+        if (KnownDevices.FirstOrDefault(d => d.Identity.DeviceId == deviceId) is not { Identity.Transport: DeviceTransport.Bluetooth } device)
+            return CommandResult.NotConnected;
+        _logger.LogInformation("Connecting {Device} at the user's request", device.Identity);
+        _disconnected.Set(deviceId, false);
+        _reopenActive = true;
+        await SelectDeviceAsync(deviceId, cancellationToken).ConfigureAwait(false);
+        // Opening Classic control pages the earbuds (it is what brings an Enco X4 back, LE links included); the audio
+        // drivers connect the Classic audio profiles. LE links come back through the link monitor's MaintainConnection.
+        if (_active is { Supervisor: { } supervisor } active && active.Identity.DeviceId == deviceId) supervisor.RequestPage();
+        var endpoints = await AudioEndpointIdsAsync(device.Identity.Address.Value, cancellationToken).ConfigureAwait(false);
+        var results = await Task.Run(() => BluetoothAudioLink.Send(endpoints, BluetoothAudioLinkRequest.Connect), cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Audio connect requests: {Results}", Describe(results));
+        KnownDevicesChanged?.Invoke(this, EventArgs.Empty);
+        return CommandResult.Ok;
+    }
+
+    /// <summary>
+    /// With the audio profiles and control closed, Windows ends the Classic link by itself; if it is still up a few
+    /// seconds later (another profile or app holds it), it is forced down.
+    /// </summary>
+    private async Task<CommandResult> ReleaseClassicLinkAsync(DeviceIdentity identity, CancellationToken cancellationToken)
+    {
+        ulong address = identity.Address.Value;
+        if (LeAudioOnlyDevices.Find(identity.DeviceId) is not null) return CommandResult.Ok;
+
+        Windows.Devices.Bluetooth.BluetoothDevice? classic = null;
+        try
+        {
+            classic = await Windows.Devices.Bluetooth.BluetoothDevice.FromBluetoothAddressAsync(address).AsTask(cancellationToken).ConfigureAwait(false);
+            var waited = System.Diagnostics.Stopwatch.StartNew();
+            while (classic?.ConnectionStatus == Windows.Devices.Bluetooth.BluetoothConnectionStatus.Connected && waited.Elapsed < ClassicReleaseGrace)
+                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            if (classic?.ConnectionStatus != Windows.Devices.Bluetooth.BluetoothConnectionStatus.Connected)
+            {
+                _logger.LogInformation("Classic link down after {Ms} ms", waited.ElapsedMilliseconds);
+                return CommandResult.Ok;
+            }
+            int error = BluetoothAudioLink.DisconnectLink(address);
+            _logger.LogInformation("Classic link still up after {Ms} ms; forced disconnect: {Error}", waited.ElapsedMilliseconds, error);
+            return error == 0 ? CommandResult.Ok : new CommandResult(CommandStatus.TransportError, $"Bluetooth disconnect failed ({error}).");
+        }
+        catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or COMException)
+        {
+            _logger.LogWarning("Could not check the Classic link: 0x{HResult:X8}", ex.HResult);
+            return CommandResult.Ok;
+        }
+        finally { classic?.Dispose(); }
+    }
+
+    /// <summary>Windows lets an idle Classic link go a second or two after its last channel closes.</summary>
+    private static readonly TimeSpan ClassicReleaseGrace = TimeSpan.FromSeconds(5);
+
+    /// <summary>The LE Audio endpoints went inactive about 0.8 s after the disconnect request (Enco X4).</summary>
+    private static readonly TimeSpan AudioReleaseGrace = TimeSpan.FromSeconds(1.5);
+
+    private static async Task<List<string>> AudioEndpointIdsAsync(ulong address, CancellationToken cancellationToken)
+    {
+        var platform = new WindowsAudioEndpointPlatform();
+        var render = await platform.GetRenderEndpointsAsync(cancellationToken).ConfigureAwait(false);
+        var capture = await platform.GetCaptureEndpointsAsync(cancellationToken).ConfigureAwait(false);
+        return render.Concat(capture).Where(e => e.BelongsTo(address))
+            .Select(e => WindowsAudioEndpointPlatform.ToMmDeviceId(e.InstanceId)).ToList();
+    }
+
+    private static string Describe(IReadOnlyList<BluetoothAudioLinkResult> results) => results.Count == 0
+        ? "no audio driver"
+        : string.Join(", ", results.Select(r => $"0x{r.HResult:X8}"));
 
     public async ValueTask DisposeAsync()
     {
         _lifetime.Cancel();
+        LeAudioLink.PairingOperationEnded -= OnLePairingOperationEnded;
         _watcher.Changed -= OnPairedDevicesChanged;
         _watcher.Dispose();
         _usbWatcher.Changed -= OnPairedDevicesChanged;
@@ -526,12 +758,22 @@ public sealed class DeviceManager : IDeviceManager
 
     /// <param name="WindowsUnavailable">Windows could not open the device (no radio): only the bridge can link it.</param>
     /// <param name="BridgeOnly">Paired with A2DP Windows Bridge alone: Windows does not know it, opening it again changes nothing.</param>
-    private sealed record ActiveDevice(DeviceIdentity Identity, ILinkStateSource Link, ControlChannelSupervisor Supervisor, bool WindowsUnavailable = false, bool BridgeOnly = false) : IAsyncDisposable
+    /// <param name="Supervisor">Null while the device is disconnected in EncoDeck.</param>
+    private sealed record ActiveDevice(DeviceIdentity Identity, ILinkStateSource Link, ControlChannelSupervisor? Supervisor, bool WindowsUnavailable = false, bool BridgeOnly = false) : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
         {
-            await Supervisor.DisposeAsync().ConfigureAwait(false);
+            if (Supervisor is not null) await Supervisor.DisposeAsync().ConfigureAwait(false);
             Link.Dispose();
         }
+    }
+
+    private sealed class InMemoryDisconnectedDevices : IUserDisconnectedDevices
+    {
+        private readonly HashSet<string> _ids = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool Contains(string deviceId) { lock (_ids) return _ids.Contains(deviceId); }
+
+        public void Set(string deviceId, bool disconnected) { lock (_ids) { if (disconnected) _ids.Add(deviceId); else _ids.Remove(deviceId); } }
     }
 }

@@ -198,6 +198,9 @@ public sealed class FeaturesViewModel
     /// <summary>While Hi-Res is on the official page shows spatial audio as off.</summary>
     public SpatialAudioMode? SpatialMode => State.Spatial is null ? null : IsHiResOn && !IsMoondrop ? SpatialAudioMode.Off : State.Spatial.Value;
 
+    /// <summary>The spatial modes to offer. The home row and the sound card share it, so a row never opens an empty card.</summary>
+    public SpatialAudioOptions SpatialOptions => SpatialAudioOptions.For(State.Profile, Has);
+
     public Task<CommandResult> SetSpatialAudioAsync(SpatialAudioMode mode) => Run(() => _commands.SetSpatialAudioAsync(mode));
 
     // ---- prompt volume and bass engine -----------------------------------------------------------
@@ -296,6 +299,8 @@ public sealed class FeaturesViewModel
 
     public Task<CommandResult> FindEarbudsAsync(bool ring) => Run(() => _commands.FindEarbudsAsync(ring));
 
+    public Task<CommandResult> FactoryResetAsync() => Run(() => _commands.FactoryResetAsync());
+
     public Task<CommandResult> RunFitTestAsync() => Run(() => _commands.RunFitTestAsync());
 
     // ---- dual connection -------------------------------------------------------------------------
@@ -311,7 +316,16 @@ public sealed class FeaturesViewModel
 
     public bool IsPreferredKnown => State.PreferredDevice is not null;
 
-    public bool CanManageSourceDevices => Model?.SupportsMultiConnectOperations == true || (IsVivo && Has(DeviceCapability.DualDeviceConnection));
+    public bool CanManageSourceDevices => Model?.SupportsMultiConnectOperations == true || (IsVivo && Has(DeviceCapability.DualDeviceConnection)) || IsEarFunHostList;
+
+    /// <summary>EarFun models with a paired-host list: connect and disconnect, but no remove command.</summary>
+    public bool IsEarFunHostList => State.Profile is EncoDeck.Protocol.Brands.EarFun.EarFunProfile earfun && earfun.Model.Has("list")
+        && Has(DeviceCapability.DualDeviceConnection);
+
+    public bool CanRemoveSourceDevices => CanManageSourceDevices && !IsEarFunHostList;
+
+    /// <summary>OPPO drops a device to connect a third; EarFun refuses, so its connect waits for a free slot.</summary>
+    public bool CanConnectAnother => !IsEarFunHostList || SourceDevices.Count(d => d.IsConnected) < 2;
 
     /// <summary>Only the OPPO protocol has a preferred-device setting.</summary>
     public bool HasPreferredDevice => Model?.SupportsMultiConnectOperations == true;
@@ -330,6 +344,23 @@ public sealed class FeaturesViewModel
 
     public Task<CommandResult> MultiConnectAsync(MultiConnectOperation operation, SourceDevice device) =>
         Run(() => _commands.MultiConnectAsync(operation, device.Address));
+
+    /// <summary>
+    /// Dual connection is switched off: the earbuds keep one device, so connecting another one ends this PC's link.
+    /// Unknown (no switch, or not read yet) counts as on, as before.
+    /// </summary>
+    public bool ConnectHandsOverThisPc => HasSwitch(DeviceToggle.DualDeviceConnection) && Toggle(DeviceToggle.DualDeviceConnection) == false;
+
+    /// <summary>
+    /// Connects another device. When that hands the earbuds over (<see cref="ConnectHandsOverThisPc"/>), this PC is
+    /// disconnected as "Disconnect" does, prepared before the command so nothing of EncoDeck's brings the earbuds back.
+    /// </summary>
+    public Task ConnectSourceAsync(SourceDevice device) => ConnectHandsOverThisPc
+        ? App.Instance.Device.HandOverAsync(device.Address)
+        : MultiConnectAsync(MultiConnectOperation.Connect, device);
+
+    /// <summary>"This PC" in the device list: the same as Disconnect in the earbuds panel.</summary>
+    public Task DisconnectThisPcAsync() => App.Instance.Device.DisconnectDeviceCommand.ExecuteAsync(null);
 
     public Task<CommandResult> SetPreferredDeviceAsync(byte[]? address) => Run(() => _commands.SetPreferredDeviceAsync(address));
 

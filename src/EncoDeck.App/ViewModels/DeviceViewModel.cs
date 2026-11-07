@@ -11,6 +11,7 @@ using EncoDeck.Core.Resources;
 using EncoDeck.Core.State;
 using EncoDeck.Platform.Settings;
 using EncoDeck.Protocol.Brands;
+using EncoDeck.Protocol.Brands.EarFun;
 using EncoDeck.Protocol.Brands.Usb;
 using EncoDeck.Protocol.Oppo;
 using EncoDeck.Protocol.Oppo.Models;
@@ -89,6 +90,13 @@ public sealed partial class DeviceViewModel : ObservableObject
     public ObservableCollection<NoiseLevelViewModel> NoiseLevels { get; } = [];
     public ObservableCollection<NoiseLevelViewModel> AdaptiveLevels { get; } = [];
     public ObservableCollection<NoiseLevelViewModel> TransparencyLevels { get; } = [];
+    /// <summary>
+    /// The earbuds' own sub-modes of the selected noise mode, kept as a device option (EarFun's ANC and transparency
+    /// sub-modes); the tray panel shows them under the mode buttons, the Controls page as that option's list.
+    /// </summary>
+    public ObservableCollection<NoiseLevelViewModel> NoiseSubModes { get; } = [];
+    /// <summary>EarFun's manual noise-cancelling levels, shown below the sub-modes while "Manual" is selected.</summary>
+    public ObservableCollection<NoiseLevelViewModel> NoiseManualLevels { get; } = [];
     public ObservableCollection<EqualizerPresetViewModel> EqualizerPresets { get; } = [];
     public ObservableCollection<DeviceToggleViewModel> Toggles { get; } = [];
 
@@ -106,9 +114,24 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial bool IsBusyConnecting { get; set; }
     [ObservableProperty] public partial bool IsControlUnavailable { get; set; }
     [ObservableProperty] public partial bool IsLinkDown { get; set; }
+    /// <summary>Bluetooth earbuds linked to this PC: "Disconnect" is offered.</summary>
+    [ObservableProperty] public partial bool CanDisconnect { get; set; }
+    /// <summary>Bluetooth earbuds not linked, or disconnected in EncoDeck: "Connect" is offered.</summary>
+    [ObservableProperty] public partial bool CanConnect { get; set; }
+    [ObservableProperty] public partial bool IsChangingConnection { get; set; }
+    /// <summary>Batteries fade while the earbuds are not linked: the levels are only the last ones read.</summary>
+    [ObservableProperty] public partial double BatteryOpacity { get; set; } = 1;
 
     /// <summary>The audio runs over LE Audio (shown as an "LC3" tag next to the status).</summary>
     [ObservableProperty] public partial bool IsLeAudio { get; set; }
+    /// <summary>Linked, and Windows plays these earbuds over Classic audio (not LE Audio).</summary>
+    [ObservableProperty] public partial bool IsClassicAudio { get; set; }
+    /// <summary>
+    /// Earbuds set up for LE Audio on this PC (both LE bonds and the derived Classic bond): the earbuds panel offers
+    /// "LC3 / Classic", which moves Windows between them without touching any pairing.
+    /// </summary>
+    [ObservableProperty] public partial bool CanSwitchAudioTransport { get; set; }
+    [ObservableProperty] public partial bool IsSwitchingAudioTransport { get; set; }
     /// <summary>
     /// A2DP Windows Bridge streams to these earbuds but neither it nor Windows carries their control channel. The
     /// "A2DP Bridge" tag already names the bridge in every other case, so only this one takes room above the page.
@@ -124,6 +147,10 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial string CodecLabel { get; set; } = string.Empty;
     [ObservableProperty] public partial string CodecDescription { get; set; } = string.Empty;
     [ObservableProperty] public partial bool HasCodec { get; set; }
+    /// <summary>The tag names a codec rather than only the link (A2DP whose codec Windows has not logged).</summary>
+    [ObservableProperty] public partial bool CodecIsDetailed { get; set; } = true;
+    /// <summary>The tag is plain A2DP because Windows' codec log is off: clicking it offers to turn it on.</summary>
+    [ObservableProperty] public partial bool CodecCanEnable { get; set; }
     [ObservableProperty] public partial string? DeviceImagePath { get; set; }
     [ObservableProperty] public partial string? LeftArtworkPath { get; set; }
     [ObservableProperty] public partial string? RightArtworkPath { get; set; }
@@ -167,6 +194,10 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial bool HasTransparencyMode { get; set; }
     [ObservableProperty] public partial bool ShowNoiseLevels { get; set; }
     [ObservableProperty] public partial bool ShowTransparencyLevels { get; set; }
+    [ObservableProperty] public partial bool ShowNoiseSubModes { get; set; }
+    [ObservableProperty] public partial string NoiseSubModesTitle { get; set; } = string.Empty;
+    [ObservableProperty] public partial bool IsNoiseSubModePending { get; set; }
+    [ObservableProperty] public partial bool ShowNoiseManualLevels { get; set; }
     [ObservableProperty] public partial string NoiseText { get; set; } = string.Empty;
 
     [ObservableProperty] public partial bool IsEqualizerAvailable { get; set; }
@@ -179,6 +210,15 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial bool CanEditEqualizerBands { get; set; }
 
     [ObservableProperty] public partial string FirmwareText { get; set; } = string.Empty;
+
+    /// <summary>Devices page: the firmware the earbuds reported (per part where they report several).</summary>
+    [ObservableProperty] public partial string FirmwareVersionText { get; set; } = string.Empty;
+
+    /// <summary>Devices page: the product id the earbuds reported, or their model code.</summary>
+    [ObservableProperty] public partial string ProductIdText { get; set; } = string.Empty;
+
+    /// <summary>Devices page: the connected earbuds take a factory reset command.</summary>
+    [ObservableProperty] public partial bool CanFactoryReset { get; set; }
     [ObservableProperty] public partial string LastUpdatedText { get; set; } = string.Empty;
     [ObservableProperty] public partial string TrayToolTip { get; set; } = "EncoDeck";
 
@@ -205,6 +245,25 @@ public sealed partial class DeviceViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task SetNoiseSubModeAsync(string value)
+    {
+        if (_noiseSubModeOption is not { } id || !int.TryParse(value, out int target) || IsNoiseSubModePending) return;
+        if (target == EarFunSettings.ManualSubMode)
+        {
+            // "Manual" itself is not a wire value: resume the last manual level seen, else the strongest.
+            if (_manualLevel is not { } level) return;
+            target = level;
+        }
+        IsNoiseSubModePending = true;
+        try { await RunAsync(() => App.Instance.Host.Devices.SetOptionAsync(id, target)); }
+        finally { IsNoiseSubModePending = false; }
+    }
+
+    private string? _noiseSubModeOption;
+    private string? _noiseSubModeSignature;
+    private int? _manualLevel;
+
+    [RelayCommand]
     private async Task SetEqualizerAsync(string presetId)
     {
         await RunAsync(() => _commands.SetEqualizerPresetAsync(presetId));
@@ -226,6 +285,36 @@ public sealed partial class DeviceViewModel : ObservableObject
 
     [RelayCommand]
     private Task ReconnectAsync() => RunAsync(() => _commands.ReconnectAsync());
+
+    /// <summary>Disconnects the earbuds from this PC; EncoDeck then leaves them alone until "Connect".</summary>
+    [RelayCommand]
+    private Task DisconnectDeviceAsync() => ChangeConnectionAsync((devices, id) => devices.DisconnectDeviceAsync(id));
+
+    /// <summary>
+    /// With dual connection off: has the earbuds connect another device and disconnects this PC as "Disconnect" does
+    /// (IDeviceManager.HandOverAsync), so neither the control channel nor the LE links bring them back.
+    /// </summary>
+    public Task HandOverAsync(byte[] otherDevice) => ChangeConnectionAsync((devices, id) => devices.HandOverAsync(id, otherDevice));
+
+    [RelayCommand]
+    private Task ConnectDeviceAsync() => ChangeConnectionAsync((devices, id) => devices.ConnectDeviceAsync(id));
+
+    private async Task ChangeConnectionAsync(Func<EncoDeck.Bluetooth.IDeviceManager, string, Task<CommandResult>> change)
+    {
+        if (IsChangingConnection || _store.Current.Device is not { Transport: DeviceTransport.Bluetooth } device) return;
+        IsChangingConnection = true;
+        IsBusyConnecting = true;
+        try
+        {
+            var devices = App.Instance.Host.Devices;
+            await RunAsync(() => change(devices, device.DeviceId));
+        }
+        finally
+        {
+            IsChangingConnection = false;
+            Apply(_store.Current, forceNotify: true);
+        }
+    }
 
     [RelayCommand]
     private void DismissError()
@@ -257,6 +346,45 @@ public sealed partial class DeviceViewModel : ObservableObject
     }
 
     private Task RunAsync(Func<Task<CommandResult>> action) => RunCommandAsync(action);
+
+    /// <summary>
+    /// "LC3" or "Classic" in the earbuds panel: has Windows use LE Audio or Classic audio for these earbuds. The first
+    /// time it asks (administrator prompt) for the one permission it needs, restarting Windows' Bluetooth audio service.
+    /// </summary>
+    [RelayCommand]
+    private async Task SwitchAudioTransportAsync(string target)
+    {
+        bool toLeAudio = target == "le";
+        if (IsSwitchingAudioTransport || toLeAudio == IsLeAudio || _store.Current.Device is not { Transport: DeviceTransport.Bluetooth } device) return;
+        IsSwitchingAudioTransport = true;
+        try
+        {
+            if (!EncoDeck.Bluetooth.LeAudio.WindowsAudioTransport.CanRestartService)
+                await EncoDeck.Bluetooth.LeAudio.WindowsAudioTransport.AuthorizeAsync();
+            ulong address = device.Address.Value;
+            var result = await EncoDeck.Bluetooth.LeAudio.LeAudioPairing.SwitchTransportAsync(address, toLeAudio, null, CancellationToken.None,
+                token => App.Instance.Host.Devices.ReconnectClassicLinkAsync(address, token), makeDefault: true);
+            if (result.Outcome is not (EncoDeck.Bluetooth.LeAudio.LeAudioPairingOutcome.Paired or EncoDeck.Bluetooth.LeAudio.LeAudioPairingOutcome.SwitchedToClassic))
+            {
+                ErrorMessage = Loc.Get($"LeAudio_Result_{result.Outcome}");
+                HasError = true;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The administrator prompt was declined: nothing changed.
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            ErrorMessage = Loc.Format("LeAudio_Error", ex.Message);
+            HasError = true;
+        }
+        finally
+        {
+            IsSwitchingAudioTransport = false;
+            Apply(_store.Current, forceNotify: true);
+        }
+    }
 
     private static string DescribeFailure(CommandResult result) => (result.Status, result.Detail) switch
     {
@@ -316,9 +444,9 @@ public sealed partial class DeviceViewModel : ObservableObject
         Connection = state.Connection;
         ConnectionText = DescribeConnection(state.Connection);
         IsReady = state.Connection == DeviceConnectionState.ControlReady;
-        IsBusyConnecting = state.Connection is DeviceConnectionState.ControlConnecting or DeviceConnectionState.Reconnecting or DeviceConnectionState.AudioConnected;
+        IsBusyConnecting = IsChangingConnection || state.Connection is DeviceConnectionState.ControlConnecting or DeviceConnectionState.Reconnecting or DeviceConnectionState.AudioConnected;
         IsControlUnavailable = state.Connection == DeviceConnectionState.ControlUnavailable;
-        IsLinkDown = state.Connection is DeviceConnectionState.PairedNotConnected or DeviceConnectionState.Disconnected;
+        IsLinkDown = state.Connection is DeviceConnectionState.PairedNotConnected or DeviceConnectionState.Disconnected or DeviceConnectionState.DisconnectedByUser;
         IsLeAudio = state.IsLeAudio && !IsLinkDown;
         // A2DP Windows Bridge streams to these earbuds over its own adapter: Windows (and so the control
         // channel) may not see them at all, but they are connected, and the codec is the bridge's.
@@ -337,30 +465,53 @@ public sealed partial class DeviceViewModel : ObservableObject
             IsBusyConnecting = !bridge.IsStreaming;
             IsLeAudio = false;
         }
+        IsClassicAudio = !IsLeAudio && !IsLinkDown && !IsBridgeOnly && state.Connection.IsLinkUp();
+        bool windowsBluetooth = state.Device is { Transport: DeviceTransport.Bluetooth } && !IsBridgeOnly;
+        CanDisconnect = windowsBluetooth && state.Connection.IsLinkUp();
+        CanConnect = windowsBluetooth && IsLinkDown;
+        BatteryOpacity = IsLinkDown ? 0.35 : 1;
+        CanSwitchAudioTransport = _settings.Current.ShowAudioTransportSwitch != false
+            && profile is OppoDeviceProfile { Definition.SupportsLeAudioPairing: true }
+            && state.LeAudioLinks is { PrimaryBonded: true, SecondaryBonded: true }
+            && state.Device is { Transport: DeviceTransport.Bluetooth } switchable
+            // Earbuds kept on LE alone (no Classic bond) cannot use Classic audio.
+            && EncoDeck.Bluetooth.LeAudio.LeAudioOnlyDevices.Find(switchable.DeviceId) is null
+            && !IsLinkDown && !IsBridgeOnly;
         var codecDisplay = CodecDisplay.Resolve(state);
         CodecLabel = codecDisplay.Kind switch
         {
             // The "A2DP Bridge" tag beside a bridge stream already names its source.
-            CodecDisplayKind.DeviceReport or CodecDisplayKind.BridgeStream => codecDisplay.Codec!,
-            CodecDisplayKind.LeLink => "LE Audio",
-            // An unknown codec shows no tag at all (the diagnostics still record why).
+            CodecDisplayKind.BridgeStream or CodecDisplayKind.WindowsStream or CodecDisplayKind.LhdcStream => codecDisplay.Codec!,
+            // Windows' LE Audio output is active, and LE Audio on Windows is always LC3.
+            CodecDisplayKind.LeLink => "LC3",
+            // Only the Classic link is known: the earbuds' own codec report is never shown.
+            CodecDisplayKind.A2dpLogOff or CodecDisplayKind.A2dpNotLogged or CodecDisplayKind.A2dpOtherDriver => "A2DP",
+            // An unknown bridge codec shows no tag at all (the diagnostics still record why).
             _ => string.Empty,
         };
         CodecDescription = codecDisplay.Kind switch
         {
-            CodecDisplayKind.DeviceReport => Loc.Format("Codec_ReportedDescription", codecDisplay.Codec),
             CodecDisplayKind.BridgeStream => Loc.Format("Codec_BridgeDescription", codecDisplay.Codec),
+            CodecDisplayKind.WindowsStream => Loc.Format("Codec_WindowsDescription", codecDisplay.Codec),
+            CodecDisplayKind.LhdcStream => state.LhdcKbps > 0 ? Loc.Format("Codec_LhdcStreamingDescription", state.LhdcKbps)
+                : Loc.Get("Codec_LhdcDescription"),
             CodecDisplayKind.LeLink => Loc.Get("Codec_LeAudioDescription"),
+            CodecDisplayKind.A2dpLogOff => Loc.Get("Codec_A2dpDescription"),
+            CodecDisplayKind.A2dpNotLogged => Loc.Get("Codec_A2dpNotLoggedDescription"),
+            CodecDisplayKind.A2dpOtherDriver => Loc.Get("Codec_OtherDriverDescription"),
             _ => string.Empty,
         };
+        CodecIsDetailed = codecDisplay.Kind is not (CodecDisplayKind.A2dpLogOff or CodecDisplayKind.A2dpNotLogged or CodecDisplayKind.A2dpOtherDriver);
+        CodecCanEnable = codecDisplay.Kind == CodecDisplayKind.A2dpLogOff;
         HasCodec = CodecLabel.Length > 0;
         // One earbud worn while the other charges is ordinary use; warn only when the other should be up.
         if (LeAudioStatus.IsMissingEarbud(state, warnWithoutWear: profile is OppoDeviceProfile))
             ConnectionText = Loc.Get("Connection_LeAudioSingleEar");
         // Switched to LE Audio but LC3 is not up (e.g. after the case reopened): the earbuds only come
         // back over LE once they advertise; EncoDeck keeps the existing bond ready to reconnect. OPPO
-        // control waits for that link; Classic-controlled earbuds show their own state meanwhile.
-        if (LeAudioStatus.IsWaitingForLeAudio(state, controlNeedsLeAudio: profile is OppoDeviceProfile) && !IsBridgeOnly)
+        // control over GATT waits for that link; earbuds controlled over Classic (also those EncoDeck switches
+        // between LC3 and Classic, which keep their derived Classic bond) show their own state meanwhile.
+        if (LeAudioStatus.IsWaitingForLeAudio(state, controlNeedsLeAudio: profile is OppoDeviceProfile { Definition.SupportsLeAudioPairing: false }) && !IsBridgeOnly)
             ConnectionText = Loc.Get("Connection_WaitingForLeAudio");
         // Until the earbuds connect and report their ids, use the ones remembered from last time
         // (restored by the device cache) or the model's own product id, so the art shows at once.
@@ -398,9 +549,10 @@ public sealed partial class DeviceViewModel : ObservableObject
 
         foreach (var item in new[] { Left, Right, Case }) item.SetSingleBattery(IsHeadphones);
         bool batteryReady = IsReady || (state.Connection is DeviceConnectionState.UsbReceiverConnected or DeviceConnectionState.UsbHeadsetConnected && state.LastResponseAt is not null);
-        Left.Apply(state.Battery.Left, batteryReady, now);
-        Right.Apply(state.Battery.Right, batteryReady, now);
-        Case.Apply(state.Battery.Case, batteryReady, now);
+        int lowThreshold = _settings.Current.LowBatteryThreshold;
+        Left.Apply(state.Battery.Left, batteryReady, now, lowThreshold);
+        Right.Apply(state.Battery.Right, batteryReady, now, lowThreshold);
+        Case.Apply(state.Battery.Case, batteryReady, now, lowThreshold);
 
         RebuildOptionsIfNeeded(profile);
         ApplyNoise(state, profile);
@@ -410,6 +562,10 @@ public sealed partial class DeviceViewModel : ObservableObject
         ApplyToggles(state, controlReady);
 
         FirmwareText = state.Firmware?.Value is { } fw ? DescribeFirmware(fw, profile) : string.Empty;
+        FirmwareVersionText = state.Firmware?.Value is { } version ? DescribeFirmwareVersion(version) : string.Empty;
+        ProductIdText = state.ProductId is { } pid ? pid.ToString("X6")
+            : state.Firmware?.Value.ModelCode is { Length: > 0 } code && code != profile?.DisplayName ? code : string.Empty;
+        CanFactoryReset = IsReady && profile?.Capabilities.Get(DeviceCapability.FactoryReset).Support == CapabilitySupport.Supported;
         var newest = new[] { state.Battery.Left?.Timestamp, state.Battery.Right?.Timestamp, state.NoiseControl?.Timestamp, state.LastResponseAt }.Max();
         LastUpdatedText = newest is { } t && IsReady ? Loc.Format("Status_UpdatedAt", t.ToLocalTime().ToString("T")) : string.Empty;
 
@@ -490,6 +646,12 @@ public sealed partial class DeviceViewModel : ObservableObject
             AddToggle(profile, DeviceToggle.IndicatorLight);
             AddToggle(profile, DeviceToggle.PromptTone);
         }
+        if (profile is EncoDeck.Protocol.Brands.EarFun.EarFunProfile earfun)
+        {
+            AddToggle(profile, DeviceToggle.Ldac, earfun.Model.Has("dual") ? "Toggle_Ldac_EarFun_Description" : null);
+            AddToggle(profile, DeviceToggle.AptXAdaptive);
+            AddToggle(profile, DeviceToggle.AptXLossless);
+        }
 
         bool Has(NoiseControlMode mode) => profile.NoiseControlOptions.Any(o => o.Mode == mode && IsAllowed(o.Support));
         HasOffMode = Has(NoiseControlMode.Off);
@@ -498,7 +660,7 @@ public sealed partial class DeviceViewModel : ObservableObject
         HasAdaptiveMode = Has(NoiseControlMode.Adaptive);
     }
 
-    private void AddToggle(IDeviceProfile profile, DeviceToggle toggle)
+    private void AddToggle(IDeviceProfile profile, DeviceToggle toggle, string? descriptionKey = null)
     {
         bool offered = profile is OppoDeviceProfile { Definition: var model }
             ? model.FeatureSwitches.Any(f => f.Toggle == toggle && f.Support == CapabilitySupport.Supported)
@@ -507,13 +669,14 @@ public sealed partial class DeviceViewModel : ObservableObject
                     || moondrop.Capabilities.IsAvailable(EncoDeck.Protocol.Brands.Moondrop.MoondropProfile.ToggleCapability(toggle), _settings.Current.EnableExperimentalFeatures))
             : profile is UsbHeadsetProfile usb && usb.Toggles.Contains(toggle);
         if (!offered) return;
-        Toggles.Add(new DeviceToggleViewModel(toggle, Loc.Get($"Toggle_{toggle}"), Loc.Get($"Toggle_{toggle}_Description")));
+        Toggles.Add(new DeviceToggleViewModel(toggle, Loc.Get($"Toggle_{toggle}"), Loc.Get(descriptionKey ?? $"Toggle_{toggle}_Description")));
     }
 
     private void ApplyNoise(DeviceState state, IDeviceProfile? profile)
     {
         IsNoiseAvailable = IsReady && profile is not null && profile.Capabilities.IsAvailable(DeviceCapability.NoiseCancellation, allowExperimental: false);
-        CanSetNoise = IsNoiseAvailable && !state.IsLeAudio;
+        // Only models verified to refuse noise changes over LE Audio (the X4) are greyed out there.
+        CanSetNoise = IsNoiseAvailable && !(state.IsLeAudio && profile is OppoDeviceProfile { Definition.RejectsNoiseChangeOnLeAudio: true });
         IsNoisePending = state.IsPending("noise-control");
         var noise = state.NoiseControl?.Value;
         IsOffSelected = noise?.Mode == NoiseControlMode.Off;
@@ -526,6 +689,7 @@ public sealed partial class DeviceViewModel : ObservableObject
         foreach (var level in NoiseLevels) level.IsSelected = IsAncSelected && level.Id == noise?.LevelId;
         foreach (var level in AdaptiveLevels) level.IsSelected = IsAdaptiveSelected && level.Id == noise?.LevelId;
         foreach (var level in TransparencyLevels) level.IsSelected = IsTransparencySelected && level.Id == noise?.LevelId;
+        ApplyNoiseSubModes(state, profile, noise);
 
         if (noise is null)
         {
@@ -535,6 +699,53 @@ public sealed partial class DeviceViewModel : ObservableObject
         {
             var option = profile?.NoiseControlOptions.FirstOrDefault(o => o.Matches(noise));
             NoiseText = option is not null ? DescribeNoise(option) : Loc.Get($"NoiseMode_{noise.Mode}");
+        }
+    }
+
+    /// <summary>
+    /// The option holding the sub-mode of <paramref name="noise"/>: EarFun keeps one for plain noise cancelling (not
+    /// for its separate wind reduction mode) and one for transparency, each read back from the earbuds.
+    /// </summary>
+    private static string? NoiseSubModeOption(IDeviceProfile? profile, NoiseControlState? noise) => profile is EncoDeck.Protocol.Brands.EarFun.EarFunProfile
+        ? noise switch
+        {
+            { Mode: NoiseControlMode.NoiseCancellation, LevelId: null } => "earfun-sub",
+            { Mode: NoiseControlMode.Transparency } => "earfun-ambient",
+            _ => null,
+        }
+        : null;
+
+    private void ApplyNoiseSubModes(DeviceState state, IDeviceProfile? profile, NoiseControlState? noise)
+    {
+        var option = NoiseSubModeOption(profile, noise) is { } id && state.Options.TryGetValue(id, out var observed) ? observed.Value : null;
+        _noiseSubModeOption = option?.Id;
+        string? signature = option is null ? null : $"{option.Id}|{string.Join(',', option.Choices.Select(c => $"{c.Value}:{c.LabelKey}:{c.Argument}"))}";
+        IReadOnlyList<DeviceOptionChoice> choices = option?.Choices ?? [];
+        var levels = EarFunSettings.ManualLevels(choices);
+        if (signature != _noiseSubModeSignature)
+        {
+            _noiseSubModeSignature = signature;
+            _manualLevel = levels.Count > 0 ? levels[^1].Value : null;
+            Fill(NoiseSubModes, EarFunSettings.SubModeRow(choices));
+            Fill(NoiseManualLevels, levels.Count > 1 ? levels : []);
+        }
+        bool manual = option is not null && levels.Any(l => l.Value == option.Value);
+        if (manual) _manualLevel = option!.Value;
+        NoiseSubModesTitle = option is null ? string.Empty : Loc.Get(option.LabelKey);
+        ShowNoiseSubModes = IsNoiseAvailable && NoiseSubModes.Count > 1;
+        ShowNoiseManualLevels = ShowNoiseSubModes && manual && NoiseManualLevels.Count > 1;
+        string? selected = Id(manual ? EarFunSettings.ManualSubMode : option?.Value);
+        foreach (var mode in NoiseSubModes) mode.IsSelected = mode.Id == selected;
+        string? level = Id(option?.Value);
+        foreach (var mode in NoiseManualLevels) mode.IsSelected = manual && mode.Id == level;
+
+        static string? Id(int? value) => value?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        static void Fill(ObservableCollection<NoiseLevelViewModel> target, IEnumerable<DeviceOptionChoice> source)
+        {
+            target.Clear();
+            foreach (var choice in source)
+                target.Add(new NoiseLevelViewModel(Id(choice.Value)!,
+                    choice.Argument is null ? Loc.Get(choice.LabelKey) : Loc.Format(choice.LabelKey, choice.Argument)));
         }
     }
 
@@ -609,6 +820,17 @@ public sealed partial class DeviceViewModel : ObservableObject
         // Sennheiser reports one device-wide version; other brands keep their existing Home layout.
         if (parts.Count == 0 && profile is EncoDeck.Protocol.Brands.Sennheiser.SennheiserProfile && !string.IsNullOrWhiteSpace(fw.Version)) parts.Add(fw.Version);
         return parts.Count == 0 ? string.Empty : $"{Loc.Get("Home_FirmwareLabel")}  {string.Join(" · ", parts)}";
+    }
+
+    /// <summary>Every version the earbuds reported: labelled per part, else the single version.</summary>
+    private static string DescribeFirmwareVersion(FirmwareInfo fw)
+    {
+        var parts = new List<string>();
+        if (fw.Extra.TryGetValue("left", out var l)) parts.Add($"{Loc.Get("Battery_Left")} {l}");
+        if (fw.Extra.TryGetValue("right", out var r)) parts.Add($"{Loc.Get("Battery_Right")} {r}");
+        if (fw.Extra.TryGetValue("case", out var c)) parts.Add($"{Loc.Get("Battery_Case")} {c}");
+        if (parts.Count == 0 && !string.IsNullOrWhiteSpace(fw.Version)) parts.Add(fw.Version);
+        return string.Join(" · ", parts);
     }
 
     public static string DescribeConnection(DeviceConnectionState state) => Loc.Get($"Connection_{state}");

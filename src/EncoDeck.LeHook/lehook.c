@@ -1,0 +1,741 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//
+// EncoDeck LE Audio hook. Loaded into the svchost that hosts BthAvctpSvc, where Windows' LE Audio unicast client
+// (Microsoft.Bluetooth.Audio.dll) picks the LC3 configuration it asks the earbuds for. Two functions are hooked:
+//   LC3ClientCodec::GetPreferredConfigurationFromCapabilities: the Config Codec request (frame duration, octets per
+//     frame, target latency). The earbuds echo it and Windows sets up the offload data path from the echo.
+//   LC3ClientCodec::FindQosSettings: the QoS Windows sizes the Config QoS request and the CIG from (SDU interval, max
+//     SDU, retransmissions, max transport latency). It comes from Windows' own preset, so it has to follow the
+//     rewritten codec request. Windows picks low latency while a game plays and high reliability otherwise; a
+//     LatencyMode other than auto pins one of them. The resulting transport is recorded in link.txt.
+//   CapAcceptorSetEndpointImpl::StreamingAudioContextChanged: the use case (BAP context type) of what plays. When a
+//     game starts, Windows switches it from media to game and rebuilds the link for low latency; with GameAsMedia
+//     the game bit is reported as media, so the link that is up stays up.
+// All read the user's choice from HKLM\SOFTWARE\EncoDeck\LeHook for every new stream; with nothing chosen they
+// only record.
+//
+// Intel sync schedule: on Intel LE Audio offload, the controller sometimes carries the first CIS's frames one ISO
+// interval later than the second's (one earbud plays 7.5 ms late). With a flush timeout under 7 ISO intervals the DSP's
+// frame hand-off drifts against the CIG and crosses into that window during playback (seen at FT 1, 2, 3 and 5);
+// asking for 20 retransmissions within 75 ms gets three subevents per CIS event and FT 7, where the alignment a link
+// starts with holds for as long as the link does, and fewer links start late than with Windows' own 13 / 75 ms. It is
+// applied only to earbuds listed in SyncTargets (their LE addresses): GetPreferredConfigurationFromCapabilities is
+// called for every earbud of the set, on the codec object FindQosSettings then runs on, and the earbud's address comes
+// from AscsDeviceServiceImpl::GetRemoteDeviceAddress (offset and first bytes in AddressRva/AddressCode, called only on
+// objects whose virtual table holds it).
+//
+// No Windows build is built in: the elevated injector (EncoDeck's --le-hook-apply, or EncoDeck.Probe le-hook apply)
+// finds both functions in the installed Microsoft.Bluetooth.Audio.dll from its public symbols, and writes each one's
+// offset and first whole instructions to HKLM (Hook0Rva/Hook0Prologue, Hook1Rva/Hook1Prologue). LeHookEnable patches
+// only when the loaded module holds exactly those bytes there; otherwise Windows is left alone. The structures below
+// are checked at every call (flags, codec id, LTV layout, element size, known presets); a build that changed them is
+// passed through unchanged.
+// The injector calls the exported LeHookEnable / LeHookDisable on a remote thread; loading the DLL by itself changes
+// nothing. Disabling restores the original bytes but keeps the DLL (and its trampolines) loaded until the service
+// restarts, so a thread that is still inside a hook can always return.
+#include <windows.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#define TARGET_MODULE L"Microsoft.Bluetooth.Audio.dll"
+#define CONFIG_KEY L"SOFTWARE\\EncoDeck\\LeHook"
+
+// The patch is a 14-byte absolute jump; the injector moves 14 to 24 bytes of whole instructions to the trampoline.
+#define JUMP_SIZE 14
+#define MAX_PROLOGUE 24
+
+// std::optional<ConfigCodecOperationASEParameters> returned by GetPreferredConfigurationFromCapabilities:
+//   +0x00 ASE id, +0x01 target latency, +0x02 target PHY, +0x04 codec id (6 = LC3),
+//   +0x10/+0x18 std::vector<uint8_t> codec specific configuration (begin/end), +0x28 has_value.
+#define PREF_ASE_ID 0x00
+#define PREF_TARGET_LATENCY 0x01
+#define PREF_CODEC_ID 0x04
+#define PREF_CONFIG_BEGIN 0x10
+#define PREF_CONFIG_END 0x18
+#define PREF_HAS_VALUE 0x28
+
+// std::vector<ConfigQoSOperationASEParameters> returned by FindQosSettings, 0x1C bytes per element:
+//   +0x04 SDU interval (us), +0x10 max SDU, +0x12 retransmissions, +0x14 max transport latency (ms),
+//   +0x18 presentation delay (us).
+#define QOS_ELEMENT_SIZE 0x1C
+#define QOS_SDU_INTERVAL 0x04
+#define QOS_MAX_SDU 0x10
+#define QOS_RETRANSMISSIONS 0x12
+#define QOS_MAX_LATENCY 0x14
+
+// The Intel sync schedule (7.5 ms frames): verified on Intel 8087:0033 offload to give three subevents per CIS event and
+// FT 7 (transport latency about 50 ms).
+#define SYNC_FRAME_US 7500
+#define SYNC_RETRANSMISSIONS 20
+#define SYNC_MAX_LATENCY_MS 75
+
+// AscsDeviceServiceImpl::GetRemoteDeviceAddress() const returns a BluetoothLEAddress through a hidden result pointer:
+//   +0x00 virtual table, +0x08 address (48 bits), +0x10 address type.
+typedef void *(*GetAddressFn)(void *self, uint8_t *result);
+#define ADDRESS_RESULT_SIZE 0x18
+#define ADDRESS_VALUE 0x08
+#define MAX_ADDRESS_CODE 16
+#define VTABLE_SLOTS 64
+#define MAX_SYNC_TARGETS 8
+// A codec object's earbuds count for the FindQosSettings that follows within this time.
+#define CODEC_TARGET_WINDOW_MS 10000
+#define TRACKED_CODECS 8
+
+// LC3 codec specific configuration LTV types and values (Bluetooth Assigned Numbers 6.12.5).
+#define LTV_SAMPLING_FREQUENCY 0x01
+#define LTV_FRAME_DURATION 0x02
+#define LTV_OCTETS_PER_FRAME 0x04
+#define SAMPLING_48000 0x08
+#define DURATION_7500 0x00
+#define DURATION_10000 0x01
+
+typedef struct
+{
+    const char *name;
+    void *detour;
+    // From HKLM at LeHookEnable: offset in the module and the whole, position-independent instructions there.
+    uint32_t rva;
+    uint8_t prologue[MAX_PROLOGUE];
+    size_t length;
+    uint8_t *target;
+    uint8_t *trampoline;
+} Hook;
+
+typedef void *(*GetPreferredFn)(void *self, void *result, void *pacs, void *ascs, uint32_t location);
+typedef void *(*FindQosFn)(void *self, void *result);
+typedef void (*ContextChangedFn)(void *self, uint32_t direction, const uint32_t *context);
+
+static void *HookGetPreferred(void *self, void *result, void *pacs, void *ascs, uint32_t location);
+static void *HookFindQos(void *self, void *result);
+static void HookContextChanged(void *self, uint32_t direction, const uint32_t *context);
+
+// In the injector's order (LeAudioHookTargets.Functions): Hook0, Hook1, Hook2.
+static Hook g_hooks[] = {
+    {"LC3ClientCodec::GetPreferredConfigurationFromCapabilities", (void *)HookGetPreferred, 0, {0}, 0, NULL, NULL},
+    {"LC3ClientCodec::FindQosSettings", (void *)HookFindQos, 0, {0}, 0, NULL, NULL},
+    {"CapAcceptorSetEndpointImpl::StreamingAudioContextChanged", (void *)HookContextChanged, 0, {0}, 0, NULL, NULL},
+};
+#define HOOK_COUNT (sizeof g_hooks / sizeof g_hooks[0])
+#define REQUIRED_HOOK_COUNT 2
+static size_t g_enabledHooks;
+
+// The audio endpoint declares, pin by pin, which signal processing modes it supports
+// (Apx01000.dll!imp_ApxPinAssignModeDataFormatList, called through the import table). With NoCallMode the
+// communications mode is not declared: the audio engine then plays communications and game chat streams through the
+// ordinary (default mode) stream instead of opening a communications one, which Windows answers by setting the
+// earbuds up for a call (microphone channel, low-rate codec). Takes effect when the endpoint is created (the earbuds
+// connect). Found by name in the import table, so it does not depend on the build.
+typedef LONG (*AssignModeFn)(void *globals, void *pin, const GUID *mode, void *formats);
+static const GUID ModeCommunications = {0x98951333, 0xb9cd, 0x48b1, {0xa0, 0xa3, 0xff, 0x40, 0x68, 0x2d, 0x73, 0xf7}};
+static void **g_assignSlot;
+static AssignModeFn g_assignOriginal;
+
+typedef BOOL (WINAPI *DeviceIoControlFn)(HANDLE, DWORD, LPVOID, DWORD, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
+static void **g_deviceIoSlot;
+static DeviceIoControlFn g_deviceIoOriginal;
+
+// The address reader, once its recorded bytes matched at LeHookEnable; the Intel sync schedule needs it.
+static GetAddressFn g_getAddress;
+static uint8_t *g_moduleBase;
+static size_t g_moduleSize;
+
+// Codec objects whose earbuds were seen in GetPreferredConfigurationFromCapabilities, and whether any was a target.
+typedef struct
+{
+    void *codec;
+    ULONGLONG at;
+    BOOL target;
+} CodecDevices;
+static CodecDevices g_codecs[TRACKED_CODECS];
+static SRWLOCK g_codecLock = SRWLOCK_INIT;
+
+static LONG g_installed;
+static SRWLOCK g_logLock = SRWLOCK_INIT;
+
+static void Log(const char *format, ...)
+{
+    char line[512];
+    SYSTEMTIME now;
+    GetLocalTime(&now);
+    int n = _snprintf(line, sizeof line, "%04u-%02u-%02u %02u:%02u:%02u.%03u ", now.wYear, now.wMonth, now.wDay,
+                      now.wHour, now.wMinute, now.wSecond, now.wMilliseconds);
+    va_list args;
+    va_start(args, format);
+    int m = _vsnprintf(line + n, sizeof line - n - 2, format, args);
+    va_end(args);
+    n = m < 0 ? (int)sizeof line - 2 : n + m;
+    line[n++] = '\r';
+    line[n++] = '\n';
+
+    wchar_t path[MAX_PATH];
+    if (!ExpandEnvironmentStringsW(L"%ProgramData%\\EncoDeck\\LeHook\\lehook.log", path, MAX_PATH)) return;
+    AcquireSRWLockExclusive(&g_logLock);
+    HANDLE file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file != INVALID_HANDLE_VALUE)
+    {
+        DWORD written;
+        WriteFile(file, line, (DWORD)n, &written, NULL);
+        CloseHandle(file);
+    }
+    ReleaseSRWLockExclusive(&g_logLock);
+}
+
+static DWORD ReadConfig(const wchar_t *name)
+{
+    DWORD value = 0, size = sizeof value;
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, name, RRF_RT_REG_DWORD, NULL, &value, &size) != ERROR_SUCCESS)
+        return 0;
+    return value;
+}
+
+// The configurations a BAP 48 kHz QoS preset exists for (48_1 .. 48_5); anything else is not applied.
+static BOOL IsStandardPreset(DWORD frameUs, DWORD octets)
+{
+    if (frameUs == 7500) return octets == 75 || octets == 90 || octets == 117;
+    if (frameUs == 10000) return octets == 100 || octets == 120;
+    return FALSE;
+}
+
+// LatencyMode: Windows' own choice, or one transport for every stream.
+#define MODE_AUTO 0
+#define MODE_LOW_LATENCY 1
+#define MODE_HIGH_RELIABILITY 2
+
+typedef struct
+{
+    BOOL preset; // frameUs/octets hold a preset to apply; otherwise Windows' own codec choice
+    DWORD frameUs;
+    DWORD octets;
+    DWORD mode;
+} Choice;
+
+static Choice ReadChoice(void)
+{
+    Choice choice;
+    choice.frameUs = ReadConfig(L"FrameDurationUs");
+    choice.octets = ReadConfig(L"OctetsPerFrame");
+    choice.preset = IsStandardPreset(choice.frameUs, choice.octets);
+    choice.mode = ReadConfig(L"LatencyMode");
+    if (choice.mode > MODE_HIGH_RELIABILITY) choice.mode = MODE_AUTO;
+    return choice;
+}
+
+static BOOL IsReadWrite(const void *p, size_t size)
+{
+    MEMORY_BASIC_INFORMATION info;
+    if (!VirtualQuery(p, &info, sizeof info) || info.State != MEM_COMMIT) return FALSE;
+    if ((info.Protect & PAGE_GUARD) || !(info.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE))) return FALSE;
+    return (const uint8_t *)p + size <= (const uint8_t *)info.BaseAddress + info.RegionSize;
+}
+
+// The earbud's LE address behind an AscsDeviceService reference, or FALSE when the reader is unavailable or the object
+// is not an AscsDeviceServiceImpl (its virtual table, inside Microsoft.Bluetooth.Audio.dll, must hold the reader).
+static BOOL ReadDeviceAddress(void *ascs, uint64_t *address)
+{
+    if (!g_getAddress || !ascs || !IsReadWrite(ascs, sizeof(void *))) return FALSE;
+    uint8_t *vtable = *(uint8_t **)ascs;
+    if (vtable < g_moduleBase || vtable + VTABLE_SLOTS * sizeof(void *) > g_moduleBase + g_moduleSize) return FALSE;
+    BOOL found = FALSE;
+    for (int i = 0; i < VTABLE_SLOTS && !found; i++) found = ((void **)vtable)[i] == (void *)g_getAddress;
+    if (!found) return FALSE;
+    uint8_t result[ADDRESS_RESULT_SIZE] = {0};
+    g_getAddress(ascs, result);
+    memcpy(address, result + ADDRESS_VALUE, sizeof *address);
+    *address &= 0xFFFFFFFFFFFFull;
+    return TRUE;
+}
+
+// SyncTargets: REG_BINARY, little-endian 64-bit LE addresses of the earbuds that get the Intel sync schedule.
+static BOOL IsSyncTarget(uint64_t address)
+{
+    uint64_t targets[MAX_SYNC_TARGETS];
+    DWORD size = sizeof targets;
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, L"SyncTargets", RRF_RT_REG_BINARY, NULL, targets, &size) != ERROR_SUCCESS)
+        return FALSE;
+    for (DWORD i = 0; i < size / sizeof targets[0]; i++)
+        if ((targets[i] & 0xFFFFFFFFFFFFull) == address) return TRUE;
+    return FALSE;
+}
+
+// Called for every earbud of a set while Windows prepares a stream on this codec object.
+static BOOL NoteCodecDevice(void *codec, void *ascs, uint32_t location)
+{
+    uint64_t address = 0;
+    BOOL known = ReadDeviceAddress(ascs, &address);
+    BOOL target = known && IsSyncTarget(address);
+    ULONGLONG now = GetTickCount64();
+    AcquireSRWLockExclusive(&g_codecLock);
+    CodecDevices *slot = NULL, *oldest = &g_codecs[0];
+    for (int i = 0; i < TRACKED_CODECS && !slot; i++)
+    {
+        if (g_codecs[i].codec == codec) slot = &g_codecs[i];
+        else if (g_codecs[i].at < oldest->at) oldest = &g_codecs[i];
+    }
+    // A stale entry (or a reused address of a freed codec) starts over.
+    if (!slot || now - slot->at > CODEC_TARGET_WINDOW_MS)
+    {
+        if (!slot) slot = oldest;
+        slot->codec = codec;
+        slot->target = FALSE;
+    }
+    slot->target = slot->target || target;
+    slot->at = now;
+    ReleaseSRWLockExclusive(&g_codecLock);
+    // Only the last two bytes of the address go to the log.
+    if (known)
+        Log("device: location 0x%x earbud ..:%02X:%02X%s", location, (unsigned)(address >> 8) & 0xFF, (unsigned)address & 0xFF,
+            target ? " (sync target)" : "");
+    return target;
+}
+
+// Whether the earbuds this codec object was just prepared for include a sync target.
+static BOOL IsCodecForSyncTarget(void *codec)
+{
+    BOOL target = FALSE;
+    ULONGLONG now = GetTickCount64();
+    AcquireSRWLockShared(&g_codecLock);
+    for (int i = 0; i < TRACKED_CODECS; i++)
+        if (g_codecs[i].codec == codec && now - g_codecs[i].at <= CODEC_TARGET_WINDOW_MS) target = g_codecs[i].target;
+    ReleaseSRWLockShared(&g_codecLock);
+    return target;
+}
+
+// Keep the Enco X4 48_4 sync profile on the high-reliability transport even when Windows requests Game QoS.
+static BOOL UseTenMsSync(Choice choice, BOOL syncTarget)
+{
+    return syncTarget && choice.frameUs == 10000 && choice.octets == 120;
+}
+
+static void RewriteCodec(uint8_t *result, uint32_t location, BOOL syncTarget)
+{
+    if (!result || result[PREF_HAS_VALUE] != 1 || result[PREF_CODEC_ID] != 6) return;
+    uint8_t *begin = *(uint8_t **)(result + PREF_CONFIG_BEGIN);
+    uint8_t *end = *(uint8_t **)(result + PREF_CONFIG_END);
+    if (!begin || end <= begin || end - begin > 64 || !IsReadWrite(begin, (size_t)(end - begin))) return;
+
+    uint8_t *frequency = NULL, *duration = NULL, *octets = NULL;
+    for (uint8_t *p = begin; p < end;)
+    {
+        uint8_t length = p[0];
+        if (length == 0 || p + 1 + length > end) return; // not the layout we expect: leave it alone
+        if (p[1] == LTV_SAMPLING_FREQUENCY && length == 2) frequency = p + 2;
+        else if (p[1] == LTV_FRAME_DURATION && length == 2) duration = p + 2;
+        else if (p[1] == LTV_OCTETS_PER_FRAME && length == 3) octets = p + 2;
+        p += 1 + length;
+    }
+    if (!frequency || !duration || !octets) return;
+
+    uint8_t oldDuration = *duration;
+    unsigned oldOctets = octets[0] | octets[1] << 8;
+    unsigned oldLatency = result[PREF_TARGET_LATENCY];
+    Choice choice = ReadChoice();
+    if (UseTenMsSync(choice, syncTarget)) choice.mode = MODE_HIGH_RELIABILITY;
+    const char *note = "unchanged";
+    if (*frequency != SAMPLING_48000)
+    {
+        note = "not 48 kHz, unchanged";
+    }
+    else
+    {
+        if (choice.preset)
+        {
+            *duration = choice.frameUs == 10000 ? DURATION_10000 : DURATION_7500;
+            octets[0] = (uint8_t)choice.octets;
+            octets[1] = (uint8_t)(choice.octets >> 8);
+            note = "rewritten";
+        }
+        // ASCS target latency: 1 = low latency, 2 = balanced (what Windows asks for outside games).
+        if (choice.mode == MODE_LOW_LATENCY) result[PREF_TARGET_LATENCY] = 1;
+        else if (choice.mode == MODE_HIGH_RELIABILITY) result[PREF_TARGET_LATENCY] = 2;
+        if (result[PREF_TARGET_LATENCY] != oldLatency) note = "rewritten";
+    }
+    Log("codec: ase %u location 0x%x: %s %s %u octets latency %u -> %s %u octets latency %u (%s)", result[PREF_ASE_ID],
+        location, *frequency == SAMPLING_48000 ? "48 kHz" : "other rate", oldDuration == DURATION_10000 ? "10 ms" : "7.5 ms",
+        oldOctets, oldLatency, *duration == DURATION_10000 ? "10 ms" : "7.5 ms", (unsigned)(octets[0] | octets[1] << 8),
+        result[PREF_TARGET_LATENCY], note);
+}
+
+// BAP keeps the retransmissions and stretches the max transport latency with the frame: 15 <-> 20 ms (low latency),
+// 75 <-> 100 ms (high reliability).
+static uint16_t ScaleLatency(uint16_t latency, uint32_t fromUs, uint32_t toUs)
+{
+    if (fromUs == toUs) return latency;
+    if (toUs == 10000) return latency == 15 ? 20 : latency == 75 ? 100 : latency;
+    return latency == 20 ? 15 : latency == 100 ? 75 : latency;
+}
+
+// Records the transport Windows is about to use, for EncoDeck's "switched" notice and the card's current link:
+// %ProgramData%\EncoDeck\LeHook\link.txt, rewritten for every new stream.
+static void RecordLink(uint32_t interval, unsigned maxSdu, unsigned latency, unsigned retransmissions)
+{
+    wchar_t path[MAX_PATH];
+    if (!ExpandEnvironmentStringsW(L"%ProgramData%\\EncoDeck\\LeHook\\link.txt", path, MAX_PATH)) return;
+    FILETIME now;
+    GetSystemTimeAsFileTime(&now);
+    unsigned long long ticks = (unsigned long long)now.dwHighDateTime << 32 | now.dwLowDateTime;
+    char text[160];
+    int n = _snprintf(text, sizeof text, "time=%llu\nframeUs=%u\nmaxSdu=%u\nlatencyMs=%u\nretransmissions=%u\n", ticks,
+                      interval, maxSdu, latency, retransmissions);
+    if (n <= 0) return;
+    AcquireSRWLockExclusive(&g_logLock);
+    HANDLE file = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                              CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file != INVALID_HANDLE_VALUE)
+    {
+        DWORD written;
+        WriteFile(file, text, (DWORD)n, &written, NULL);
+        CloseHandle(file);
+    }
+    ReleaseSRWLockExclusive(&g_logLock);
+}
+
+static void RewriteQos(uint8_t *result, BOOL syncTarget)
+{
+    if (!result) return;
+    uint8_t *begin = *(uint8_t **)(result + 0x00);
+    uint8_t *end = *(uint8_t **)(result + 0x08);
+    if (!begin || end <= begin || (end - begin) % QOS_ELEMENT_SIZE != 0 || end - begin > 8 * QOS_ELEMENT_SIZE ||
+        !IsReadWrite(begin, (size_t)(end - begin)))
+        return;
+    Choice choice = ReadChoice();
+    BOOL tenMsSync = UseTenMsSync(choice, syncTarget);
+    if (tenMsSync) choice.mode = MODE_HIGH_RELIABILITY;
+    for (uint8_t *e = begin; e < end; e += QOS_ELEMENT_SIZE)
+    {
+        uint32_t *interval = (uint32_t *)(e + QOS_SDU_INTERVAL);
+        uint16_t *maxSdu = (uint16_t *)(e + QOS_MAX_SDU);
+        uint8_t *retransmissions = e + QOS_RETRANSMISSIONS;
+        uint16_t *latency = (uint16_t *)(e + QOS_MAX_LATENCY);
+        // Only Windows' own LC3 48 kHz presets are touched (and recorded).
+        if (!IsStandardPreset(*interval, *maxSdu)) continue;
+        uint32_t oldInterval = *interval;
+        unsigned oldSdu = *maxSdu, oldLatency = *latency, oldRetransmissions = *retransmissions;
+        if (choice.preset)
+        {
+            *latency = ScaleLatency(*latency, *interval, choice.frameUs);
+            *interval = choice.frameUs;
+            *maxSdu = (uint16_t)choice.octets;
+        }
+        // BAP's two transports for 48 kHz: low latency (5 retransmissions, 15 ms / 20 ms for 10 ms frames) and high
+        // reliability (13, 75 ms / 100 ms).
+        if (choice.mode == MODE_LOW_LATENCY)
+        {
+            *retransmissions = 5;
+            *latency = *interval == 10000 ? 20 : 15;
+        }
+        else if (choice.mode == MODE_HIGH_RELIABILITY)
+        {
+            *retransmissions = 13;
+            *latency = *interval == 10000 ? 100 : 75;
+        }
+        BOOL legacySync = syncTarget && *interval == SYNC_FRAME_US;
+        if (legacySync)
+        {
+            *retransmissions = SYNC_RETRANSMISSIONS;
+            *latency = SYNC_MAX_LATENCY_MS;
+        }
+        Log("qos: %u us, max SDU %u, latency %u ms, %u retransmissions -> %u us, max SDU %u, latency %u ms, %u retransmissions%s",
+            oldInterval, oldSdu, oldLatency, oldRetransmissions, *interval, *maxSdu, *latency, *retransmissions,
+            tenMsSync ? " (10 ms Intel sync profile)" : legacySync ? " (Intel sync schedule)" : "");
+        RecordLink(*interval, *maxSdu, *latency, *retransmissions);
+    }
+}
+
+static LONG HookAssignMode(void *globals, void *pin, const GUID *mode, void *formats)
+{
+    if (mode && memcmp(mode, &ModeCommunications, sizeof(GUID)) == 0 && ReadConfig(L"NoCallMode"))
+    {
+        Log("endpoint: communications mode not declared (NoCallMode)");
+        return 0; // STATUS_SUCCESS: the pin simply has no such mode
+    }
+    return g_assignOriginal(globals, pin, mode, formats);
+}
+
+// The import table slot of `function` from `dll` in `module`, or NULL.
+static void **FindImportSlot(HMODULE module, const char *dll, const char *function)
+{
+    uint8_t *base = (uint8_t *)module;
+    IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)module)->e_lfanew);
+    IMAGE_DATA_DIRECTORY *directory = &nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (!directory->VirtualAddress) return NULL;
+    for (IMAGE_IMPORT_DESCRIPTOR *d = (IMAGE_IMPORT_DESCRIPTOR *)(base + directory->VirtualAddress); d->Name; d++)
+    {
+        if (_stricmp((const char *)(base + d->Name), dll) != 0 || !d->OriginalFirstThunk) continue;
+        IMAGE_THUNK_DATA64 *names = (IMAGE_THUNK_DATA64 *)(base + d->OriginalFirstThunk);
+        IMAGE_THUNK_DATA64 *slots = (IMAGE_THUNK_DATA64 *)(base + d->FirstThunk);
+        for (size_t i = 0; names[i].u1.AddressOfData; i++)
+        {
+            if (IMAGE_SNAP_BY_ORDINAL64(names[i].u1.Ordinal)) continue;
+            IMAGE_IMPORT_BY_NAME *byName = (IMAGE_IMPORT_BY_NAME *)(base + names[i].u1.AddressOfData);
+            if (strcmp((const char *)byName->Name, function) == 0) return (void **)&slots[i].u1.Function;
+        }
+    }
+    return NULL;
+}
+
+static BOOL WriteSlot(void **slot, void *value)
+{
+    DWORD old;
+    if (!VirtualProtect(slot, sizeof *slot, PAGE_READWRITE, &old)) return FALSE;
+    InterlockedExchangePointer(slot, value);
+    VirtualProtect(slot, sizeof *slot, old, &old);
+    return TRUE;
+}
+
+// Private BTHPORT Setup ISO Data Path request, observed on Windows 10.0.26100.9949.
+// Decode only LC3 output requests matching its layout. This traces control traffic, not PCM or LC3 payload.
+static BOOL WINAPI HookDeviceIoControl(HANDLE device, DWORD code, LPVOID input, DWORD inputSize, LPVOID output,
+                                       DWORD outputSize, LPDWORD returned, LPOVERLAPPED overlapped)
+{
+    if (code != 0x411248 || inputSize < 16 || inputSize > 16 + UINT8_MAX)
+        return g_deviceIoOriginal(device, code, input, inputSize, output, outputSize, returned, overlapped);
+
+    DWORD previousError = GetLastError();
+    LARGE_INTEGER start, end;
+    QueryPerformanceCounter(&start);
+    SetLastError(previousError);
+    BOOL ok = g_deviceIoOriginal(device, code, input, inputSize, output, outputSize, returned, overlapped);
+    DWORD error = GetLastError();
+    QueryPerformanceCounter(&end);
+
+    const uint8_t *p = input;
+    if (p && IsReadWrite(p, inputSize) && p[4] == 0 && p[6] == 6 && inputSize == 16u + p[15])
+    {
+        uint32_t connection, location = 0;
+        unsigned duration = 0, octets = 0;
+        memcpy(&connection, p, sizeof connection);
+        for (DWORD i = 16; i < inputSize;)
+        {
+            DWORD length = p[i];
+            if (!length || length >= inputSize - i) break;
+            uint8_t type = p[i + 1];
+            if (length == 2 && type == LTV_FRAME_DURATION)
+                duration = p[i + 2] == DURATION_7500 ? 7500 : p[i + 2] == DURATION_10000 ? 10000 : 0;
+            else if (length == 5 && type == 3) memcpy(&location, p + i + 2, sizeof location);
+            else if (length == 3 && type == LTV_OCTETS_PER_FRAME) octets = p[i + 2] | p[i + 3] << 8;
+            i += 1 + length;
+        }
+        Log("iso setup: qpc=%lld..%lld connection=0x%x location=0x%x path=%u frameUs=%u octets=%u %s error=%lu",
+            (long long)start.QuadPart, (long long)end.QuadPart, connection, location, p[5], duration, octets,
+            ok ? "completed" : error == ERROR_IO_PENDING ? "pending" : "failed", ok ? 0ul : (unsigned long)error);
+    }
+    SetLastError(error);
+    return ok;
+}
+
+// Diagnostics: who asked for the new stream, as offsets in the target module (resolved offline from its symbols).
+static void LogCaller(void)
+{
+    void *frames[48];
+    USHORT count = RtlCaptureStackBackTrace(1, 48, frames, NULL);
+    char line[400];
+    int n = 0;
+    for (USHORT i = 0; i < count && n < (int)sizeof line - 12; i++)
+    {
+        uint8_t *at = (uint8_t *)frames[i];
+        if (at >= g_moduleBase && at < g_moduleBase + g_moduleSize) n += _snprintf(line + n, sizeof line - n, " %lx", (unsigned long)(at - g_moduleBase));
+    }
+    line[n] = 0;
+    Log("caller:%s", line);
+}
+
+static void *HookGetPreferred(void *self, void *result, void *pacs, void *ascs, uint32_t location)
+{
+    LogCaller();
+    void *returned = ((GetPreferredFn)(void *)g_hooks[0].trampoline)(self, result, pacs, ascs, location);
+    BOOL syncTarget = NoteCodecDevice(self, ascs, location);
+    RewriteCodec((uint8_t *)result, location, syncTarget);
+    return returned;
+}
+
+static void *HookFindQos(void *self, void *result)
+{
+    void *returned = ((FindQosFn)(void *)g_hooks[1].trampoline)(self, result);
+    RewriteQos((uint8_t *)result, IsCodecForSyncTarget(self));
+    return returned;
+}
+
+// BAP context types (Bluetooth Assigned Numbers 6.12.3).
+#define CONTEXT_MEDIA 0x0004
+#define CONTEXT_GAME 0x0008
+
+static void HookContextChanged(void *self, uint32_t direction, const uint32_t *context)
+{
+    if (!context || !ReadConfig(L"GameAsMedia"))
+    {
+        ((ContextChangedFn)(void *)g_hooks[2].trampoline)(self, direction, context);
+        return;
+    }
+    // Windows reads a DWORD from the pointer before extracting the 16-bit BAP mask.
+    uint32_t value = *context;
+    uint32_t reported = (value & CONTEXT_GAME) ? (value & ~CONTEXT_GAME) | CONTEXT_MEDIA : value;
+    if (reported != value) Log("context: direction %u 0x%08x -> 0x%08x", direction, value, reported);
+    ((ContextChangedFn)(void *)g_hooks[2].trampoline)(self, direction, reported != value ? &reported : context);
+}
+
+static BOOL WriteCode(uint8_t *at, const uint8_t *bytes, size_t size)
+{
+    DWORD old;
+    if (!VirtualProtect(at, size, PAGE_EXECUTE_READWRITE, &old)) return FALSE;
+    memcpy(at, bytes, size);
+    VirtualProtect(at, size, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), at, size);
+    return TRUE;
+}
+
+// jmp qword ptr [rip+0] followed by the absolute target: 14 bytes.
+static void AbsoluteJump(uint8_t *at, const void *to)
+{
+    static const uint8_t jmp[6] = {0xFF, 0x25, 0x00, 0x00, 0x00, 0x00};
+    memcpy(at, jmp, sizeof jmp);
+    memcpy(at + sizeof jmp, &to, sizeof to);
+}
+
+__declspec(dllexport) DWORD WINAPI LeHookEnable(LPVOID unused)
+{
+    (void)unused;
+    if (InterlockedCompareExchange(&g_installed, 1, 1) == 1) return 0;
+    HMODULE module = GetModuleHandleW(TARGET_MODULE);
+    if (!module)
+    {
+        Log("enable: %ls is not loaded", TARGET_MODULE);
+        return 2;
+    }
+    IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)((uint8_t *)module + ((IMAGE_DOS_HEADER *)module)->e_lfanew);
+    size_t count = HOOK_COUNT;
+    for (size_t i = 0; i < count; i++)
+    {
+        Hook *hook = &g_hooks[i];
+        wchar_t name[32];
+        uint8_t prologue[MAX_PROLOGUE];
+        DWORD rva = 0, size = sizeof rva, length = sizeof prologue;
+        _snwprintf(name, 32, L"Hook%uRva", (unsigned)i);
+        name[31] = 0;
+        BOOL ok = RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, name, RRF_RT_REG_DWORD, NULL, &rva, &size) == ERROR_SUCCESS;
+        _snwprintf(name, 32, L"Hook%uPrologue", (unsigned)i);
+        ok = ok && RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, name, RRF_RT_REG_BINARY, NULL, prologue, &length) == ERROR_SUCCESS;
+        // The bytes the injector saw in the file must be exactly what the loaded module holds there.
+        ok = ok && length >= JUMP_SIZE && length <= MAX_PROLOGUE && rva + length <= nt->OptionalHeader.SizeOfImage &&
+             memcmp((uint8_t *)module + rva, prologue, length) == 0;
+        // A trampoline built earlier in this process must be for the same code.
+        ok = ok && (!hook->trampoline || (hook->rva == rva && hook->length == length && memcmp(hook->prologue, prologue, length) == 0));
+        if (!ok)
+        {
+            if (i >= REQUIRED_HOOK_COUNT && !ReadConfig(L"GameAsMedia"))
+            {
+                count = i;
+                break;
+            }
+            Log("enable: %s does not match the target recorded for it (rva 0x%lx, %lu bytes); nothing patched", hook->name,
+                (unsigned long)rva, (unsigned long)length);
+            return 3;
+        }
+        hook->rva = rva;
+        hook->length = length;
+        memcpy(hook->prologue, prologue, length);
+    }
+    // The address reader for the Intel sync schedule; without it (or when its bytes differ) no earbud is a target.
+    {
+        uint8_t code[MAX_ADDRESS_CODE];
+        DWORD rva = 0, size = sizeof rva, length = sizeof code;
+        BOOL ok = RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, L"AddressRva", RRF_RT_REG_DWORD, NULL, &rva, &size) == ERROR_SUCCESS &&
+                  RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, L"AddressCode", RRF_RT_REG_BINARY, NULL, code, &length) == ERROR_SUCCESS &&
+                  length > 0 && rva + length <= nt->OptionalHeader.SizeOfImage && memcmp((uint8_t *)module + rva, code, length) == 0;
+        g_moduleBase = (uint8_t *)module;
+        g_moduleSize = nt->OptionalHeader.SizeOfImage;
+        g_getAddress = ok ? (GetAddressFn)(void *)((uint8_t *)module + rva) : NULL;
+        if (!ok) Log("enable: earbud address reader not found; Intel sync schedule unavailable");
+    }
+
+    for (size_t i = 0; i < count; i++)
+    {
+        Hook *hook = &g_hooks[i];
+        hook->target = (uint8_t *)module + hook->rva;
+        if (!hook->trampoline)
+        {
+            hook->trampoline = VirtualAlloc(NULL, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+            if (!hook->trampoline) return 4;
+            memcpy(hook->trampoline, hook->prologue, hook->length);
+            AbsoluteJump(hook->trampoline + hook->length, hook->target + hook->length);
+            FlushInstructionCache(GetCurrentProcess(), hook->trampoline, 64);
+        }
+    }
+    for (size_t i = 0; i < count; i++)
+    {
+        uint8_t patch[MAX_PROLOGUE];
+        memset(patch, 0x90, sizeof patch);
+        AbsoluteJump(patch, g_hooks[i].detour);
+        if (!WriteCode(g_hooks[i].target, patch, g_hooks[i].length))
+        {
+            Log("enable: VirtualProtect failed on %s (%lu)", g_hooks[i].name, GetLastError());
+            for (size_t j = 0; j < i; j++) WriteCode(g_hooks[j].target, g_hooks[j].prologue, g_hooks[j].length);
+            return 5;
+        }
+    }
+    // The endpoint's mode declarations; optional (logged when this build imports it differently).
+    if (!g_assignSlot) g_assignSlot = FindImportSlot(module, "Apx01000.dll", "imp_ApxPinAssignModeDataFormatList");
+    if (g_assignSlot)
+    {
+        if (!g_assignOriginal) g_assignOriginal = (AssignModeFn)*g_assignSlot;
+        if (!WriteSlot(g_assignSlot, (void *)HookAssignMode)) Log("enable: cannot patch the mode declaration import (%lu)", GetLastError());
+    }
+    else
+    {
+        Log("enable: mode declaration import not found; NoCallMode unavailable");
+    }
+    if (!g_deviceIoSlot) g_deviceIoSlot = FindImportSlot(module, "api-ms-win-core-io-l1-1-0.dll", "DeviceIoControl");
+    if (g_deviceIoSlot)
+    {
+        if (!g_deviceIoOriginal) g_deviceIoOriginal = (DeviceIoControlFn)*g_deviceIoSlot;
+        if (WriteSlot(g_deviceIoSlot, (void *)HookDeviceIoControl))
+            Log("enable: tracing ISO data path setup");
+        else
+            Log("enable: cannot patch the DeviceIoControl import (%lu)", GetLastError());
+    }
+    g_enabledHooks = count;
+    InterlockedExchange(&g_installed, 1);
+    DWORD targetsSize = 0;
+    if (RegGetValueW(HKEY_LOCAL_MACHINE, CONFIG_KEY, L"SyncTargets", RRF_RT_REG_BINARY, NULL, NULL, &targetsSize) != ERROR_SUCCESS)
+        targetsSize = 0;
+    Log("enabled: frame %lu us, %lu octets, latency mode %lu, no call mode %lu, game as media %lu (0 = keep Windows' choice), %lu sync targets",
+        ReadConfig(L"FrameDurationUs"), ReadConfig(L"OctetsPerFrame"), ReadConfig(L"LatencyMode"), ReadConfig(L"NoCallMode"),
+        ReadConfig(L"GameAsMedia"),
+        (unsigned long)(targetsSize / sizeof(uint64_t)));
+    return 0;
+}
+
+__declspec(dllexport) DWORD WINAPI LeHookDisable(LPVOID unused)
+{
+    (void)unused;
+    if (InterlockedCompareExchange(&g_installed, 0, 1) != 1) return 0;
+    DWORD result = 0;
+    if (g_deviceIoSlot && g_deviceIoOriginal && !WriteSlot(g_deviceIoSlot, (void *)g_deviceIoOriginal))
+    {
+        Log("disable: cannot restore the DeviceIoControl import (%lu)", GetLastError());
+        result = 5;
+    }
+    if (g_assignSlot && g_assignOriginal && !WriteSlot(g_assignSlot, (void *)g_assignOriginal))
+    {
+        Log("disable: cannot restore the mode declaration import (%lu)", GetLastError());
+        result = 5;
+    }
+    for (size_t i = 0; i < g_enabledHooks; i++)
+    {
+        if (!WriteCode(g_hooks[i].target, g_hooks[i].prologue, g_hooks[i].length))
+        {
+            Log("disable: VirtualProtect failed on %s (%lu)", g_hooks[i].name, GetLastError());
+            result = 5;
+        }
+    }
+    Log("disabled");
+    return result;
+}
+
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
+{
+    (void)reserved;
+    if (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(instance);
+    return TRUE;
+}

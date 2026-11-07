@@ -76,6 +76,9 @@
   <data name="Eq_DynaudioOriginal" xml:space="preserve"><value>Dynaudio original sound</value></data>
   <data name="Eq_DynaudioHiRes" xml:space="preserve"><value>Dynaudio high-resolution</value></data>
   <data name="Eq_PureVocals" xml:space="preserve"><value>Pure vocals</value></data>
+  <data name="Eq_RealmePureRaw" xml:space="preserve"><value>Pure Raw</value></data>
+  <data name="Eq_RealmeDeepBass" xml:space="preserve"><value>Deep Bass</value></data>
+  <data name="Eq_RealmePureBass" xml:space="preserve"><value>Pure Bass</value></data>
   <data name="Eq_CrispHighs" xml:space="preserve"><value>Crisp highs</value></data>
   <data name="Eq_ThunderingBass" xml:space="preserve"><value>Thundering bass</value></data>
   <data name="Eq_UnknownPreset" xml:space="preserve"><value>Preset {0}</value></data>
@@ -141,9 +144,21 @@
   <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>Earbud EQ</value></data>
   <data name="Sound_BandEditor.Text" xml:space="preserve"><value>Custom curve</value></data>
   <data name="Sound_Spatial.Text" xml:space="preserve"><value>Spatial Audio</value></data>
+  <data name="Sound_Empty_Title.Text" xml:space="preserve"><value>No sound settings available</value></data>
+  <data name="Sound_Empty_Body.Text" xml:space="preserve"><value>EncoDeck can't adjust EQ, bass or spatial audio on these earbuds yet.</value></data>
   <data name="Controls_Title.Text" xml:space="preserve"><value>Controls</value></data>
   <data name="Controls_Settings.Text" xml:space="preserve"><value>More settings</value></data>
   <data name="Devices_Capabilities.Text" xml:space="preserve"><value>Feature support</value></data>
+  <data name="Devices_Info.Text" xml:space="preserve"><value>Device information</value></data>
+  <data name="Devices_Firmware.Header" xml:space="preserve"><value>Firmware</value></data>
+  <data name="Devices_ProductId.Header" xml:space="preserve"><value>Product ID</value></data>
+  <data name="Devices_FactoryReset.Header" xml:space="preserve"><value>Restore factory settings</value></data>
+  <data name="Devices_FactoryReset.Description" xml:space="preserve"><value>Clears every setting and every paired device on the earbuds. Afterwards remove them in Windows Bluetooth settings and pair them again.</value></data>
+  <data name="Devices_FactoryResetButton.Content" xml:space="preserve"><value>Restore…</value></data>
+  <data name="Devices_FactoryReset_Title" xml:space="preserve"><value>Restore factory settings?</value></data>
+  <data name="Devices_FactoryReset_Message" xml:space="preserve"><value>{0} will lose all its settings and forget every phone and computer it was paired with, including this PC. The earbuds restart and disconnect. To use them here again, remove them in Windows Bluetooth settings, then put them in pairing mode and pair them again.</value></data>
+  <data name="Devices_FactoryReset_Confirm" xml:space="preserve"><value>Restore</value></data>
+  <data name="Devices_FactoryReset_Done" xml:space="preserve"><value>Sent. The earbuds restart and forget their pairings; remove them in Windows Bluetooth settings and pair them again.</value></data>
   <data name="Devices_Title.Text" xml:space="preserve"><value>Devices</value></data>
   <data name="Devices_Paired.Text" xml:space="preserve"><value>Paired earbuds</value></data>
   <data name="Devices_None.Text" xml:space="preserve"><value>No paired earbuds that EncoDeck supports. Pair them in Windows Bluetooth settings.</value></data>
@@ -244,6 +259,10 @@
   <data name="Dual_Remove" xml:space="preserve"><value>Remove</value></data>
   <data name="Dual_ConnectNew_Title" xml:space="preserve"><value>Connect to a new device</value></data>
   <data name="Dual_ConnectNew_Message" xml:space="preserve"><value>Connecting to "{0}" will disconnect another device.</value></data>
+  <data name="Dual_HandOver_Title" xml:space="preserve"><value>Switch device</value></data>
+  <data name="Dual_HandOver_Message" xml:space="preserve"><value>Dual connection is off, so the earbuds disconnect from this PC once they connect to “{0}”. EncoDeck disconnects too and stops reconnecting them; to bring them back, select Connect in EncoDeck.</value></data>
+  <data name="Dual_DisconnectThisPc_Title" xml:space="preserve"><value>Disconnect from this PC</value></data>
+  <data name="Dual_DisconnectThisPc_Message" xml:space="preserve"><value>The earbuds disconnect from this PC, audio included. EncoDeck no longer reconnects them; select Connect in EncoDeck when you want them back.</value></data>
   <data name="Dual_Disconnect_Title" xml:space="preserve"><value>Device disconnection</value></data>
   <data name="Dual_Disconnect_Message" xml:space="preserve"><value>This will disconnect "{0}".</value></data>
   <data name="Dual_Remove_Title" xml:space="preserve"><value>Remove this device?</value></data>
@@ -420,10 +439,6 @@
   <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>Tap to connect</value></data>
   <data name="Home_DeviceLastConnected" xml:space="preserve"><value>Connected last time</value></data>
   <data name="Home_DeviceNotConnected" xml:space="preserve"><value>Not connected</value></data>
-  <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>Disconnect this PC in Windows Bluetooth settings</value></data>
-  <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>This is this PC</value></data>
-  <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>The earbuds are connected to this PC. To disconnect this PC, disconnect the earbuds in Windows Bluetooth settings.</value></data>
-  <data name="Home_OpenBluetoothSettings" xml:space="preserve"><value>Open Bluetooth settings</value></data>
   <data name="Home_DeviceDisconnect_Title" xml:space="preserve"><value>Disconnect “{0}”?</value></data>
   <data name="Home_DeviceDisconnect_Message" xml:space="preserve"><value>The earbuds disconnect from this device. You can connect it again here.</value></data>
   <data name="Settings_Artwork.Text" xml:space="preserve"><value>Device artwork</value></data>
@@ -559,7 +574,13 @@
   <data name="Lhdc_Help.Header" xml:space="preserve"><value>How to use LHDC</value></data>
   <data name="Lhdc_HelpRestore.Text" xml:space="preserve"><value>4. Before you stop using LHDC or uninstall EncoDeck, select the earbuds, choose Restore Windows audio, approve administrator access and wait for it to finish. Closing EncoDeck does not stop the LHDC background service or restore Windows audio.</value></data>
   <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>Disclaimer: LHDC is an experimental feature based on the third-party open-source project LHDC-Win. Playback, reconnection and recovery still need hardware testing; compatibility with every device or system is not guaranteed. You may encounter lost audio, stuttering or a need to restore audio manually. Use it only if you understand and accept the risks of driver installation and system setting changes. To the extent permitted by applicable law, EncoDeck and its developers are not liable for resulting losses.</value></data>
-  <data name="DeviceConnect.Content" xml:space="preserve"><value>Connect in Windows</value></data>
+  <data name="Device_ConnectThisPc" xml:space="preserve"><value>Connect to this PC</value></data>
+  <data name="Device_DisconnectThisPc" xml:space="preserve"><value>Disconnect from this PC</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Connect to this PC</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Connect to this PC</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Disconnect from this PC</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>Disconnect from this PC</value></data>
+  <data name="Connection_DisconnectedByUser" xml:space="preserve"><value>Disconnected in EncoDeck</value></data>
   <data name="Lhdc_Guide.Content" xml:space="preserve"><value>Full guide: driver setup and recovery</value></data>
   <data name="Lhdc_HiRes.Text" xml:space="preserve"><value>Earbud Hi-Res</value></data>
   <data name="Lhdc_HiResHint.Text" xml:space="preserve"><value>The earbuds use this switch to decide which sample rates and bitrates they advertise to Windows. While it is off the ceiling is 48 kHz and 400 kbps.</value></data>
@@ -595,7 +616,7 @@
   <data name="Bridge_Stopped" xml:space="preserve"><value>A2DPWB {0} is installed ({1}); its background process is not running.</value></data>
   <data name="Bridge_StoreMissing" xml:space="preserve"><value>The Store version does not download or start other programs. If you installed A2DP Windows Bridge yourself, EncoDeck connects to it and shows its state once it runs.</value></data>
   <data name="Bridge_StoreStart" xml:space="preserve"><value>Start A2DP Windows Bridge from the Start menu.</value></data>
-  <data name="Bridge_Missing" xml:space="preserve"><value>Not installed. The component (about {0:F1} MB) is an unmodified copy of A2DPWB's official build, downloaded from EncoDeck's component release and verified against a pinned SHA-256. Downloading changes no drivers.</value></data>
+  <data name="Bridge_Missing" xml:space="preserve"><value>Not installed. The component (about {0:F1} MB) is A2DPWB's official portable build, downloaded unmodified from the A2DPWB project's own releases and verified against its SHA-256. Updates bring the newest official 2.x build, betas included. Downloading changes no drivers.</value></data>
   <data name="Bridge_Unpublished" xml:space="preserve"><value>The A2DP Bridge component for this EncoDeck version is not published yet.</value></data>
   <data name="Bridge_UpdateAvailable" xml:space="preserve"><value>Component {0} is available to update to.</value></data>
   <data name="Bridge_StandaloneLink.Content" xml:space="preserve"><value>Download the non-Store version</value></data>
@@ -773,8 +794,14 @@
   <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Cap_ChannelSwap" xml:space="preserve"><value>Left / right channel swap</value></data>
+  <data name="Cap_FactoryReset" xml:space="preserve"><value>Restore factory settings</value></data>
   <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Toggle_Ldac_Description" xml:space="preserve"><value>Device-side LDAC switch. This does not install an LDAC encoder in Windows.</value></data>
+  <data name="Toggle_AptXAdaptive" xml:space="preserve"><value>aptX Adaptive</value></data>
+  <data name="Toggle_AptXAdaptive_Description" xml:space="preserve"><value>Device-side aptX Adaptive switch. This does not install an aptX encoder in Windows; it affects phones and other sources that support it.</value></data>
+  <data name="Toggle_AptXLossless" xml:space="preserve"><value>aptX Lossless</value></data>
+  <data name="Toggle_AptXLossless_Description" xml:space="preserve"><value>Device-side aptX Lossless switch. This does not install an aptX encoder in Windows; it affects phones and other sources that support it.</value></data>
+  <data name="Toggle_Ldac_EarFun_Description" xml:space="preserve"><value>Device-side LDAC switch; it cannot be on together with dual connection, so turning on either turns the other off. This does not install an LDAC encoder in Windows.</value></data>
   <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Toggle_Lc3_Description" xml:space="preserve"><value>Device-side LC3 codec switch. This does not change the Windows Bluetooth transport.</value></data>
   <data name="Toggle_ChannelSwap" xml:space="preserve"><value>Swap left / right channels</value></data>
@@ -801,16 +828,78 @@
   <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>Waiting for LC3 · hold the case button to reconnect</value></data>
   <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio (LC3) connection (experimental)</value></data>
   <data name="LeAudio_Summary.Text" xml:space="preserve"><value>Lets Windows connect these earbuds over LE Audio with the LC3 codec instead of Classic Bluetooth A2DP. Your PC's Bluetooth must support LE Audio.</value></data>
-  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>After switching to LE Audio, noise control cannot be changed from EncoDeck. Change it on the earbuds instead.</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>Once on LE Audio, the Enco X4 does not accept noise control changes from the PC. Change it on the earbuds instead.</value></data>
   <data name="LeAudio_Switch" xml:space="preserve"><value>Switch to LE Audio</value></data>
-  <data name="LeAudio_Restore" xml:space="preserve"><value>Restore Classic Bluetooth</value></data>
+  <data name="LeAudio_Restore" xml:space="preserve"><value>Remove LE Audio pairing</value></data>
   <data name="LeAudio_StatusLe" xml:space="preserve"><value>Both earbuds have LE bonds; Windows manages the actual audio connection.</value></data>
   <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>The Windows audio endpoint state could not be confirmed; ACL/GATT readiness does not prove dual-ear playback.</value></data>
   <data name="LeAudio_DisableClassic" xml:space="preserve"><value>Disable Classic audio endpoint</value></data>
   <data name="LeAudio_EnableClassic" xml:space="preserve"><value>Restore Classic audio endpoint</value></data>
-  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>Disable headset microphone</value></data>
-  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>When an app opens the headset microphone, Windows switches LE Audio to a two-way call configuration and playback quality drops noticeably. While disabled, apps can only use other microphones and the earbuds keep media-quality playback. Turn it on again after re-pairing.</value></data>
   <data name="LeAudio_MicFailed" xml:space="preserve"><value>Could not change the headset microphone: {0}</value></data>
+  <data name="LeAudioSync_Title.Text" xml:space="preserve"><value>LE Audio left/right calibration (experimental)</value></data>
+  <data name="LeAudioSync_Summary.Text" xml:space="preserve"><value>On some PCs with Intel Bluetooth, every time the LE Audio link is set up there is a chance the left earbud plays about 7.5 ms (one audio frame) behind the right, which pulls the sound to the right. Once the link is up the offset no longer changes, so EncoDeck keeps the link open and lets you check it by ear once; if it is off, rebuild it until left and right line up.</value></data>
+  <data name="LeAudioSync_Enable.Header" xml:space="preserve"><value>Keep the LE Audio link and calibrate left/right</value></data>
+  <data name="LeAudioSync_Notes.Text" xml:space="preserve"><value>While this is on, EncoDeck keeps the earbuds' LE Audio output playing (silence), and programs started later use the calibrated link. It uses a little more battery and can make it harder for a phone to take over the earbuds. Pause other programs that are playing before rebuilding the link.</value></data>
+  <data name="LeAudioSync_Help.Header" xml:space="preserve"><value>How it works and limits</value></data>
+  <data name="LeAudioSync_HelpHow.Text" xml:space="preserve"><value>Windows decides whether left and right are aligned each time it sets up the LE Audio link, and it stays that way until the link closes. Check left/right alignment plays identical clicks in both ears on that same link: aligned, they sound in the middle of your head; one frame apart, they are clearly pulled to one side or heard twice. If so, click Off to one side or doubled: EncoDeck rebuilds the link and plays the clicks again. One or two tries usually do it.</value></data>
+  <data name="LeAudioSync_HelpLimits.Text" xml:space="preserve"><value>When the earbuds reconnect, or a program uses the earbud microphone (calls, game voice chat), Windows sets up a new link and the card asks for another check. Only for PCs with Intel Bluetooth that run LE Audio through Intel Smart Sound Technology (SST).</value></data>
+  <data name="LeAudioSync_Check" xml:space="preserve"><value>Check left/right alignment</value></data>
+  <data name="LeAudioSync_CheckPrompt" xml:space="preserve"><value>Playing the test (identical clicks in both ears). Do they sound in the middle of your head?</value></data>
+  <data name="LeAudioSync_Centered" xml:space="preserve"><value>In the middle</value></data>
+  <data name="LeAudioSync_Offset" xml:space="preserve"><value>Off to one side or doubled</value></data>
+  <data name="LeAudioSync_Support_Checking" xml:space="preserve"><value>Checking whether this PC is supported…</value></data>
+  <data name="LeAudioSync_Support_Supported" xml:space="preserve"><value></value></data>
+  <data name="LeAudioSync_Support_NoRadio" xml:space="preserve"><value>No Bluetooth adapter found.</value></data>
+  <data name="LeAudioSync_Support_NotIntel" xml:space="preserve"><value>This PC's Bluetooth is not Intel's, so this feature is not available.</value></data>
+  <data name="LeAudioSync_Support_NoIntelOffload" xml:space="preserve"><value>LE Audio on this PC does not run through Intel Smart Sound Technology (SST), so this feature is not available.</value></data>
+  <data name="LeAudioSync_Status_WaitingForDevice" xml:space="preserve"><value>Waiting for LE Audio earbuds (both connected).</value></data>
+  <data name="LeAudioSync_Status_NeedsCheck" xml:space="preserve"><value>The LE Audio link is held, but its left/right alignment has not been checked.</value></data>
+  <data name="LeAudioSync_Status_Checking" xml:space="preserve"><value>Playing the test…</value></data>
+  <data name="LeAudioSync_Status_Aligned" xml:space="preserve"><value>Left and right are aligned; the link is held.</value></data>
+  <data name="LeAudioSync_Status_Rebuilding" xml:space="preserve"><value>Rebuilding the audio link (attempt {0})…</value></data>
+  <data name="LeAudioSync_Status_WaitingForIdle" xml:space="preserve"><value>Other programs are playing. The link is rebuilt once you pause them.</value></data>
+  <data name="LeAudioSync_Status_MicrophoneInUse" xml:space="preserve"><value>A program is using the earbud microphone, so Windows switched to its call link. Check again after the microphone closes.</value></data>
+  <data name="LeAudioCodec_Title.Text" xml:space="preserve"><value>LE Audio bitrate and latency (experimental)</value></data>
+  <data name="LeAudioCodec_Summary.Text" xml:space="preserve"><value>Windows picks a fixed LC3 preset for LE Audio earbuds (usually 96 kbps, 7.5 ms) and the transport too: latency first while a game plays, reliability first otherwise. Here you can choose another standard preset (such as 124.8 kbps) or pin the transport. EncoDeck replaces the configuration Windows requests inside the Windows Bluetooth audio service, which needs administrator rights.</value></data>
+  <data name="LeAudioCodec_Preset.Header" xml:space="preserve"><value>LC3 preset (48 kHz, bitrate per earbud)</value></data>
+  <data name="LeAudioCodec_PresetDefault" xml:space="preserve"><value>Windows default (no change)</value></data>
+  <data name="LeAudioCodec_PresetFormat" xml:space="preserve"><value>{0} kbps · {1} ms</value></data>
+  <data name="LeAudioCodec_Latency" xml:space="preserve"><value>Latency: LC3 coding takes about {0} ms; the link transport is up to Windows, at most {1} ms while a game plays and {2} ms otherwise; the earbuds add a {3} ms playback buffer. The bitrate only changes the packet size and has almost no effect on latency.</value></data>
+  <data name="LeAudioCodec_NoCall.Header" xml:space="preserve"><value>Never switch to call mode (disables the earbud microphone)</value></data>
+  <data name="LeAudioCodec_NoCallNote.Text" xml:space="preserve"><value>Game chat and call apps play over the high-quality link like any other sound, and no longer switch the earbuds to a call setup (sharp quality drop, microphone channel). The earbud microphone is disabled too, so programs cannot find it; use another microphone for voice. After turning this on, put the earbuds back in the case and take them out (reconnect once) for it to take effect.</value></data>
+  <data name="LeAudioCodec_NoCallName" xml:space="preserve"><value>no call mode</value></data>
+  <data name="LeAudioCodec_Result_NoCallReconnect" xml:space="preserve"><value>"Never switch to call mode" takes effect after the earbuds are put back in the case and taken out (reconnected once).</value></data>
+  <data name="LeAudioCodec_Result_SymbolsUnavailable" xml:space="preserve"><value>Could not download the public symbols of this PC's Windows Bluetooth audio component from Microsoft's symbol server (needs internet access, about 12 MB). Try again later.</value></data>
+  <data name="LeAudioCodec_Mode.Header" xml:space="preserve"><value>Transport</value></data>
+  <data name="LeAudioCodec_Mode_Auto" xml:space="preserve"><value>Automatic (Windows decides: latency first while a game plays, reliability first otherwise)</value></data>
+  <data name="LeAudioCodec_Mode_LowLatency" xml:space="preserve"><value>Latency first (always low latency; drops out more easily with interference)</value></data>
+  <data name="LeAudioCodec_Mode_HighReliability" xml:space="preserve"><value>Reliability first (always more retransmissions; steadier, higher latency)</value></data>
+  <data name="LeAudioCodec_ModeName_Auto" xml:space="preserve"><value>automatic</value></data>
+  <data name="LeAudioCodec_ModeName_LowLatency" xml:space="preserve"><value>latency first</value></data>
+  <data name="LeAudioCodec_ModeName_HighReliability" xml:space="preserve"><value>reliability first</value></data>
+  <data name="LeAudioCodec_Latency_Fixed" xml:space="preserve"><value>Latency: LC3 coding takes about {0} ms; the link transport is pinned to at most {1} ms with up to {2} retransmissions; the earbuds add a {3} ms playback buffer.</value></data>
+  <data name="LeAudioCodec_LinkFormat" xml:space="preserve"><value>{0} kbps · {1} ms · {2} (at most {3} ms, up to {4} retransmissions)</value></data>
+  <data name="LeAudioCodec_Link" xml:space="preserve"><value>Current link: {0}, set up at {1}.</value></data>
+  <data name="LeAudioCodec_LinkUnknown" xml:space="preserve"><value>Current link: not recorded yet; shown once an LE Audio link is next set up.</value></data>
+  <data name="LeAudioCodec_Status_Pending" xml:space="preserve"><value>Applied; waiting for Windows to set up the LE Audio link again (pause all playback for more than 5 seconds, or start or stop a game). A notification appears once it takes effect.</value></data>
+  <data name="LeAudioCodec_HelpModes.Text" xml:space="preserve"><value>Transport: whenever a program plays game audio, Windows uses the low-latency transport (at most 15 ms on the link, up to 5 retransmissions; about 12 ms measured), otherwise the reliable one (at most 75 ms, up to 13 retransmissions; about 48 ms measured). When a game starts or stops making sound, Windows switches between them and sets the link up again. Pinned to latency first or reliability first, every stream uses the same transport (the link is still set up again at such a switch, with the same settings).</value></data>
+  <data name="Notify_LeAudioSwitched_Title" xml:space="preserve"><value>LE Audio switched</value></data>
+  <data name="LeAudioCodec_Apply" xml:space="preserve"><value>Apply (needs administrator)</value></data>
+  <data name="LeAudioCodec_Applying" xml:space="preserve"><value>Applying…</value></data>
+  <data name="LeAudioCodec_Support_ComponentMissing" xml:space="preserve"><value>EncoDeck.LeHook.dll is missing. Reinstall EncoDeck.</value></data>
+  <data name="LeAudioCodec_Support_UnsupportedWindows" xml:space="preserve"><value>The places to change were not found in this PC's Windows Bluetooth audio component (a Windows update may have changed it), so nothing is changed.</value></data>
+  <data name="LeAudioCodec_Status_Default" xml:space="preserve"><value>Using the Windows default preset.</value></data>
+  <data name="LeAudioCodec_Status_Active" xml:space="preserve"><value>Applied: {0}.</value></data>
+  <data name="LeAudioCodec_Status_Lost" xml:space="preserve"><value>{0} was applied, but the Windows Bluetooth audio service has restarted since then (restart, sign-out or Bluetooth turned off). Windows is back to its default; apply again.</value></data>
+  <data name="LeAudioCodec_Result_Ok" xml:space="preserve"><value>Applied. It takes effect when the LE Audio link is next set up; a notification appears then.</value></data>
+  <data name="LeAudioCodec_Result_OkRebuilt" xml:space="preserve"><value>Applied. The link is being set up again and a notification appears once it takes effect; check the left/right alignment again in the calibration card above afterwards.</value></data>
+  <data name="LeAudioCodec_Result_Declined" xml:space="preserve"><value>Cancelled: administrator rights were not granted.</value></data>
+  <data name="LeAudioCodec_Result_ServiceNotRunning" xml:space="preserve"><value>The Windows Bluetooth audio service is not running. Connect the LE Audio earbuds first, then apply.</value></data>
+  <data name="LeAudioCodec_Result_Failed" xml:space="preserve"><value>Could not apply ({0}). Detailed logs are in {1}.</value></data>
+  <data name="LeAudioCodec_Notes.Text" xml:space="preserve"><value>The change lasts until the Windows Bluetooth audio service restarts (apply again after a restart, sign-out or turning Bluetooth off); no system file is modified. If there is no sound or there is noise afterwards, the earbuds or the PC's Bluetooth audio hardware do not support that preset: choose "Windows default" and apply.</value></data>
+  <data name="LeAudioCodec_Help.Header" xml:space="preserve"><value>How it works and limits</value></data>
+  <data name="LeAudioCodec_HelpHow.Text" xml:space="preserve"><value>When Windows sets up an LE Audio link, it first picks an LC3 configuration from what the earbuds support, then looks up the matching transport settings (SDU size, interval and latency). EncoDeck swaps the frame duration and bytes per frame in both places for your preset, so they stay consistent and the earbuds, Windows and the hardware encoder all use the new preset. Only the standard presets of the Bluetooth BAP specification (48_1 to 48_5) are offered.</value></data>
+  <data name="LeAudioCodec_HelpLimits.Text" xml:space="preserve"><value>48 kHz only. EncoDeck is not tied to a Windows version: on first use it downloads the public symbols of this PC's Windows Bluetooth audio component from Microsoft's symbol server (about 12 MB, cached afterwards), finds the two places to change by name and checks their first instructions one by one. If they are missing or do not match (for example because a Windows update rewrote them), this card is hidden and nothing is changed. The earbuds must support the chosen preset. Higher bitrates use more Bluetooth airtime, so controllers, keyboards or mice on the same Bluetooth adapter may be affected more easily.</value></data>
   <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>The Classic A2DP render endpoint was disabled. Choose the LE Audio "Speakers" endpoint in Sound settings.</value></data>
   <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>The Classic A2DP endpoint is already disabled.</value></data>
   <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>No Classic A2DP endpoint was found to disable.</value></data>
@@ -857,9 +946,9 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="LeAudio_Help.Header" xml:space="preserve"><value>About LE Audio</value></data>
   <data name="LeAudio_Guide.Content" xml:space="preserve"><value>Read the guide and how it works</value></data>
   <data name="LeAudio_HelpRequirements.Text" xml:space="preserve"><value>Requires Windows 11 24H2 or later and a Bluetooth adapter and driver with LE Audio support (for example Intel "Smart Sound Technology for Bluetooth LE Audio"). Turning on "Use LE Audio when available" in Settings → Bluetooth &amp; devices → Devices is recommended.</value></data>
-  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>These earbuds do not appear as an LE device in Windows' "Add device", so pairing there uses Classic Bluetooth. EncoDeck pairs their LE address directly, and Windows generates an associated Classic pairing record. Over LE Audio, EncoDeck uses GATT control only. The other earbud's address is read from the first earbud's advertisement. No setting on the earbuds is changed.</value></data>
+  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>These earbuds do not appear as an LE device in Windows' "Add device", so pairing there uses Classic Bluetooth. EncoDeck pairs their LE address directly, and Windows generates an associated Classic pairing record. Over LE Audio, EncoDeck controls the earbuds through that Classic pairing's control channel (RFCOMM), which also keeps the Classic link up: the earbuds drop their LE links when the Classic link ends. The other earbud's address is read from the first earbud's advertisement. No setting on the earbuds is changed.</value></data>
   <data name="LeAudio_HelpLimits.Text" xml:space="preserve"><value>Afterwards the other earbud is listed separately in Bluetooth settings under the same name. Over LE Audio, EncoDeck controls the earbuds over GATT, so noise control, battery and the other features keep working. Known issue: when playback starts, one earbud is occasionally about 7.5 ms behind the other, pulling the sound to one side; stop all audio for a few seconds and play again to realign.</value></data>
-  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>To return to Classic Bluetooth, click Restore Classic Bluetooth to remove this PC's earbud pairings. After cleanup, put the earbuds in pairing mode and manually pair them using Add device in Windows Bluetooth settings. EncoDeck does not pair them over Classic Bluetooth automatically.</value></data>
+  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>Once paired for LE Audio, "Use Classic Bluetooth" and "Use LC3" switch at any time without removing any pairing. Switching restarts Windows' Bluetooth audio service, which needs one authorization the first time. "Remove LE Audio pairing" removes this PC's earbud pairings; after cleanup, put the earbuds in pairing mode and manually pair them using Add device in Windows Bluetooth settings. EncoDeck does not pair them over Classic Bluetooth automatically.</value></data>
   <data name="Honor_Anc_Cozy" xml:space="preserve"><value>Comfortable</value></data>
   <data name="Honor_Anc_General" xml:space="preserve"><value>Moderate</value></data>
   <data name="Honor_Anc_Ultra" xml:space="preserve"><value>Deep</value></data>
@@ -943,6 +1032,30 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>Enhance vocals</value></data>
   <data name="Nothing_Eq_Classical" xml:space="preserve"><value>Classical</value></data>
   <data name="Eq_DeviceCustom" xml:space="preserve"><value>Custom EQ</value></data>
+  <data name="Eq_BandPreset.PlaceholderText" xml:space="preserve"><value>Apply a preset</value></data>
+  <data name="Eq_WriteOnlyNote.Text" xml:space="preserve"><value>These earbuds don't report their EQ. The curve shown is the one EncoDeck last sent; a change made in another app is not shown here, and moving any band sends the whole curve again.</value></data>
+  <data name="EarFunEq_Flat" xml:space="preserve"><value>Flat</value></data>
+  <data name="EarFunEq_Rock" xml:space="preserve"><value>Rock</value></data>
+  <data name="EarFunEq_Pop" xml:space="preserve"><value>Pop</value></data>
+  <data name="EarFunEq_Country" xml:space="preserve"><value>Country</value></data>
+  <data name="EarFunEq_RnB" xml:space="preserve"><value>R&amp;B</value></data>
+  <data name="EarFunEq_Classical" xml:space="preserve"><value>Classical</value></data>
+  <data name="EarFunEq_Jazz" xml:space="preserve"><value>Jazz</value></data>
+  <data name="EarFunEq_Electronic" xml:space="preserve"><value>Electronic</value></data>
+  <data name="EarFunEq_Dance" xml:space="preserve"><value>Dance</value></data>
+  <data name="EarFunEq_HipHop" xml:space="preserve"><value>Hip-hop</value></data>
+  <data name="EarFunEq_Metal" xml:space="preserve"><value>Metal</value></data>
+  <data name="EarFunEq_Blues" xml:space="preserve"><value>Blues</value></data>
+  <data name="EarFunEq_Soul" xml:space="preserve"><value>Soul</value></data>
+  <data name="EarFunEq_Hits" xml:space="preserve"><value>Hits</value></data>
+  <data name="EarFunEq_Latin" xml:space="preserve"><value>Latin</value></data>
+  <data name="EarFunEq_Natural" xml:space="preserve"><value>Natural</value></data>
+  <data name="EarFunEq_VocalBoost" xml:space="preserve"><value>Vocal boost</value></data>
+  <data name="EarFunEq_VocalReduce" xml:space="preserve"><value>Vocal reduction</value></data>
+  <data name="EarFunEq_BassBoost" xml:space="preserve"><value>Bass boost</value></data>
+  <data name="EarFunEq_BassReduce" xml:space="preserve"><value>Bass reduction</value></data>
+  <data name="EarFunEq_TrebleBoost" xml:space="preserve"><value>Treble boost</value></data>
+  <data name="EarFunEq_TrebleReduce" xml:space="preserve"><value>Treble reduction</value></data>
   <data name="Eq_DevicePreset" xml:space="preserve"><value>Preset {0}</value></data>
   <data name="Sennheiser_EqOff" xml:space="preserve"><value>Off</value></data>
   <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>Podcast</value></data>
@@ -1030,7 +1143,133 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="UsbEq_Custom" xml:space="preserve"><value>Custom</value></data>
   <data name="AutoOff_Minutes" xml:space="preserve"><value>After {0} minutes</value></data>
   <data name="AutoOff_IdleDescription" xml:space="preserve"><value>Turn the headset off after it has been idle for the selected time</value></data>
-  <data name="Codec_ReportedDescription" xml:space="preserve"><value>Audio codec: {0}</value></data>
   <data name="Codec_BridgeDescription" xml:space="preserve"><value>A2DP Bridge is sending {0} audio to these earbuds.</value></data>
-  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>The LE link is connected. Audio streaming and the LC3 codec have not been verified.</value></data>
+  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>Playing over LE Audio with the LC3 codec.</value></data>
+  <data name="EarFun_Wind" xml:space="preserve"><value>Wind reduction</value></data>
+  <data name="EarFun_Anc1" xml:space="preserve"><value>ANC 1</value></data>
+  <data name="EarFun_EarAdaptive" xml:space="preserve"><value>Ear adaptive</value></data>
+  <data name="EarFun_Adaptive" xml:space="preserve"><value>Adaptive</value></data>
+  <data name="EarFun_Level1" xml:space="preserve"><value>Level 1 (weakest)</value></data>
+  <data name="EarFun_Level2" xml:space="preserve"><value>Level 2</value></data>
+  <data name="EarFun_Level3" xml:space="preserve"><value>Level 3</value></data>
+  <data name="EarFun_Level4" xml:space="preserve"><value>Level 4 (strongest)</value></data>
+  <data name="EarFun_Manual" xml:space="preserve"><value>Manual</value></data>
+  <data name="NoiseSelector_ManualLevel" xml:space="preserve"><value>Manual noise cancelling level</value></data>
+  <data name="EarFun_Strong" xml:space="preserve"><value>Strong</value></data>
+  <data name="EarFun_Balanced" xml:space="preserve"><value>Balanced</value></data>
+  <data name="EarFun_Default" xml:space="preserve"><value>Default</value></data>
+  <data name="EarFun_Natural" xml:space="preserve"><value>Natural</value></data>
+  <data name="EarFun_Never" xml:space="preserve"><value>Never</value></data>
+  <data name="EarFun_Minutes" xml:space="preserve"><value>{0} minutes</value></data>
+  <data name="EarFun_Sub" xml:space="preserve"><value>ANC sub-mode</value></data>
+  <data name="EarFun_Ambient" xml:space="preserve"><value>Transparency sub-mode</value></data>
+  <data name="EarFun_AutoOff" xml:space="preserve"><value>Automatic power off</value></data>
+  <data name="EarFun_Mic" xml:space="preserve"><value>Call microphone</value></data>
+  <data name="EarFun_MicAuto" xml:space="preserve"><value>Automatic</value></data>
+  <data name="EarFun_MicLeft" xml:space="preserve"><value>Left earbud only</value></data>
+  <data name="EarFun_MicRight" xml:space="preserve"><value>Right earbud only</value></data>
+  <data name="EarFun_TouchLock" xml:space="preserve"><value>Disable touch controls</value></data>
+  <data name="EarFun_TouchLockOff" xml:space="preserve"><value>Off</value></data>
+  <data name="EarFun_TouchLockBoth" xml:space="preserve"><value>Both earbuds</value></data>
+  <data name="EarFun_TouchLockLeft" xml:space="preserve"><value>Left earbud</value></data>
+  <data name="EarFun_TouchLockRight" xml:space="preserve"><value>Right earbud</value></data>
+  <data name="EarFun_CallTriple" xml:space="preserve"><value>Triple-tap during calls</value></data>
+  <data name="EarFun_CallHold" xml:space="preserve"><value>Hold during calls</value></data>
+  <data name="EarFun_Button0Tap" xml:space="preserve"><value>Volume + · single press</value></data>
+  <data name="EarFun_Button0Hold" xml:space="preserve"><value>Volume + · hold</value></data>
+  <data name="EarFun_Button1Tap" xml:space="preserve"><value>Volume - · single press</value></data>
+  <data name="EarFun_Button1Hold" xml:space="preserve"><value>Volume - · hold</value></data>
+  <data name="EarFun_Button2Tap" xml:space="preserve"><value>NC button · single press</value></data>
+  <data name="EarFun_Button2Hold" xml:space="preserve"><value>NC button · hold</value></data>
+  <data name="EarFun_QAction1" xml:space="preserve"><value>Play / pause</value></data>
+  <data name="EarFun_QAction2" xml:space="preserve"><value>Volume up</value></data>
+  <data name="EarFun_QAction3" xml:space="preserve"><value>Volume down</value></data>
+  <data name="EarFun_QAction4" xml:space="preserve"><value>Previous track</value></data>
+  <data name="EarFun_QAction5" xml:space="preserve"><value>Next track</value></data>
+  <data name="EarFun_QAction6" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="EarFun_QAction7" xml:space="preserve"><value>Game mode</value></data>
+  <data name="EarFun_QAction8" xml:space="preserve"><value>Noise mode cycle</value></data>
+  <data name="EarFun_QAction9" xml:space="preserve"><value>ANC / off</value></data>
+  <data name="EarFun_QAction10" xml:space="preserve"><value>Transparency / off</value></data>
+  <data name="EarFun_QAction11" xml:space="preserve"><value>ANC / transparency</value></data>
+  <data name="EarFun_QAction13" xml:space="preserve"><value>Redial</value></data>
+  <data name="EarFun_QAction16" xml:space="preserve"><value>None</value></data>
+  <data name="EarFun_EAction0" xml:space="preserve"><value>None</value></data>
+  <data name="EarFun_EAction1" xml:space="preserve"><value>Play / pause</value></data>
+  <data name="EarFun_EAction2" xml:space="preserve"><value>Volume up</value></data>
+  <data name="EarFun_EAction3" xml:space="preserve"><value>Volume down</value></data>
+  <data name="EarFun_EAction4" xml:space="preserve"><value>Previous track</value></data>
+  <data name="EarFun_EAction5" xml:space="preserve"><value>Next track</value></data>
+  <data name="EarFun_EAction6" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="EarFun_EAction7" xml:space="preserve"><value>Game mode</value></data>
+  <data name="EarFun_EAction8" xml:space="preserve"><value>Noise mode cycle</value></data>
+  <data name="EarFun_EAction9" xml:space="preserve"><value>ANC / off</value></data>
+  <data name="EarFun_EAction10" xml:space="preserve"><value>Power off</value></data>
+  <data name="EarFun_EAction11" xml:space="preserve"><value>Redial</value></data>
+  <data name="EarFun_EAction12" xml:space="preserve"><value>Dual-device connection</value></data>
+  <data name="EarFun_TAction0" xml:space="preserve"><value>None</value></data>
+  <data name="EarFun_TAction1" xml:space="preserve"><value>Play / pause</value></data>
+  <data name="EarFun_TAction2" xml:space="preserve"><value>Volume up</value></data>
+  <data name="EarFun_TAction3" xml:space="preserve"><value>Volume down</value></data>
+  <data name="EarFun_TAction4" xml:space="preserve"><value>Previous track</value></data>
+  <data name="EarFun_TAction5" xml:space="preserve"><value>Next track</value></data>
+  <data name="EarFun_TAction6" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="EarFun_TAction7" xml:space="preserve"><value>Game mode</value></data>
+  <data name="EarFun_TAction8" xml:space="preserve"><value>Noise mode cycle</value></data>
+  <data name="EarFun_TAction9" xml:space="preserve"><value>ANC / off</value></data>
+  <data name="EarFun_TAction10" xml:space="preserve"><value>Power off</value></data>
+  <data name="EarFun_TAction11" xml:space="preserve"><value>Redial</value></data>
+  <data name="EarFun_TAction12" xml:space="preserve"><value>Spatial audio</value></data>
+  <data name="EarFun_TAction14" xml:space="preserve"><value>Transparency / off</value></data>
+  <data name="EarFun_TAction15" xml:space="preserve"><value>ANC / transparency</value></data>
+  <data name="EarFun_CAction0" xml:space="preserve"><value>None</value></data>
+  <data name="EarFun_CAction1" xml:space="preserve"><value>Play / pause</value></data>
+  <data name="EarFun_CAction2" xml:space="preserve"><value>Volume up</value></data>
+  <data name="EarFun_CAction3" xml:space="preserve"><value>Volume down</value></data>
+  <data name="EarFun_CAction4" xml:space="preserve"><value>Previous track</value></data>
+  <data name="EarFun_CAction5" xml:space="preserve"><value>Next track</value></data>
+  <data name="EarFun_CAction6" xml:space="preserve"><value>Voice assistant</value></data>
+  <data name="EarFun_CAction7" xml:space="preserve"><value>Game mode</value></data>
+  <data name="EarFun_CAction8" xml:space="preserve"><value>Noise mode cycle</value></data>
+  <data name="EarFun_CAction9" xml:space="preserve"><value>ANC / off</value></data>
+  <data name="EarFun_CAction10" xml:space="preserve"><value>Power off</value></data>
+  <data name="EarFun_CAction11" xml:space="preserve"><value>Redial</value></data>
+  <data name="EarFun_CAction12" xml:space="preserve"><value>Bass enhancement</value></data>
+  <data name="EarFun_CAction13" xml:space="preserve"><value>Polite mode</value></data>
+  <data name="Codec_WindowsDescription" xml:space="preserve"><value>Audio codec Windows logged: {0}</value></data>
+  <data name="WindowsCodec_Title.Text" xml:space="preserve"><value>Audio codec from Windows</value></data>
+  <data name="WindowsCodec_Summary.Text" xml:space="preserve"><value>The codec the earbuds report is not necessarily the one the PC uses, so EncoDeck does not use it; while this is off, the home page shows only "A2DP". Authorize once and Windows logs the codec of every Bluetooth audio (A2DP) stream; the home page then shows that. No further prompts, and it works in the Store version too. The cost is tiny: one Windows trace session that starts with the PC and writes a circular file of at most 1 MB.</value></data>
+  <data name="WindowsCodec_Status_Off" xml:space="preserve"><value>Off: the home page shows only "A2DP", without the codec.</value></data>
+  <data name="WindowsCodec_Status_Waiting" xml:space="preserve"><value>Authorized, nothing logged yet: it is logged automatically when possible.</value></data>
+  <data name="WindowsCodec_Status_On" xml:space="preserve"><value>Authorized: the home page shows the codec Windows logged.</value></data>
+  <data name="WindowsCodec_Authorize" xml:space="preserve"><value>Authorize (administrator)</value></data>
+  <data name="WindowsCodec_Remove" xml:space="preserve"><value>Remove authorization</value></data>
+  <data name="WindowsCodec_Result_Declined" xml:space="preserve"><value>The administrator prompt was declined.</value></data>
+  <data name="WindowsCodec_Result_NotApplied" xml:space="preserve"><value>That did not complete; please try again. The log file is in {0}.</value></data>
+  <data name="WindowsCodec_Result_Failed" xml:space="preserve"><value>That did not complete: {0}</value></data>
+  <data name="WindowsCodec_Notes.Text" xml:space="preserve"><value>Windows logs the codec when a stream ends (a pause, switching the output device, or disconnecting), and it is remembered per pair of earbuds, so new earbuds show it after they have played and stopped once. LE Audio earbuds do not use this. Uninstalling the EncoDeck installer version removes the authorization too; for the Store version, select "Remove authorization" before uninstalling.</value></data>
+  <data name="Codec_A2dpDescription" xml:space="preserve"><value>Connected over Bluetooth A2DP. No codec is shown here: the codec the earbuds report is not necessarily the one the PC uses, so it is not used. Only Windows knows the actual codec, and it can be read once "Audio codec from Windows" is turned on (one administrator authorization).</value></data>
+  <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>Connected over Bluetooth A2DP. Windows has not logged a codec for these earbuds yet: play some audio and stop it, and it shows here.</value></data>
+  <data name="Codec_LhdcDescription" xml:space="preserve"><value>The LHDC component's driver has taken over these earbuds' A2DP and plays with LHDC V5. Windows does not log a codec for this link.</value></data>
+  <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>The LHDC component is sending LHDC V5 audio to these earbuds at {0} kbps.</value></data>
+  <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>Connected over Bluetooth A2DP, but a third-party driver has taken over these earbuds' A2DP. Windows does not log the codec it uses, so no codec is shown here.</value></data>
+  <data name="CodecBadge_Enable" xml:space="preserve"><value>Turn on (one administrator authorization)</value></data>
+  <data name="CodecBadge_Enabled" xml:space="preserve"><value>Turned on. Play some audio and stop it, and the codec Windows actually uses shows here.</value></data>
+  <data name="LeAudio_UseClassic" xml:space="preserve"><value>Use Classic Bluetooth</value></data>
+  <data name="LeAudio_UseLe" xml:space="preserve"><value>Use LC3</value></data>
+  <data name="LeAudio_StatusUsingLe" xml:space="preserve"><value>Windows is playing over LE Audio (LC3).</value></data>
+  <data name="LeAudio_StatusUsingClassic" xml:space="preserve"><value>Windows is playing over Classic Bluetooth (A2DP); the pairings are kept, so you can switch back to LC3 at any time.</value></data>
+  <data name="LeAudio_ConfirmAuthorize" xml:space="preserve"><value>To switch, EncoDeck restarts Windows' Bluetooth audio service (AVCTP service) so Windows chooses again between LC3 and Classic Bluetooth. An administrator prompt appears once; it only lets your account start and stop that one service, and later switches need no prompt. Bluetooth audio pauses for a few seconds while switching; other Bluetooth devices stay connected. Uninstalling the installed version removes this permission.</value></data>
+  <data name="LeAudio_Authorize" xml:space="preserve"><value>Authorize and switch</value></data>
+  <data name="LeAudio_Stage_ChangingWindowsAudio" xml:space="preserve"><value>Asking Windows to choose the audio connection again (restarting the Bluetooth audio service)…</value></data>
+  <data name="LeAudio_Stage_RestoringClassicAudio" xml:space="preserve"><value>Restoring Classic Bluetooth audio (A2DP, HFP)…</value></data>
+  <data name="LeAudio_Stage_WaitingForAudio" xml:space="preserve"><value>Waiting for Windows to offer the audio output…</value></data>
+  <data name="LeAudio_Result_SwitchedToClassic" xml:space="preserve"><value>Switched to Classic Bluetooth (A2DP). All pairings were kept; you can switch back to LC3 at any time.</value></data>
+  <data name="LeAudio_Result_ClassicAudioMissing" xml:space="preserve"><value>Windows chose Classic Bluetooth, but the A2DP output did not appear in time. Put the earbuds back in the case and take them out again, or retry later.</value></data>
+  <data name="LeAudio_Result_NeedsServiceAccess" xml:space="preserve"><value>Authorize EncoDeck to restart the Bluetooth audio service first.</value></data>
+  <data name="LeAudio_Result_NotSetUp" xml:space="preserve"><value>These earbuds are not set up for LE Audio on this PC yet. Click "Switch to LE Audio" first.</value></data>
+  <data name="Panel_AudioTransport.Text" xml:space="preserve"><value>Audio connection</value></data>
+  <data name="Panel_AudioTransportClassic.Text" xml:space="preserve"><value>Classic</value></data>
+  <data name="LeAudio_QuickSwitch.Header" xml:space="preserve"><value>Show the LC3 / Classic switch in the earbuds panel</value></data>
+  <data name="LeAudio_Stage_ReconnectingLeAudio" xml:space="preserve"><value>The LE links are down; reconnecting Classic so the earbuds bring them back…</value></data>
 </root>

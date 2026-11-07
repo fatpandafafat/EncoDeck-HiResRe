@@ -303,7 +303,7 @@ Free4 标准版 / 丹拿版的支持范围见 [设备兼容性](COMPATIBILITY.md
 | 内置预设编号：通用 1 默认、2 低音、3 高音、9 人声；FreeBuds 6 默认为 0；Pro 3 / 4 与 FreeClip 为 5 / 1 / 2 / 9；FreeBuds 7 / Pro 5 为 5 均衡、9 人声、2 低音、13 电影、15 播客、14 游戏、16 运动；FreeClip 2 / FreeArc 另有 10 运动增强。界面只显示 TLV3 列出的预设 | [社区]；Pro 5 的 2 号 OpenFreebuds 标为高音、HuaweiPods 标为低音，采用后者 [推测] |
 | 低时延 `2B6C` 写 TLV1、读 TLV2；佩戴检测开关 `2B10` / `2B11`；双设备开关 `2B2E` 写 / `2B2F` 读 | [社区] |
 | 设备列表 `2B31`：一次查询按设备逐帧应答，TLV2 总数、3 序号、4 地址（倒序）、5 状态（0 未连接、9 播放中）、7 优先、8 自动连接、9 名称；`2B36` 通知列表变化。连接 / 断开 `2B33`、优先设备 `2B32` 未实现，列表只读 | [社区]（EZBuds Windows 实测） |
-| 功能开关 `2BB4`，TLV1 为功能 ID：24 独立空间音频（0 关、1 头部跟踪、2 固定）、2 自适应音量、11 点头 / 摇头（TLV2 开关，TLV3 点头、TLV4 摇头：0 无、1 接听、2 拒接）。各功能仅在耳机返回有效状态后开放；单耳降噪（5）、掉落提醒（7）未实现 | [社区]（HuaweiPods FreeBuds 7 逐项写入回读、vicrodh 7i）；7i 空间音频编码两个项目记录不一致，以回读一致为准 |
+| 功能开关 `2BB4`，TLV1 为功能 ID：24 独立空间音频（0 关、1 头部跟踪、2 固定）、2 自适应音量、11 点头 / 摇头（TLV2 开关，TLV3 点头、TLV4 摇头：0 无、1 接听、2 拒接）。各功能仅在耳机返回有效状态后开放；单耳降噪（5）、掉落提醒（7）未实现 | [社区]（HuaweiPods FreeBuds 7 逐项写入回读、vicrodh 7i）；空间音频对所有型号只读查询，回读有效即开放三种模式，有记录的是 FreeClip 2、FreeBuds 7 / 7i / Pro 5。HuaweiPods 1.9.2 修正 7i 映射后两个项目一致（1 头部跟踪、2 固定）；写入以回读一致为准，不一致或报错的模式在本次连接内隐藏 |
 | 防风噪 `2B94` / `2B95` 在 5i 上极性相反（0 开、1 关）；高清音质 / 音质优先 `2BA2` / `2BA3` 在 Windows 11 与部分手机上会导致断音或重连。均未提供 | [社区]（OpenFreebuds #142、#138，Gadgetbridge） |
 | HONOR Earbuds 2 SE 可用 FreeBuds 4i 的命令控制（电量、降噪、佩戴检测） | [社区]（OpenFreebuds #56） |
 | HONOR CHOICE X5 / X5 Pro：同样的 `5A` 帧；`0108`、`2B2A` 查询不带 TLV；`2B04` TLV1 = [模式]（0 关、1 降噪、2 通透）；状态取 TLV1 的最后一个字节。Linux 上社区工具直接打开 RFCOMM 通道 18 / 12，Windows 工具经 SPP 服务连接 | [社区]（Nezerkill X5 实测、TeskiOke X5 Pro）；EncoDeck 经 SDP 查找 SPP 服务 [协议实现] |
@@ -359,7 +359,7 @@ Free4 标准版 / 丹拿版的支持范围见 [设备兼容性](COMPATIBILITY.md
 
 ## 14. 漫步者 EDIFIER 设置
 
-来源：[mEDIFIER `10056b5`](https://github.com/wh201906/mEDIFIER/tree/10056b51ce1b354fdf2b18e35e61f8a0b8520cd5)（`doc/KnownCommands/W820NB_Double_Gold.txt` 完整收发帧、`Qt/devices/deviceinfo.json` 型号功能隐藏表），[Macifier `5479859`](https://github.com/luanyufei/Macifier/tree/547985930840a1c374659351fc8ca1e47a53e97d)（W820NB 真机），[HyperEars `361d279`](https://github.com/silverpoetry/HyperEars/tree/361d27970002ea86a778a7eaf722c3c022975591) 的 `docs/edifier-bes-protocol.md`，[BudsLink `ba3160d`](https://github.com/maniacx/BudsLink/tree/ba3160dfce72c192ebbdf2697b0341aa1e78fb56) 的 X5 Pro 配置。本节 [社区] 指上述项目的真机记录。
+来源：[mEDIFIER `10056b5`](https://github.com/wh201906/mEDIFIER/tree/10056b51ce1b354fdf2b18e35e61f8a0b8520cd5)（`doc/KnownCommands/W820NB_Double_Gold.txt` 完整收发帧、`Qt/devices/deviceinfo.json` 型号功能隐藏表），[Macifier `5479859`](https://github.com/luanyufei/Macifier/tree/547985930840a1c374659351fc8ca1e47a53e97d)（W820NB 真机），[HyperEars `361d279`](https://github.com/silverpoetry/HyperEars/tree/361d27970002ea86a778a7eaf722c3c022975591) 的 `docs/edifier-bes-protocol.md`，[BudsLink `ba3160d`](https://github.com/maniacx/BudsLink/tree/ba3160dfce72c192ebbdf2697b0341aa1e78fb56) 的 X5 Pro 配置，[devicePEQ `0617f38`](https://github.com/jeromeof/devicePEQ/tree/0617f382e76629792a5933e6933e4b396a756a93) 的 `bluetooth_tools/cli_tools/EDIFIER_W830NB_FINDINGS.md`。本节 [社区] 指上述项目的真机记录。
 
 | 发现 | 证据 |
 |---|---|
@@ -377,6 +377,10 @@ Free4 标准版 / 丹拿版的支持范围见 [设备兼容性](COMPATIBILITY.md
 | FitClip Ultra 收到 `0xCC` 会断开，从不发送 | [社区] |
 | X5 Pro 佩戴检测 `0xFB` / `0xFC`、游戏模式无应答样本：回读后作为实验功能 | [推测] |
 | W860NB PRO 降噪切换后约 1.9 秒播报提示音，期间不应答；回读超时后延迟 2 秒重试一次 | [社区] |
+| W820NB 三金标版的 SPP 通道可以打开，但对 v1 的电量 `0xD0` 与降噪 `0xCC` 查询均无应答；它以 W820NB 变体名匹配到 v1 配置 | 用户诊断日志 |
+| v1 型号两项查询都无应答时，改用 BES v2 帧只读查询一次 `0xD0`（空 payload，异或与否帧相同），由应答的电量字节判断异或：明文 ≤ 100，异或后最高位必为 1；应答后只提供电量，不查询降噪与其他设置 | [推测] [协议实现] |
+| W830NB 使用 BES v2 帧与异或 payload（音效查询 `0xD5` 应答 `A5` 即预设 0）；对 v1 帧不应答，且控制通道打开约 2 秒后整条蓝牙链路断开 | [社区]（devicePEQ 抓包）、用户诊断日志（#18） |
+| W830NB 直接使用 BES v2 异或帧，只查询电量 `0xD0`；其降噪槽位没有记录，不发送 `0xCC` | [推测] [协议实现] |
 | 漫步者充电状态没有任何真机证据，不实现 | — |
 
 ## 15. 索尼 MDR 与 AKG（独立于 OPPO）

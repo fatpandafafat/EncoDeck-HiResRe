@@ -32,12 +32,14 @@ internal static class DiagnosticsExporter
             model = state.Profile?.ModelId,
             connection = state.Connection.ToString(),
             leAudio = new { state.IsLeAudioBonded, links = state.LeAudioLinks, audioStreamingVerified = false },
-            firmware = state.Firmware?.Value.Extra,
+            productId = state.ProductId?.ToString("X6"),
+            firmware = state.Firmware?.Value is { } fw ? new { version = fw.Version, modelCode = fw.ModelCode, parts = fw.Extra } : null,
             codec = new
             {
-                reportedId = state.ReportedCodecId?.Value,
-                reportedAt = state.ReportedCodecId?.Timestamp,
-                accepted = state.Codec?.Value.ToString(),
+                windowsLogged = state.WindowsCodecLogged,
+                windows = state.WindowsCodec,
+                a2dpDriver = state.A2dpDriver,
+                lhdcKbps = state.LhdcKbps,
                 displayKind = CodecDisplay.Resolve(state).Kind.ToString(),
                 displayCodec = CodecDisplay.Resolve(state).Codec,
             },
@@ -63,7 +65,8 @@ internal static class DiagnosticsExporter
                 component = host.Bridge.Managed?.Version,
             },
         };
-        await WriteEntryAsync(zip, "summary.json", JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true }));
+        // Settings carry device ids (PreferredDeviceId, DisconnectedDeviceIds), which contain Bluetooth addresses.
+        await WriteEntryAsync(zip, "summary.json", LogRedactor.Redact(JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true })));
         // A2DP Windows Bridge's own diagnostics (its addresses masked by the core), when it runs.
         if (await host.Bridge.DiagnosticsAsync() is { } bridge) await WriteEntryAsync(zip, "a2dpwb.txt", LogRedactor.Redact(bridge));
 

@@ -76,6 +76,9 @@
   <data name="Eq_DynaudioOriginal" xml:space="preserve"><value>丹拿原声</value></data>
   <data name="Eq_DynaudioHiRes" xml:space="preserve"><value>丹拿高解析</value></data>
   <data name="Eq_PureVocals" xml:space="preserve"><value>纯享人声</value></data>
+  <data name="Eq_RealmePureRaw" xml:space="preserve"><value>纯净原声</value></data>
+  <data name="Eq_RealmeDeepBass" xml:space="preserve"><value>深沉低音</value></data>
+  <data name="Eq_RealmePureBass" xml:space="preserve"><value>纯净低音</value></data>
   <data name="Eq_CrispHighs" xml:space="preserve"><value>清亮高音</value></data>
   <data name="Eq_ThunderingBass" xml:space="preserve"><value>澎湃低音</value></data>
   <data name="Eq_UnknownPreset" xml:space="preserve"><value>音效 {0}</value></data>
@@ -141,9 +144,21 @@
   <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>耳机端 EQ</value></data>
   <data name="Sound_BandEditor.Text" xml:space="preserve"><value>自定义曲线</value></data>
   <data name="Sound_Spatial.Text" xml:space="preserve"><value>空间音频</value></data>
+  <data name="Sound_Empty_Title.Text" xml:space="preserve"><value>暂无可用的声音设置</value></data>
+  <data name="Sound_Empty_Body.Text" xml:space="preserve"><value>EncoDeck 暂时无法调整这副耳机的 EQ、低音或空间音频。</value></data>
   <data name="Controls_Title.Text" xml:space="preserve"><value>控制</value></data>
   <data name="Controls_Settings.Text" xml:space="preserve"><value>更多设置</value></data>
   <data name="Devices_Capabilities.Text" xml:space="preserve"><value>功能支持情况</value></data>
+  <data name="Devices_Info.Text" xml:space="preserve"><value>设备信息</value></data>
+  <data name="Devices_Firmware.Header" xml:space="preserve"><value>固件版本</value></data>
+  <data name="Devices_ProductId.Header" xml:space="preserve"><value>产品 ID</value></data>
+  <data name="Devices_FactoryReset.Header" xml:space="preserve"><value>恢复出厂设置</value></data>
+  <data name="Devices_FactoryReset.Description" xml:space="preserve"><value>清除耳机上的所有设置和全部配对记录。之后需要在 Windows 蓝牙设置里删除这副耳机，再重新配对。</value></data>
+  <data name="Devices_FactoryResetButton.Content" xml:space="preserve"><value>恢复出厂…</value></data>
+  <data name="Devices_FactoryReset_Title" xml:space="preserve"><value>恢复出厂设置？</value></data>
+  <data name="Devices_FactoryReset_Message" xml:space="preserve"><value>{0} 会清除全部设置，并忘记所有配对过的手机和电脑（包括这台电脑）。耳机会重启并断开连接。要在这台电脑上继续使用，请先在 Windows 蓝牙设置里删除这副耳机，再让耳机进入配对模式重新配对。</value></data>
+  <data name="Devices_FactoryReset_Confirm" xml:space="preserve"><value>恢复出厂</value></data>
+  <data name="Devices_FactoryReset_Done" xml:space="preserve"><value>已发送。耳机会重启并清除配对记录；请在 Windows 蓝牙设置里删除这副耳机后重新配对。</value></data>
   <data name="Devices_Title.Text" xml:space="preserve"><value>设备</value></data>
   <data name="Devices_Paired.Text" xml:space="preserve"><value>已配对的耳机</value></data>
   <data name="Devices_None.Text" xml:space="preserve"><value>没有 EncoDeck 支持的已配对耳机。请在 Windows 蓝牙设置中配对。</value></data>
@@ -244,6 +259,10 @@
   <data name="Dual_Remove" xml:space="preserve"><value>移除</value></data>
   <data name="Dual_ConnectNew_Title" xml:space="preserve"><value>连接新设备</value></data>
   <data name="Dual_ConnectNew_Message" xml:space="preserve"><value>连接“{0}”将会断开另一台设备的连接。</value></data>
+  <data name="Dual_HandOver_Title" xml:space="preserve"><value>切换设备</value></data>
+  <data name="Dual_HandOver_Message" xml:space="preserve"><value>设备双连已关闭，耳机连接“{0}”后会断开这台电脑。EncoDeck 也会随之断开，不再自动重连；需要连回这台电脑时，在 EncoDeck 中点“连接”。</value></data>
+  <data name="Dual_DisconnectThisPc_Title" xml:space="preserve"><value>从这台电脑断开</value></data>
+  <data name="Dual_DisconnectThisPc_Message" xml:space="preserve"><value>耳机会断开与这台电脑的连接，包括音频。EncoDeck 不会再自动连接；需要时在 EncoDeck 中点“连接”。</value></data>
   <data name="Dual_Disconnect_Title" xml:space="preserve"><value>断开设备连接</value></data>
   <data name="Dual_Disconnect_Message" xml:space="preserve"><value>此操作将断开“{0}”的连接</value></data>
   <data name="Dual_Remove_Title" xml:space="preserve"><value>确认移除设备？</value></data>
@@ -420,10 +439,6 @@
   <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>点按连接</value></data>
   <data name="Home_DeviceLastConnected" xml:space="preserve"><value>上次已连接</value></data>
   <data name="Home_DeviceNotConnected" xml:space="preserve"><value>未连接</value></data>
-  <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>在 Windows 蓝牙设置中断开本机</value></data>
-  <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>这是本机</value></data>
-  <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>耳机正通过蓝牙连接这台电脑。要断开本机，请在 Windows 蓝牙设置中断开耳机。</value></data>
-  <data name="Home_OpenBluetoothSettings" xml:space="preserve"><value>打开蓝牙设置</value></data>
   <data name="Home_DeviceDisconnect_Title" xml:space="preserve"><value>断开“{0}”？</value></data>
   <data name="Home_DeviceDisconnect_Message" xml:space="preserve"><value>耳机将与这台设备断开连接，之后可以在这里重新连接。</value></data>
   <data name="Settings_Artwork.Text" xml:space="preserve"><value>设备素材</value></data>
@@ -559,7 +574,13 @@
   <data name="Lhdc_Help.Header" xml:space="preserve"><value>LHDC 使用说明</value></data>
   <data name="Lhdc_HelpRestore.Text" xml:space="preserve"><value>4. 停用 LHDC 或卸载 EncoDeck 前，选择对应耳机，点击“恢复 Windows 音频”，允许管理员操作并等待完成。退出 EncoDeck 不会停止 LHDC 后台服务，也不会自动恢复 Windows 音频。</value></data>
   <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>免责声明：LHDC 为基于第三方开源项目 LHDC-Win 的实验性功能，实际播放、重连和恢复仍待实机验证，不保证适用于所有设备或系统。使用中可能出现无声、卡顿或需要手动恢复音频的情况。请在了解驱动安装及系统设置变更风险后自行决定是否使用，并自行承担相关风险；EncoDeck 及其开发者在适用法律允许的范围内不对由此造成的损失承担责任。</value></data>
-  <data name="DeviceConnect.Content" xml:space="preserve"><value>在 Windows 中连接</value></data>
+  <data name="Device_ConnectThisPc" xml:space="preserve"><value>连接到这台电脑</value></data>
+  <data name="Device_DisconnectThisPc" xml:space="preserve"><value>从这台电脑断开</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>连接到这台电脑</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>连接到这台电脑</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>从这台电脑断开</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>从这台电脑断开</value></data>
+  <data name="Connection_DisconnectedByUser" xml:space="preserve"><value>已在 EncoDeck 中断开</value></data>
   <data name="Lhdc_Guide.Content" xml:space="preserve"><value>查看详细教程（驱动加载与恢复）</value></data>
   <data name="Lhdc_HiRes.Text" xml:space="preserve"><value>耳机 Hi-Res</value></data>
   <data name="Lhdc_HiResHint.Text" xml:space="preserve"><value>耳机通过这个开关决定向 Windows 声明哪些采样率和码率。关闭时最高只有 48 kHz、400 kbps。</value></data>
@@ -595,7 +616,7 @@
   <data name="Bridge_Stopped" xml:space="preserve"><value>已安装 A2DPWB {0}（{1}），后台未运行。</value></data>
   <data name="Bridge_StoreMissing" xml:space="preserve"><value>商店版不会下载或启动其他程序。如已自行安装 A2DP Windows Bridge，启动它后 EncoDeck 会自动连接并显示状态。</value></data>
   <data name="Bridge_StoreStart" xml:space="preserve"><value>请从开始菜单启动 A2DP Windows Bridge。</value></data>
-  <data name="Bridge_Missing" xml:space="preserve"><value>未安装。组件约 {0:F1} MB，是 A2DPWB 官方构建的原样副本，从 EncoDeck 的组件发布下载并按固定的 SHA-256 校验。下载不会更改任何驱动。</value></data>
+  <data name="Bridge_Missing" xml:space="preserve"><value>未安装。组件约 {0:F1} MB，是 A2DPWB 官方的便携版构建，直接从 A2DPWB 官方 Release 原样下载并按 SHA-256 校验。更新时获取最新的官方 2.x 版本（含测试版）。下载不会更改任何驱动。</value></data>
   <data name="Bridge_Unpublished" xml:space="preserve"><value>此版本 EncoDeck 对应的 A2DP Bridge 组件尚未发布。</value></data>
   <data name="Bridge_UpdateAvailable" xml:space="preserve"><value>有新的组件 {0} 可用，可以更新。</value></data>
   <data name="Bridge_StandaloneLink.Content" xml:space="preserve"><value>下载非商店版本</value></data>
@@ -773,8 +794,14 @@
   <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Cap_ChannelSwap" xml:space="preserve"><value>左右声道交换</value></data>
+  <data name="Cap_FactoryReset" xml:space="preserve"><value>恢复出厂设置</value></data>
   <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Toggle_Ldac_Description" xml:space="preserve"><value>耳机端 LDAC 开关。此开关不会为 Windows 安装 LDAC 编码器。</value></data>
+  <data name="Toggle_AptXAdaptive" xml:space="preserve"><value>aptX Adaptive</value></data>
+  <data name="Toggle_AptXAdaptive_Description" xml:space="preserve"><value>耳机端 aptX Adaptive 开关。此开关不会为 Windows 安装 aptX 编码器，作用于支持该编码的手机等音源。</value></data>
+  <data name="Toggle_AptXLossless" xml:space="preserve"><value>aptX Lossless</value></data>
+  <data name="Toggle_AptXLossless_Description" xml:space="preserve"><value>耳机端 aptX Lossless 开关。此开关不会为 Windows 安装 aptX 编码器，作用于支持该编码的手机等音源。</value></data>
+  <data name="Toggle_Ldac_EarFun_Description" xml:space="preserve"><value>耳机端 LDAC 开关，与双设备连接不能同时开启，开启任一项会关闭另一项。此开关不会为 Windows 安装 LDAC 编码器。</value></data>
   <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Toggle_Lc3_Description" xml:space="preserve"><value>耳机端 LC3 编码开关，不改变 Windows 蓝牙传输方式。</value></data>
   <data name="Toggle_ChannelSwap" xml:space="preserve"><value>交换左右声道</value></data>
@@ -801,16 +828,78 @@
   <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>等待 LC3 连接 · 长按充电盒按键可恢复</value></data>
   <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio（LC3）连接（实验性）</value></data>
   <data name="LeAudio_Summary.Text" xml:space="preserve"><value>让 Windows 通过 LE Audio 使用 LC3 编码连接这副耳机，取代传统蓝牙的 A2DP。电脑的蓝牙需支持 LE Audio。</value></data>
-  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>切换到 LE Audio 后，不支持通过 EncoDeck 切换降噪，请在耳机上手动切换降噪。</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>Enco X4 切换到 LE Audio 后不接受来自电脑的降噪切换，请在耳机上手动切换降噪。</value></data>
   <data name="LeAudio_Switch" xml:space="preserve"><value>切换到 LE Audio</value></data>
-  <data name="LeAudio_Restore" xml:space="preserve"><value>恢复传统蓝牙</value></data>
+  <data name="LeAudio_Restore" xml:space="preserve"><value>移除 LE Audio 配对</value></data>
   <data name="LeAudio_StatusLe" xml:space="preserve"><value>左右耳均已完成 LE 配对；实际音频连接由 Windows 管理。</value></data>
   <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>无法确认 Windows 的音频端点状态；不要把 ACL/GATT 就绪当作双耳播放成功。</value></data>
   <data name="LeAudio_DisableClassic" xml:space="preserve"><value>禁用经典音频端点</value></data>
   <data name="LeAudio_EnableClassic" xml:space="preserve"><value>恢复经典音频端点</value></data>
-  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>禁用耳机麦克风</value></data>
-  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>应用打开耳机麦克风时，Windows 会把 LE Audio 切到双向通话配置，播放音质明显下降。禁用后应用只能使用其他麦克风，耳机播放保持媒体音质。重新配对后需要再次开启。</value></data>
   <data name="LeAudio_MicFailed" xml:space="preserve"><value>无法更改耳机麦克风：{0}</value></data>
+  <data name="LeAudioSync_Title.Text" xml:space="preserve"><value>LE Audio 左右声道校准（实验性）</value></data>
+  <data name="LeAudioSync_Summary.Text" xml:space="preserve"><value>部分使用 Intel 蓝牙的电脑在 LE Audio 下，每次建立音频链路时都有一定概率左耳比右耳晚约 7.5 ms（一个音频帧），声音偏向右侧、人声不在正中。链路建立后偏差就不再变化，所以 EncoDeck 会一直保持这条链路，并让你用耳朵检查一次：不对就重新建立，直到左右对齐。</value></data>
+  <data name="LeAudioSync_Enable.Header" xml:space="preserve"><value>保持 LE Audio 链路并校准左右声道</value></data>
+  <data name="LeAudioSync_Notes.Text" xml:space="preserve"><value>开启后，EncoDeck 会让耳机的 LE Audio 输出一直保持播放（静音），之后打开的程序都沿用这条已校准的链路；耳机和电脑会多耗一点电，也可能影响手机抢占连接。重新建立链路前需要先暂停其他正在播放的程序。</value></data>
+  <data name="LeAudioSync_Help.Header" xml:space="preserve"><value>工作原理与限制</value></data>
+  <data name="LeAudioSync_HelpHow.Text" xml:space="preserve"><value>Windows 每次建立 LE Audio 链路时就决定了左右是否对齐，之后只要链路不断开就不会再变。“检查左右是否对齐”会在同一条链路上播放双耳完全相同的咔哒声：对齐时声音在头部正中间；错开一帧时会明显偏向一侧，或听成两声。偏了就点“偏向一侧或听成两声”，EncoDeck 会重新建立链路并再次播放，通常一两次就能对齐。</value></data>
+  <data name="LeAudioSync_HelpLimits.Text" xml:space="preserve"><value>耳机断开重连，或有程序使用耳机麦克风（通话、游戏语音）时，Windows 会重新建立链路，卡片会提示重新检查。仅支持使用 Intel 蓝牙、并通过 Intel 智音技术（SST）运行 LE Audio 的电脑。</value></data>
+  <data name="LeAudioSync_Check" xml:space="preserve"><value>检查左右是否对齐</value></data>
+  <data name="LeAudioSync_CheckPrompt" xml:space="preserve"><value>正在播放测试音（双耳完全相同的咔哒声）。声音在头部正中间吗？</value></data>
+  <data name="LeAudioSync_Centered" xml:space="preserve"><value>在正中间</value></data>
+  <data name="LeAudioSync_Offset" xml:space="preserve"><value>偏向一侧或听成两声</value></data>
+  <data name="LeAudioSync_Support_Checking" xml:space="preserve"><value>正在检查这台电脑是否支持…</value></data>
+  <data name="LeAudioSync_Support_Supported" xml:space="preserve"><value></value></data>
+  <data name="LeAudioSync_Support_NoRadio" xml:space="preserve"><value>没有找到蓝牙适配器。</value></data>
+  <data name="LeAudioSync_Support_NotIntel" xml:space="preserve"><value>这台电脑的蓝牙不是 Intel 的，无法使用此功能。</value></data>
+  <data name="LeAudioSync_Support_NoIntelOffload" xml:space="preserve"><value>这台电脑的 LE Audio 没有通过 Intel 智音技术（SST）运行，无法使用此功能。</value></data>
+  <data name="LeAudioSync_Status_WaitingForDevice" xml:space="preserve"><value>等待 LE Audio 耳机（两只都连接）。</value></data>
+  <data name="LeAudioSync_Status_NeedsCheck" xml:space="preserve"><value>已保持 LE Audio 链路，但还没有检查左右是否对齐。</value></data>
+  <data name="LeAudioSync_Status_Checking" xml:space="preserve"><value>正在播放测试音…</value></data>
+  <data name="LeAudioSync_Status_Aligned" xml:space="preserve"><value>左右已对齐，链路保持中。</value></data>
+  <data name="LeAudioSync_Status_Rebuilding" xml:space="preserve"><value>正在重新建立音频链路（第 {0} 次）…</value></data>
+  <data name="LeAudioSync_Status_WaitingForIdle" xml:space="preserve"><value>其他程序正在播放。暂停它们之后会自动重新建立链路。</value></data>
+  <data name="LeAudioSync_Status_MicrophoneInUse" xml:space="preserve"><value>有程序在使用耳机麦克风，Windows 改用了通话链路；麦克风关闭后需要重新检查。</value></data>
+  <data name="LeAudioCodec_Title.Text" xml:space="preserve"><value>LE Audio 码率与延迟（实验性）</value></data>
+  <data name="LeAudioCodec_Summary.Text" xml:space="preserve"><value>Windows 给 LE Audio 耳机选的 LC3 档位是固定的（通常 96 kbps、7.5 ms），传输方式也由它决定：玩游戏时延迟优先，其余时候抗干扰优先。这里可以改选其他标准档位（例如 124.8 kbps），也可以固定传输方式。EncoDeck 会在 Windows 的蓝牙音频服务里替换它请求的配置，需要管理员权限。</value></data>
+  <data name="LeAudioCodec_Preset.Header" xml:space="preserve"><value>LC3 档位（48 kHz，单耳码率）</value></data>
+  <data name="LeAudioCodec_PresetDefault" xml:space="preserve"><value>Windows 默认（不修改）</value></data>
+  <data name="LeAudioCodec_PresetFormat" xml:space="preserve"><value>{0} kbps · {1} ms</value></data>
+  <data name="LeAudioCodec_Latency" xml:space="preserve"><value>延迟：LC3 编码约 {0} ms；链路传输由 Windows 决定，上限为游戏时 {1} ms、平时 {2} ms；耳机另有 {3} ms 播放缓冲。码率只改变每个包的大小，对延迟几乎没有影响。</value></data>
+  <data name="LeAudioCodec_NoCall.Header" xml:space="preserve"><value>不切换到通话模式（禁用耳机麦克风）</value></data>
+  <data name="LeAudioCodec_NoCallNote.Text" xml:space="preserve"><value>游戏语音、通话软件的声音会和其他声音一样走高音质链路，不会再把耳机切到通话配置（音质骤降、带麦克风通道）。同时禁用耳机麦克风，程序也找不到它；需要语音时请用其他麦克风。打开后要把耳机放回充电盒再取出（重新连接一次）才生效。</value></data>
+  <data name="LeAudioCodec_NoCallName" xml:space="preserve"><value>不切换到通话模式</value></data>
+  <data name="LeAudioCodec_Result_NoCallReconnect" xml:space="preserve"><value>“不切换到通话模式”需要把耳机放回充电盒再取出（重新连接一次）后生效。</value></data>
+  <data name="LeAudioCodec_Result_SymbolsUnavailable" xml:space="preserve"><value>无法从微软符号服务器下载这台电脑的 Windows 蓝牙音频组件的公开符号（需要联网，约 12 MB），稍后再试。</value></data>
+  <data name="LeAudioCodec_Mode.Header" xml:space="preserve"><value>传输方式</value></data>
+  <data name="LeAudioCodec_Mode_Auto" xml:space="preserve"><value>自动（Windows 决定：玩游戏时延迟优先，其余时候抗干扰优先）</value></data>
+  <data name="LeAudioCodec_Mode_LowLatency" xml:space="preserve"><value>延迟优先（始终低延迟，干扰多时更容易断音）</value></data>
+  <data name="LeAudioCodec_Mode_HighReliability" xml:space="preserve"><value>抗干扰优先（始终多次重传，更稳，延迟更高）</value></data>
+  <data name="LeAudioCodec_ModeName_Auto" xml:space="preserve"><value>自动</value></data>
+  <data name="LeAudioCodec_ModeName_LowLatency" xml:space="preserve"><value>延迟优先</value></data>
+  <data name="LeAudioCodec_ModeName_HighReliability" xml:space="preserve"><value>抗干扰优先</value></data>
+  <data name="LeAudioCodec_Latency_Fixed" xml:space="preserve"><value>延迟：LC3 编码约 {0} ms；链路传输上限固定为 {1} ms，最多重传 {2} 次；耳机另有 {3} ms 播放缓冲。</value></data>
+  <data name="LeAudioCodec_LinkFormat" xml:space="preserve"><value>{0} kbps · {1} ms · {2}（传输上限 {3} ms，最多重传 {4} 次）</value></data>
+  <data name="LeAudioCodec_Link" xml:space="preserve"><value>当前链路：{0}，{1} 建立。</value></data>
+  <data name="LeAudioCodec_LinkUnknown" xml:space="preserve"><value>当前链路：还没有记录，下次建立 LE Audio 链路后显示。</value></data>
+  <data name="LeAudioCodec_Status_Pending" xml:space="preserve"><value>已应用，等待 Windows 下次建立 LE Audio 链路（暂停所有播放 5 秒以上再继续，或开始、停止游戏）。生效时会弹出通知。</value></data>
+  <data name="LeAudioCodec_HelpModes.Text" xml:space="preserve"><value>传输方式：Windows 只要发现有程序在播放“游戏”类音频，就用低延迟传输（链路上限 15 ms、最多重传 5 次，实测链路约 12 ms），否则用抗干扰传输（上限 75 ms、最多重传 13 次，实测约 48 ms）。游戏开始或停止发声时 Windows 会在两者之间切换并重建链路。固定为“延迟优先”或“抗干扰优先”后，不管播放什么都使用同一种传输（切换时仍会重建一次链路，但参数不变）。</value></data>
+  <data name="Notify_LeAudioSwitched_Title" xml:space="preserve"><value>LE Audio 已切换</value></data>
+  <data name="LeAudioCodec_Apply" xml:space="preserve"><value>应用（需要管理员权限）</value></data>
+  <data name="LeAudioCodec_Applying" xml:space="preserve"><value>正在应用…</value></data>
+  <data name="LeAudioCodec_Support_ComponentMissing" xml:space="preserve"><value>缺少 EncoDeck.LeHook.dll，请重新安装 EncoDeck。</value></data>
+  <data name="LeAudioCodec_Support_UnsupportedWindows" xml:space="preserve"><value>这台电脑的 Windows 蓝牙音频组件里找不到需要修改的位置（可能是 Windows 更新改动了它），为安全起见不做修改。</value></data>
+  <data name="LeAudioCodec_Status_Default" xml:space="preserve"><value>当前使用 Windows 默认档位。</value></data>
+  <data name="LeAudioCodec_Status_Active" xml:space="preserve"><value>已应用：{0}。</value></data>
+  <data name="LeAudioCodec_Status_Lost" xml:space="preserve"><value>上次应用了 {0}，但 Windows 蓝牙音频服务之后重启过（重启电脑、注销或关闭过蓝牙），现在已恢复为 Windows 默认，需要重新应用。</value></data>
+  <data name="LeAudioCodec_Result_Ok" xml:space="preserve"><value>已应用。下次建立 LE Audio 链路时生效，生效时会弹出通知。</value></data>
+  <data name="LeAudioCodec_Result_OkRebuilt" xml:space="preserve"><value>已应用，正在重新建立链路，生效时会弹出通知。重建后请在上方的左右声道校准卡片里再检查一次。</value></data>
+  <data name="LeAudioCodec_Result_Declined" xml:space="preserve"><value>已取消：没有获得管理员权限。</value></data>
+  <data name="LeAudioCodec_Result_ServiceNotRunning" xml:space="preserve"><value>Windows 蓝牙音频服务没有运行。先连接 LE Audio 耳机再应用。</value></data>
+  <data name="LeAudioCodec_Result_Failed" xml:space="preserve"><value>应用失败（{0}）。详细日志在 {1}。</value></data>
+  <data name="LeAudioCodec_Notes.Text" xml:space="preserve"><value>修改只保留到 Windows 蓝牙音频服务重启为止（重启电脑、注销或关闭蓝牙后需要重新应用），不会改动系统文件。如果应用后没有声音或有杂音，说明耳机或电脑的蓝牙音频硬件不支持该档位，选回“Windows 默认”再应用即可。</value></data>
+  <data name="LeAudioCodec_Help.Header" xml:space="preserve"><value>工作原理与限制</value></data>
+  <data name="LeAudioCodec_HelpHow.Text" xml:space="preserve"><value>Windows 建立 LE Audio 链路时，先按耳机声明的能力挑一个 LC3 配置，再按它查一组传输参数（每个 SDU 的大小、间隔和延迟）。EncoDeck 在这两处把帧长和每帧字节数换成你选的档位，两边保持一致，之后耳机、Windows 和硬件编码器都按新档位工作。只提供蓝牙 BAP 规范里的标准档位（48_1 到 48_5）。</value></data>
+  <data name="LeAudioCodec_HelpLimits.Text" xml:space="preserve"><value>只支持 48 kHz。EncoDeck 不绑定 Windows 版本：第一次使用时会从微软的公开符号服务器下载这台电脑 Windows 蓝牙音频组件的符号（约 12 MB，之后缓存），按函数名找到需要修改的两处，并逐条核对开头的指令；找不到或对不上（例如 Windows 更新重写了它们）就不显示此卡片，也不做任何修改。耳机需要支持所选档位。码率越高越占用蓝牙空口，同一个蓝牙适配器上的手柄、键鼠可能更容易受影响。</value></data>
   <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>已禁用经典 A2DP 渲染端点；请在声音设置中选择 LE Audio 的“扬声器”。</value></data>
   <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>经典 A2DP 端点已经处于禁用状态。</value></data>
   <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>没有找到可禁用的经典 A2DP 端点。</value></data>
@@ -857,9 +946,9 @@
   <data name="LeAudio_Help.Header" xml:space="preserve"><value>LE Audio 使用说明</value></data>
   <data name="LeAudio_Guide.Content" xml:space="preserve"><value>查看详细说明与工作原理</value></data>
   <data name="LeAudio_HelpRequirements.Text" xml:space="preserve"><value>需要 Windows 11 24H2 或更新版本，以及支持 LE Audio 的蓝牙适配器和驱动（例如 Intel 的“Smart Sound Technology for Bluetooth LE Audio”）。建议在 设置 → 蓝牙和设备 → 设备 中打开“可用时使用 LE 音频”。</value></data>
-  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>这副耳机不会以 LE 方式出现在 Windows 的“添加设备”中，所以那里总是按传统蓝牙配对。EncoDeck 会直接对耳机的 LE 地址发起配对，Windows 随后自动生成关联的传统蓝牙配对记录。LE Audio 模式下，EncoDeck 只通过 GATT 控制耳机。另一只耳机的地址从第一只耳机的广播中读取。整个过程不会改动耳机上的任何设置。</value></data>
+  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>这副耳机不会以 LE 方式出现在 Windows 的“添加设备”中，所以那里总是按传统蓝牙配对。EncoDeck 会直接对耳机的 LE 地址发起配对，Windows 随后自动生成关联的传统蓝牙配对记录。LE Audio 模式下，EncoDeck 通过这条传统蓝牙配对的控制通道（RFCOMM）控制耳机，同时保持传统链路在线：耳机在传统链路断开时会一并断开 LE 链路。另一只耳机的地址从第一只耳机的广播中读取。整个过程不会改动耳机上的任何设置。</value></data>
   <data name="LeAudio_HelpLimits.Text" xml:space="preserve"><value>切换后，蓝牙列表中另一只耳机会单独显示为一个同名条目。EncoDeck 在 LE Audio 下通过 GATT 控制耳机，降噪、电量等功能照常可用。已知问题：开始播放时，左右耳偶尔会相差约 7.5 ms，声像偏向一侧；停止所有声音几秒后重新播放即可重新对齐。</value></data>
-  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>要换回传统蓝牙，点击“恢复传统蓝牙”清理本电脑上的耳机配对；完成后让耳机进入配对模式，在 Windows 蓝牙设置中通过“添加设备”手动配对。EncoDeck 不会自动做传统蓝牙配对。</value></data>
+  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>完成 LE Audio 配对后，可以用“改用传统蓝牙”和“改用 LC3”随时切换，不会删除任何配对。切换会重启 Windows 的蓝牙音频服务，第一次需要授权一次。“移除 LE Audio 配对”会清理本电脑上的耳机配对；完成后让耳机进入配对模式，在 Windows 蓝牙设置中通过“添加设备”手动配对。EncoDeck 不会自动做传统蓝牙配对。</value></data>
   <data name="Honor_Anc_Cozy" xml:space="preserve"><value>舒适</value></data>
   <data name="Honor_Anc_General" xml:space="preserve"><value>均衡</value></data>
   <data name="Honor_Anc_Ultra" xml:space="preserve"><value>深度</value></data>
@@ -943,6 +1032,30 @@
   <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>人声增强</value></data>
   <data name="Nothing_Eq_Classical" xml:space="preserve"><value>古典</value></data>
   <data name="Eq_DeviceCustom" xml:space="preserve"><value>自定义 EQ</value></data>
+  <data name="Eq_BandPreset.PlaceholderText" xml:space="preserve"><value>套用预设</value></data>
+  <data name="Eq_WriteOnlyNote.Text" xml:space="preserve"><value>这副耳机不会回报当前的均衡器。这里显示的是 EncoDeck 上次发送的曲线；在其他 App 里改过之后这里不会跟着变，拖动任一频段都会把整条曲线重新发送。</value></data>
+  <data name="EarFunEq_Flat" xml:space="preserve"><value>平直</value></data>
+  <data name="EarFunEq_Rock" xml:space="preserve"><value>摇滚</value></data>
+  <data name="EarFunEq_Pop" xml:space="preserve"><value>流行</value></data>
+  <data name="EarFunEq_Country" xml:space="preserve"><value>乡村</value></data>
+  <data name="EarFunEq_RnB" xml:space="preserve"><value>R&amp;B</value></data>
+  <data name="EarFunEq_Classical" xml:space="preserve"><value>古典</value></data>
+  <data name="EarFunEq_Jazz" xml:space="preserve"><value>爵士</value></data>
+  <data name="EarFunEq_Electronic" xml:space="preserve"><value>电子</value></data>
+  <data name="EarFunEq_Dance" xml:space="preserve"><value>舞曲</value></data>
+  <data name="EarFunEq_HipHop" xml:space="preserve"><value>嘻哈</value></data>
+  <data name="EarFunEq_Metal" xml:space="preserve"><value>金属</value></data>
+  <data name="EarFunEq_Blues" xml:space="preserve"><value>蓝调</value></data>
+  <data name="EarFunEq_Soul" xml:space="preserve"><value>灵魂</value></data>
+  <data name="EarFunEq_Hits" xml:space="preserve"><value>热门</value></data>
+  <data name="EarFunEq_Latin" xml:space="preserve"><value>拉丁</value></data>
+  <data name="EarFunEq_Natural" xml:space="preserve"><value>自然</value></data>
+  <data name="EarFunEq_VocalBoost" xml:space="preserve"><value>人声增强</value></data>
+  <data name="EarFunEq_VocalReduce" xml:space="preserve"><value>人声减弱</value></data>
+  <data name="EarFunEq_BassBoost" xml:space="preserve"><value>低音增强</value></data>
+  <data name="EarFunEq_BassReduce" xml:space="preserve"><value>低音减弱</value></data>
+  <data name="EarFunEq_TrebleBoost" xml:space="preserve"><value>高音增强</value></data>
+  <data name="EarFunEq_TrebleReduce" xml:space="preserve"><value>高音减弱</value></data>
   <data name="Eq_DevicePreset" xml:space="preserve"><value>预设 {0}</value></data>
   <data name="Sennheiser_EqOff" xml:space="preserve"><value>关闭</value></data>
   <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>播客</value></data>
@@ -1030,7 +1143,133 @@
   <data name="UsbEq_Custom" xml:space="preserve"><value>自定义</value></data>
   <data name="AutoOff_Minutes" xml:space="preserve"><value>{0} 分钟后</value></data>
   <data name="AutoOff_IdleDescription" xml:space="preserve"><value>耳机闲置达到所选时长后自动关机</value></data>
-  <data name="Codec_ReportedDescription" xml:space="preserve"><value>音频编码：{0}</value></data>
   <data name="Codec_BridgeDescription" xml:space="preserve"><value>A2DP Bridge 正在向这台耳机发送 {0} 音频。</value></data>
-  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>LE 链路已连接，尚未确认音频流或 LC3 编码。</value></data>
+  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>通过 LE Audio 播放，编码为 LC3。</value></data>
+  <data name="EarFun_Wind" xml:space="preserve"><value>抗风噪</value></data>
+  <data name="EarFun_Anc1" xml:space="preserve"><value>降噪 1</value></data>
+  <data name="EarFun_EarAdaptive" xml:space="preserve"><value>耳道智能自适应</value></data>
+  <data name="EarFun_Adaptive" xml:space="preserve"><value>自适应</value></data>
+  <data name="EarFun_Level1" xml:space="preserve"><value>1 档（最弱）</value></data>
+  <data name="EarFun_Level2" xml:space="preserve"><value>2 档</value></data>
+  <data name="EarFun_Level3" xml:space="preserve"><value>3 档</value></data>
+  <data name="EarFun_Level4" xml:space="preserve"><value>4 档（最强）</value></data>
+  <data name="EarFun_Manual" xml:space="preserve"><value>手动</value></data>
+  <data name="NoiseSelector_ManualLevel" xml:space="preserve"><value>手动降噪强度</value></data>
+  <data name="EarFun_Strong" xml:space="preserve"><value>强力</value></data>
+  <data name="EarFun_Balanced" xml:space="preserve"><value>均衡</value></data>
+  <data name="EarFun_Default" xml:space="preserve"><value>默认</value></data>
+  <data name="EarFun_Natural" xml:space="preserve"><value>自然</value></data>
+  <data name="EarFun_Never" xml:space="preserve"><value>从不</value></data>
+  <data name="EarFun_Minutes" xml:space="preserve"><value>{0} 分钟</value></data>
+  <data name="EarFun_Sub" xml:space="preserve"><value>降噪子模式</value></data>
+  <data name="EarFun_Ambient" xml:space="preserve"><value>通透子模式</value></data>
+  <data name="EarFun_AutoOff" xml:space="preserve"><value>自动关机</value></data>
+  <data name="EarFun_Mic" xml:space="preserve"><value>通话麦克风</value></data>
+  <data name="EarFun_MicAuto" xml:space="preserve"><value>自动</value></data>
+  <data name="EarFun_MicLeft" xml:space="preserve"><value>仅左耳</value></data>
+  <data name="EarFun_MicRight" xml:space="preserve"><value>仅右耳</value></data>
+  <data name="EarFun_TouchLock" xml:space="preserve"><value>禁用触控</value></data>
+  <data name="EarFun_TouchLockOff" xml:space="preserve"><value>不禁用</value></data>
+  <data name="EarFun_TouchLockBoth" xml:space="preserve"><value>双耳</value></data>
+  <data name="EarFun_TouchLockLeft" xml:space="preserve"><value>仅左耳</value></data>
+  <data name="EarFun_TouchLockRight" xml:space="preserve"><value>仅右耳</value></data>
+  <data name="EarFun_CallTriple" xml:space="preserve"><value>通话中三击</value></data>
+  <data name="EarFun_CallHold" xml:space="preserve"><value>通话中长按</value></data>
+  <data name="EarFun_Button0Tap" xml:space="preserve"><value>音量 + · 单击</value></data>
+  <data name="EarFun_Button0Hold" xml:space="preserve"><value>音量 + · 长按</value></data>
+  <data name="EarFun_Button1Tap" xml:space="preserve"><value>音量 - · 单击</value></data>
+  <data name="EarFun_Button1Hold" xml:space="preserve"><value>音量 - · 长按</value></data>
+  <data name="EarFun_Button2Tap" xml:space="preserve"><value>降噪按键 · 单击</value></data>
+  <data name="EarFun_Button2Hold" xml:space="preserve"><value>降噪按键 · 长按</value></data>
+  <data name="EarFun_QAction1" xml:space="preserve"><value>播放 / 暂停</value></data>
+  <data name="EarFun_QAction2" xml:space="preserve"><value>音量 +</value></data>
+  <data name="EarFun_QAction3" xml:space="preserve"><value>音量 -</value></data>
+  <data name="EarFun_QAction4" xml:space="preserve"><value>上一曲</value></data>
+  <data name="EarFun_QAction5" xml:space="preserve"><value>下一曲</value></data>
+  <data name="EarFun_QAction6" xml:space="preserve"><value>语音助手</value></data>
+  <data name="EarFun_QAction7" xml:space="preserve"><value>游戏模式</value></data>
+  <data name="EarFun_QAction8" xml:space="preserve"><value>降噪模式循环</value></data>
+  <data name="EarFun_QAction9" xml:space="preserve"><value>降噪 / 关闭</value></data>
+  <data name="EarFun_QAction10" xml:space="preserve"><value>通透 / 关闭</value></data>
+  <data name="EarFun_QAction11" xml:space="preserve"><value>降噪 / 通透</value></data>
+  <data name="EarFun_QAction13" xml:space="preserve"><value>回拨</value></data>
+  <data name="EarFun_QAction16" xml:space="preserve"><value>无功能</value></data>
+  <data name="EarFun_EAction0" xml:space="preserve"><value>无功能</value></data>
+  <data name="EarFun_EAction1" xml:space="preserve"><value>播放 / 暂停</value></data>
+  <data name="EarFun_EAction2" xml:space="preserve"><value>音量 +</value></data>
+  <data name="EarFun_EAction3" xml:space="preserve"><value>音量 -</value></data>
+  <data name="EarFun_EAction4" xml:space="preserve"><value>上一曲</value></data>
+  <data name="EarFun_EAction5" xml:space="preserve"><value>下一曲</value></data>
+  <data name="EarFun_EAction6" xml:space="preserve"><value>语音助手</value></data>
+  <data name="EarFun_EAction7" xml:space="preserve"><value>游戏模式</value></data>
+  <data name="EarFun_EAction8" xml:space="preserve"><value>降噪模式循环</value></data>
+  <data name="EarFun_EAction9" xml:space="preserve"><value>降噪 / 关闭</value></data>
+  <data name="EarFun_EAction10" xml:space="preserve"><value>关机</value></data>
+  <data name="EarFun_EAction11" xml:space="preserve"><value>回拨</value></data>
+  <data name="EarFun_EAction12" xml:space="preserve"><value>双设备连接</value></data>
+  <data name="EarFun_TAction0" xml:space="preserve"><value>无功能</value></data>
+  <data name="EarFun_TAction1" xml:space="preserve"><value>播放 / 暂停</value></data>
+  <data name="EarFun_TAction2" xml:space="preserve"><value>音量 +</value></data>
+  <data name="EarFun_TAction3" xml:space="preserve"><value>音量 -</value></data>
+  <data name="EarFun_TAction4" xml:space="preserve"><value>上一曲</value></data>
+  <data name="EarFun_TAction5" xml:space="preserve"><value>下一曲</value></data>
+  <data name="EarFun_TAction6" xml:space="preserve"><value>语音助手</value></data>
+  <data name="EarFun_TAction7" xml:space="preserve"><value>游戏模式</value></data>
+  <data name="EarFun_TAction8" xml:space="preserve"><value>降噪模式循环</value></data>
+  <data name="EarFun_TAction9" xml:space="preserve"><value>降噪 / 关闭</value></data>
+  <data name="EarFun_TAction10" xml:space="preserve"><value>关机</value></data>
+  <data name="EarFun_TAction11" xml:space="preserve"><value>回拨</value></data>
+  <data name="EarFun_TAction12" xml:space="preserve"><value>空间音频</value></data>
+  <data name="EarFun_TAction14" xml:space="preserve"><value>通透 / 关闭</value></data>
+  <data name="EarFun_TAction15" xml:space="preserve"><value>降噪 / 通透</value></data>
+  <data name="EarFun_CAction0" xml:space="preserve"><value>无功能</value></data>
+  <data name="EarFun_CAction1" xml:space="preserve"><value>播放 / 暂停</value></data>
+  <data name="EarFun_CAction2" xml:space="preserve"><value>音量 +</value></data>
+  <data name="EarFun_CAction3" xml:space="preserve"><value>音量 -</value></data>
+  <data name="EarFun_CAction4" xml:space="preserve"><value>上一曲</value></data>
+  <data name="EarFun_CAction5" xml:space="preserve"><value>下一曲</value></data>
+  <data name="EarFun_CAction6" xml:space="preserve"><value>语音助手</value></data>
+  <data name="EarFun_CAction7" xml:space="preserve"><value>游戏模式</value></data>
+  <data name="EarFun_CAction8" xml:space="preserve"><value>降噪模式循环</value></data>
+  <data name="EarFun_CAction9" xml:space="preserve"><value>降噪 / 关闭</value></data>
+  <data name="EarFun_CAction10" xml:space="preserve"><value>关机</value></data>
+  <data name="EarFun_CAction11" xml:space="preserve"><value>回拨</value></data>
+  <data name="EarFun_CAction12" xml:space="preserve"><value>低音增强</value></data>
+  <data name="EarFun_CAction13" xml:space="preserve"><value>礼貌模式</value></data>
+  <data name="Codec_WindowsDescription" xml:space="preserve"><value>Windows 记录的音频编码：{0}</value></data>
+  <data name="WindowsCodec_Title.Text" xml:space="preserve"><value>从 Windows 读取音频编码</value></data>
+  <data name="WindowsCodec_Summary.Text" xml:space="preserve"><value>耳机自己报告的编码不一定是电脑实际使用的，所以 EncoDeck 不采用它，未开启时首页只显示“A2DP”。授权一次后，Windows 会记录蓝牙音频（A2DP）每次播放所用的编码，首页显示这份记录。之后无需再授权，商店版也可用；占用极低：只是一个随开机启动的 Windows 日志会话，写入最多 1 MB 的循环文件。</value></data>
+  <data name="WindowsCodec_Status_Off" xml:space="preserve"><value>未开启：首页只显示“A2DP”，不显示具体编码。</value></data>
+  <data name="WindowsCodec_Status_Waiting" xml:space="preserve"><value>已授权，还没有记录：将在条件允许时自动记录。</value></data>
+  <data name="WindowsCodec_Status_On" xml:space="preserve"><value>已授权：首页显示 Windows 记录的编码。</value></data>
+  <data name="WindowsCodec_Authorize" xml:space="preserve"><value>授权（需要管理员）</value></data>
+  <data name="WindowsCodec_Remove" xml:space="preserve"><value>取消授权</value></data>
+  <data name="WindowsCodec_Result_Declined" xml:space="preserve"><value>已取消管理员授权。</value></data>
+  <data name="WindowsCodec_Result_NotApplied" xml:space="preserve"><value>没有完成，请重试。日志文件位于 {0}。</value></data>
+  <data name="WindowsCodec_Result_Failed" xml:space="preserve"><value>没有完成：{0}</value></data>
+  <data name="WindowsCodec_Notes.Text" xml:space="preserve"><value>Windows 在一次播放结束时（暂停一会儿、切换输出设备或断开）记下所用编码，并按耳机记住，所以新耳机要先播放并停下一次才会显示。LE Audio 耳机不经过这里。卸载 EncoDeck 安装版时会一并取消授权；商店版请在卸载前点“取消授权”。</value></data>
+  <data name="Codec_A2dpDescription" xml:space="preserve"><value>已通过蓝牙 A2DP 连接。这里不显示具体编码：耳机自己报告的编码不一定是电脑实际使用的，所以不采用；实际编码只有 Windows 知道，需要开启“从 Windows 读取音频编码”（管理员授权一次）后才能读取。</value></data>
+  <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>已通过蓝牙 A2DP 连接。Windows 还没有记录这副耳机的编码：播放一段音频并停下后就会显示。</value></data>
+  <data name="Codec_LhdcDescription" xml:space="preserve"><value>这副耳机的 A2DP 已由 LHDC 组件的驱动接管，播放时使用 LHDC V5。Windows 不会记录这条连接的编码。</value></data>
+  <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>LHDC 组件正在以 {0} kbps 向这副耳机发送 LHDC V5 音频。</value></data>
+  <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>已通过蓝牙 A2DP 连接，但这副耳机的 A2DP 由第三方驱动接管。Windows 不会记录它使用的编码，所以这里不显示具体编码。</value></data>
+  <data name="CodecBadge_Enable" xml:space="preserve"><value>开启（需要管理员授权一次）</value></data>
+  <data name="CodecBadge_Enabled" xml:space="preserve"><value>已开启。播放一段音频并停下后，这里会显示 Windows 实际使用的编码。</value></data>
+  <data name="LeAudio_UseClassic" xml:space="preserve"><value>改用传统蓝牙</value></data>
+  <data name="LeAudio_UseLe" xml:space="preserve"><value>改用 LC3</value></data>
+  <data name="LeAudio_StatusUsingLe" xml:space="preserve"><value>Windows 正在通过 LE Audio（LC3）播放。</value></data>
+  <data name="LeAudio_StatusUsingClassic" xml:space="preserve"><value>Windows 正在通过传统蓝牙（A2DP）播放；配对都保留，可以随时改回 LC3。</value></data>
+  <data name="LeAudio_ConfirmAuthorize" xml:space="preserve"><value>切换时，EncoDeck 需要重启 Windows 的蓝牙音频服务（AVCTP 服务），让 Windows 重新选择用 LC3 还是传统蓝牙。接下来会出现一次管理员确认，只给你的账户添加启动和停止这一个服务的权限，以后切换不再需要确认。切换时蓝牙音频会中断几秒，其他蓝牙设备不受影响。卸载安装版时会撤销这项权限。</value></data>
+  <data name="LeAudio_Authorize" xml:space="preserve"><value>授权并切换</value></data>
+  <data name="LeAudio_Stage_ChangingWindowsAudio" xml:space="preserve"><value>正在让 Windows 重新选择音频连接（重启蓝牙音频服务）…</value></data>
+  <data name="LeAudio_Stage_RestoringClassicAudio" xml:space="preserve"><value>正在恢复传统蓝牙音频（A2DP、HFP）…</value></data>
+  <data name="LeAudio_Stage_WaitingForAudio" xml:space="preserve"><value>正在等待 Windows 提供音频输出…</value></data>
+  <data name="LeAudio_Result_SwitchedToClassic" xml:space="preserve"><value>已改用传统蓝牙（A2DP）。所有配对都保留，可以随时改回 LC3。</value></data>
+  <data name="LeAudio_Result_ClassicAudioMissing" xml:space="preserve"><value>Windows 已选择传统蓝牙，但 A2DP 输出没有及时出现。请把耳机放回盒子再取出，或稍后重试。</value></data>
+  <data name="LeAudio_Result_NeedsServiceAccess" xml:space="preserve"><value>需要先授权 EncoDeck 重启蓝牙音频服务。</value></data>
+  <data name="LeAudio_Result_NotSetUp" xml:space="preserve"><value>这副耳机还没有在本电脑上完成 LE Audio 配对，请先点击“切换到 LE Audio”。</value></data>
+  <data name="Panel_AudioTransport.Text" xml:space="preserve"><value>音频连接</value></data>
+  <data name="Panel_AudioTransportClassic.Text" xml:space="preserve"><value>传统蓝牙</value></data>
+  <data name="LeAudio_QuickSwitch.Header" xml:space="preserve"><value>在耳机面板中显示“LC3 / 传统蓝牙”快速切换</value></data>
+  <data name="LeAudio_Stage_ReconnectingLeAudio" xml:space="preserve"><value>LE 链路已断开，正在重新连接传统链路，让耳机恢复 LE…</value></data>
 </root>

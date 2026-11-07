@@ -2,6 +2,10 @@
 
 以下为当前开发版的设备与功能列表；正式版以对应版本为准。同一行设备具有相同的功能范围。实际可用项仍取决于固件和设备返回的能力；目前主要在 OPPO Enco X4 上完成真机验证。除特别注明外，其他品牌的验证均为字节向量和模拟设备测试，不代表真机验证。
 
+## EarFun / ATVEL
+
+新增 23 条 GAIA / EF 型号记录，包含 **EarFun Air Pro 4+ (TW700)**、Air Pro 4、4+AI、5、3、4i、Free Pro 3、Free 2S、Air S、Air 2 NC、Air Life、OpenJump、Clip、Clip 2、Wave Pro X、Wave Life、Tune Pro、Wave Pro 2 及硬件变体、ATVEL Tune S5 ProX。电量和固件只读；控制功能按型号直接提供，无需开启实验性功能，每次写入都读回确认。仍在收集真机反馈。协议事实取自 [EarKit](https://github.com/ChuiFeng-wind/EarKit/tree/a77acd18890a5f28746c2303bfff0e23fff8d8ca)（MIT），经 Windows 已配对设备的 SPP RFCOMM 控制。按型号提供降噪／通透及子模式、游戏模式、双设备开关、入耳检测、固定空间音频、25% 步进的提示音量、自动关机、查找、触控手势、按耳禁用触控、通话麦克风（高通方案型号）、耳机端 LDAC／aptX Adaptive／aptX Lossless 开关，以及已配对设备列表（查看、连接、断开）、自定义 EQ 曲线与预设、恢复出厂。LDAC 与双设备连接互斥，开启任一项会先关闭另一项；Air Pro 4、4+、5、4i、Wave Pro X、Clip 2 开启双设备连接（Clip 任意切换）时耳机会重启，EncoDeck 随后自动重连。设备列表只含部分地址和截短的名称，耳机不支持从列表删除设备。EarFun 只经传统蓝牙控制，EncoDeck 不维持它的 LE 链路；只有 Windows 为它提供了 LE Audio 输出时才显示 LE Audio。EQ 只写不读：十段型号（GAIA 及 EF）按 ±6 dB、0.5 dB 一档写入，六段型号（Air S、Free 2S、ATVEL Tune S5 ProX）按 ±10 dB 整数 dB 写入，预设只是套用到这条曲线的起点；耳机不回报当前曲线，EncoDeck 显示并保存自己上次发送的曲线，在其他 App 里修改后不会同步。恢复出厂须在设备页二次确认，耳机会清除所有配对，需在 Windows 里删除后重新配对。设置回报的解析与 EarKit 一致：Air Pro 4+ 入耳检测只看低四位，自动关机回报 0 视为“从不”，手势回报按固定位置读取、忽略多余字节；启动时没有应答的设置会在之后三次刷新中再询问。不提供 OTA 和专用 BLE／COM 回退。13 条精确官网照片由 EncoAPI 提供，缺图不借用其他型号；未取得经核查的官方开盖动画。
+
 ## OPPO / 一加 / realme / DIZO
 
 
@@ -43,9 +47,16 @@
 | OPPO Enco Air4、OPPO Enco Buds3 Pro+、OPPO Enco Air4s | 电量、充电状态、降噪、通透、预设 EQ、空间音频、游戏模式、手势设置、双设备连接、查找耳机、固件信息 |
 | OPPO Enco Buds3、OPPO Enco Air4（新声版）、OPPO Enco R5、OPPO Enco xiapu OF | 电量、充电状态、预设 EQ、空间音频、游戏模式、手势设置、双设备连接、查找耳机、提示音量、固件信息 |
 | OPPO Enco Air5、OPPO Enco ohm DO、OPPO Enco ohm EX、OPPO Enco ohm | 电量、充电状态、降噪、通透、降噪档位、预设 EQ、自定义 EQ、空间音频、游戏模式、佩戴检测开关、手势设置、双设备连接、查找耳机、贴合度检测、提示音量、固件信息 |
-| realme Buds Wireless 6 Neo、realme Buds Wireless 6、realme Buds Air 3S、realme Buds T300、realme Buds N1 Pro、realme Buds T310、realme Buds N1、realme Buds T200、realme Buds Clip、realme TechLife Buds、realme Buds T500 | 电量、充电状态、查找耳机、固件信息 |
+| realme Buds Wireless 6 Neo、realme Buds Wireless 6、realme Buds Air 3S、realme Buds N1 Pro、realme Buds N1、realme TechLife Buds、realme Buds T500 | 电量、充电状态、查找耳机、固件信息 |
+| realme Buds T300、realme Buds T200 | 电量、充电状态、降噪、通透、预设 EQ、查找耳机、固件信息 |
+| realme Buds T310 | 电量、充电状态、降噪、通透、降噪档位、预设 EQ、查找耳机、固件信息 |
+| realme Buds Clip | 电量、充电状态、预设 EQ、查找耳机、固件信息 |
 | OnePlus Buds N | 电量、充电状态、预设 EQ、自定义 EQ、手势设置、查找耳机、固件信息 |
-| realme Buds Air 5 Pro、realme Buds Air 5、realme Buds Air6 Pro、realme Buds Air6、realme Buds Air7、realme Buds Air7 Pro、realme Buds T500 Pro、realme Buds Air8、realme Buds Air8 Pro、realme Buds T500 Pro Harry Potter Edition | 电量、充电状态、佩戴检测开关、查找耳机、固件信息 |
+| realme Buds Air6 Pro、realme Buds Air6、realme Buds Air7、realme Buds Air7 Pro、realme Buds T500 Pro、realme Buds Air8 | 电量、充电状态、降噪、通透、降噪档位、预设 EQ、佩戴检测开关、查找耳机、固件信息 |
+| realme Buds Air 5 Pro、realme Buds Air8 Pro | 电量、充电状态、降噪、通透、降噪档位、佩戴检测开关、查找耳机、固件信息 |
+| realme Buds Air 5、realme Buds T500 Pro Harry Potter Edition | 电量、充电状态、佩戴检测开关、查找耳机、固件信息 |
+
+realme 耳机的降噪与预设 EQ 按 [QuickBuds](https://github.com/spizganed/QuickBuds) 和 Gadgetbridge 记录的协议实现，上表只列出有用户在真机上确认过的型号。其他 realme 型号（如 Buds Wireless 3、T200x、T500 Pro Harry Potter Edition、TechLife Buds T500 Pro）的降噪和 EQ 暂列为实验功能，等待用户反馈。写入前会检查耳机上报的能力，写入后读回确认。
 
 ### Enco X4 验证状态
 
@@ -137,7 +148,7 @@ X4（固件 116/116/100）是唯一完成真机验证的 OPPO 型号。“读取
 | HUAWEI FreeLace Pro 2 | 电量、充电状态、降噪、通透（标准 / 人声增强）、降噪档位、游戏模式、双设备连接及设备列表 | 全部列出项（OpenFreebuds） |
 | HUAWEI Eyewear 2 | 电量、充电状态、游戏模式 | 电量、游戏模式（HuaweiPods） |
 
-所有型号另有独立空间音频 / 头部跟踪，仅在耳机返回状态后开放。
+所有型号另有独立空间音频（关闭 / 固定 / 头部跟踪）：连接时只读查询一次，耳机返回有效状态后在主页和音效页开放，每次切换都以回读确认。FreeClip 2（含典藏版）、FreeBuds 7 / 7i / Pro 5 有社区写入回读记录（HuaweiPods、OpenFreebuds vicrodh 分支）；其他型号使用相同编码。某个模式写入后回读不一致或耳机返回错误时，本次连接内隐藏该模式（“关闭”始终保留），重新连接后再试。
 
 - 写入一律以回读确认：耳机对写入的应答（结果码 100000）只表示已收到，不作为设置成功；其他结果码视为拒绝。部分固件（如 Pro 5 的降噪）写入后不应答，EncoDeck 不等待应答，并在首次回读仍为旧值时重读两次。
 - 预设 EQ 只显示耳机自己列出的预设；耳机正在使用自定义 EQ 或未知预设时显示原始编号，不套用名称。自定义 EQ 编辑、手势、单耳降噪、防风噪、高清音质未适配。
@@ -249,6 +260,7 @@ EQ：LE Audio 下设备只上报预设 id，EncoDeck 按编号显示名称（Off
 | EDIFIER W200BT Plus | 电量；预设音效、定时关机（耳机回读后显示）；无降噪 |
 | EDIFIER W200BT | 电量、降噪、通透 |
 | EDIFIER W860NB PRO | 电量；深度 / 舒适 / 防风降噪、环境声、关闭 |
+| EDIFIER W830NB | 电量；降噪暂不支持 |
 | 漫步者・花再 Evo Pro | 左右耳电量；降噪、防风降噪、环境声、关闭 |
 | EDIFIER FitBuds Turbo | 左右耳电量；降噪、防风降噪、环境声、关闭；游戏模式 |
 | EDIFIER FitClip Ultra | 左右耳电量、游戏模式；无降噪 |
@@ -257,7 +269,7 @@ EQ：LE Audio 下设备只上报预设 id，EncoDeck 按编号显示名称（Off
 
 真无线型号按型号使用 SPP 或 GATT 控制通道（Lolli Pods Pro 仅 GATT），连接后先用只读状态查询协商帧版本，不发送控制命令试探。电量来自 TWS 状态查询，离线（0）和不可用（255）不显示为 0%；只有单耳在线时不保留另一耳的旧读数。Lolli / Atom 等 28 款目录真无线型号均未真机验证，暂不支持充电状态、降噪档位和 EQ。
 
-头戴与社区记录型号的证据：W820NB、W820NB 双金标版、W200BT Plus 有社区真机测试或完整抓包（mEDIFIER、Macifier）；W860NB PRO、花再 Evo Pro、FitBuds Turbo、FitClip Ultra 有社区真机记录（HyperEars）；X5 Pro 有社区贡献者的电量与降噪测试（BudsLink），游戏模式和佩戴检测没有应答样本，因此只在开启实验功能后提供。EncoDeck 未在这些型号上真机验证。
+头戴与社区记录型号的证据：W820NB、W820NB 双金标版、W200BT Plus 有社区真机测试或完整抓包（mEDIFIER、Macifier）；W860NB PRO、花再 Evo Pro、FitBuds Turbo、FitClip Ultra 有社区真机记录（HyperEars）；W830NB 有社区真机抓包（devicePEQ），确认使用 BES 新协议与异或编码，降噪数据格式尚无记录；X5 Pro 有社区贡献者的电量与降噪测试（BudsLink），游戏模式和佩戴检测没有应答样本，因此只在开启实验功能后提供。EncoDeck 未在这些型号上真机验证。
 
 - 每项设置都先查询，耳机给出有效应答后才显示；写入后再次查询确认，耳机未采用时提示失败并保留原值。
 - 定时关机只提供 5 / 15 / 30 分钟、1 / 3 小时与关闭；关闭使用单独的取消命令，不会发送 0 分钟（会立即关机）。

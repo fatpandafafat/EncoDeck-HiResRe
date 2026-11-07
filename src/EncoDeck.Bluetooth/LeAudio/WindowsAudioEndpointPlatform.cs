@@ -196,6 +196,16 @@ public sealed class WindowsAudioEndpointPlatform : IAudioEndpointPlatform
     [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
     private static extern int CM_Get_DevNode_PropertyW(uint devInst, ref DevPropKey key, out uint propertyType, IntPtr buffer, ref uint size, uint flags);
 
+    /// <summary>
+    /// The MMDevice endpoint id that IMMDeviceEnumerator::GetDevice takes ({0.0.0.…}.{guid} for render,
+    /// {0.0.1.…}.{guid} for capture) from an SWD\MMDEVAPI instance id.
+    /// </summary>
+    public static string ToMmDeviceId(string instanceId)
+    {
+        int index = instanceId.IndexOf("{0.0.", StringComparison.OrdinalIgnoreCase);
+        return index >= 0 ? instanceId[index..] : instanceId;
+    }
+
     private static string ToAudioEndpointId(string instanceId)
     {
         int index = instanceId.IndexOf("{0.0.0.", StringComparison.OrdinalIgnoreCase);
@@ -218,6 +228,57 @@ public sealed class WindowsAudioEndpointPlatform : IAudioEndpointPlatform
         // Sound settings' "Disable" sets the high bit (observed 0x10000001); keep the endpoint
         // enumerated so Show can restore it.
         return state;
+    }
+
+    /// <summary>Whether <paramref name="endpoint"/> is Windows' default playback device (multimedia role).</summary>
+    public static bool IsDefaultRender(AudioEndpointInfo? endpoint)
+    {
+        if (endpoint is null) return false;
+        var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+        try
+        {
+            if (enumerator.GetDefaultAudioEndpoint(0, 1, out var device) != 0 || device is null) return false; // eRender, eMultimedia
+            try
+            {
+                return device.GetId(out string id) == 0
+                    && string.Equals(id, ToAudioEndpointId(endpoint.InstanceId), StringComparison.OrdinalIgnoreCase);
+            }
+            finally { Marshal.ReleaseComObject(device); }
+        }
+        finally { Marshal.ReleaseComObject(enumerator); }
+    }
+
+    /// <summary>
+    /// Makes an earbuds' playback endpoint (LE Audio or Classic A2DP) Windows' default for every role. Used when the
+    /// output the user listened on was replaced by the other kind: Windows falls back to another device meanwhile.
+    /// </summary>
+    public static bool SetDefaultRender(AudioEndpointInfo endpoint)
+    {
+        if (endpoint.Kind is not (AudioEndpointKind.LeAudioRender or AudioEndpointKind.ClassicA2dpRender) || endpoint.IsDisabled) return false;
+        string id = ToAudioEndpointId(endpoint.InstanceId);
+        bool ok = true;
+        for (int role = 0; role < 3; role++) ok &= PolicyConfig.SetDefaultEndpoint(id, role) == 0; // console, multimedia, communications
+        return ok;
+    }
+
+    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IMMDeviceEnumerator
+    {
+        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices);
+        [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
+    }
+
+    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IMMDevice
+    {
+        [PreserveSig] int Activate(ref Guid iid, int context, IntPtr parameters, out IntPtr instance);
+        [PreserveSig] int OpenPropertyStore(int access, out IntPtr properties);
+        [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
+    }
+
+    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+    private class MMDeviceEnumerator
+    {
     }
 
     private static class PolicyConfig

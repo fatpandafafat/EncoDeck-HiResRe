@@ -23,6 +23,7 @@ $status = Invoke-RestMethod "$api/submissions/$SubmissionId/status" -Headers $he
 Write-Host "Submission $SubmissionId status: $($status.status)"
 Write-Host "Pending submission: $($app.pendingApplicationSubmission.id)"
 Write-Host "Published submission: $($app.lastPublishedApplicationSubmission.id)"
+if ($status.statusDetails) { $status.statusDetails | ConvertTo-Json -Depth 10 | Write-Host }
 if ($Action -eq 'Status') { return }
 
 # Delete only the exact pending submission explicitly named by the operator.

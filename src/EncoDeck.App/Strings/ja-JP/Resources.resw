@@ -76,6 +76,9 @@
   <data name="Eq_DynaudioOriginal" xml:space="preserve"><value>Dynaudio オリジナルサウンド</value></data>
   <data name="Eq_DynaudioHiRes" xml:space="preserve"><value>Dynaudio ハイレゾ</value></data>
   <data name="Eq_PureVocals" xml:space="preserve"><value>クリアボーカル</value></data>
+  <data name="Eq_RealmePureRaw" xml:space="preserve"><value>ピュアロー</value></data>
+  <data name="Eq_RealmeDeepBass" xml:space="preserve"><value>ディープベース</value></data>
+  <data name="Eq_RealmePureBass" xml:space="preserve"><value>ピュアベース</value></data>
   <data name="Eq_CrispHighs" xml:space="preserve"><value>クリアな高音</value></data>
   <data name="Eq_ThunderingBass" xml:space="preserve"><value>迫力の低音</value></data>
   <data name="Eq_UnknownPreset" xml:space="preserve"><value>プリセット {0}</value></data>
@@ -141,9 +144,21 @@
   <data name="Sound_DeviceEq.Text" xml:space="preserve"><value>イヤホンのイコライザー</value></data>
   <data name="Sound_BandEditor.Text" xml:space="preserve"><value>カスタムカーブ</value></data>
   <data name="Sound_Spatial.Text" xml:space="preserve"><value>空間オーディオ</value></data>
+  <data name="Sound_Empty_Title.Text" xml:space="preserve"><value>利用できるサウンド設定はありません</value></data>
+  <data name="Sound_Empty_Body.Text" xml:space="preserve"><value>EncoDeck はこのイヤホンの EQ、低音、空間オーディオをまだ調整できません。</value></data>
   <data name="Controls_Title.Text" xml:space="preserve"><value>操作</value></data>
   <data name="Controls_Settings.Text" xml:space="preserve"><value>その他の設定</value></data>
   <data name="Devices_Capabilities.Text" xml:space="preserve"><value>機能の対応状況</value></data>
+  <data name="Devices_Info.Text" xml:space="preserve"><value>デバイス情報</value></data>
+  <data name="Devices_Firmware.Header" xml:space="preserve"><value>ファームウェア</value></data>
+  <data name="Devices_ProductId.Header" xml:space="preserve"><value>製品 ID</value></data>
+  <data name="Devices_FactoryReset.Header" xml:space="preserve"><value>工場出荷時設定に戻す</value></data>
+  <data name="Devices_FactoryReset.Description" xml:space="preserve"><value>イヤホンのすべての設定とペアリング記録を消去します。その後、Windows の Bluetooth 設定でイヤホンを削除し、もう一度ペアリングしてください。</value></data>
+  <data name="Devices_FactoryResetButton.Content" xml:space="preserve"><value>初期化…</value></data>
+  <data name="Devices_FactoryReset_Title" xml:space="preserve"><value>工場出荷時設定に戻しますか？</value></data>
+  <data name="Devices_FactoryReset_Message" xml:space="preserve"><value>{0} のすべての設定が消去され、この PC を含め、ペアリングしたすべてのスマートフォンとコンピューターの記録が削除されます。イヤホンは再起動して切断されます。この PC で再び使うには、Windows の Bluetooth 設定でイヤホンを削除してから、ペアリングモードにしてもう一度ペアリングしてください。</value></data>
+  <data name="Devices_FactoryReset_Confirm" xml:space="preserve"><value>初期化する</value></data>
+  <data name="Devices_FactoryReset_Done" xml:space="preserve"><value>送信しました。イヤホンは再起動してペアリング記録を消去します。Windows の Bluetooth 設定でイヤホンを削除してから、もう一度ペアリングしてください。</value></data>
   <data name="Devices_Title.Text" xml:space="preserve"><value>デバイス</value></data>
   <data name="Devices_Paired.Text" xml:space="preserve"><value>ペアリング済みのイヤホン</value></data>
   <data name="Devices_None.Text" xml:space="preserve"><value>EncoDeck が対応しているペアリング済みのイヤホンがありません。Windows の Bluetooth 設定でペアリングしてください。</value></data>
@@ -244,6 +259,10 @@
   <data name="Dual_Remove" xml:space="preserve"><value>削除</value></data>
   <data name="Dual_ConnectNew_Title" xml:space="preserve"><value>新しいデバイスに接続</value></data>
   <data name="Dual_ConnectNew_Message" xml:space="preserve"><value>"{0}" に接続すると、別のデバイスが切断されます。</value></data>
+  <data name="Dual_HandOver_Title" xml:space="preserve"><value>デバイスを切り替え</value></data>
+  <data name="Dual_HandOver_Message" xml:space="preserve"><value>デュアル接続がオフのため、イヤホンは「{0}」に接続するとこの PC から切断されます。EncoDeck も切断し、自動で再接続しません。この PC に戻すには EncoDeck で［接続］を選びます。</value></data>
+  <data name="Dual_DisconnectThisPc_Title" xml:space="preserve"><value>この PC から切断</value></data>
+  <data name="Dual_DisconnectThisPc_Message" xml:space="preserve"><value>イヤホンとこの PC の接続（音声を含む）を切断します。EncoDeck は自動で再接続しません。戻すときは EncoDeck で［接続］を選びます。</value></data>
   <data name="Dual_Disconnect_Title" xml:space="preserve"><value>デバイスの切断</value></data>
   <data name="Dual_Disconnect_Message" xml:space="preserve"><value>"{0}" を切断します。</value></data>
   <data name="Dual_Remove_Title" xml:space="preserve"><value>このデバイスを削除しますか？</value></data>
@@ -420,10 +439,6 @@
   <data name="Home_DeviceTapToConnect" xml:space="preserve"><value>タップで接続</value></data>
   <data name="Home_DeviceLastConnected" xml:space="preserve"><value>前回接続済み</value></data>
   <data name="Home_DeviceNotConnected" xml:space="preserve"><value>未接続</value></data>
-  <data name="Home_DeviceThisPc_Hint" xml:space="preserve"><value>この PC の切断は Windows の Bluetooth 設定で行います</value></data>
-  <data name="Home_DeviceThisPc_Title" xml:space="preserve"><value>これはこの PC です</value></data>
-  <data name="Home_DeviceThisPc_Message" xml:space="preserve"><value>イヤホンはこの PC に接続されています。この PC を切断するには、Windows の Bluetooth 設定でイヤホンを切断してください。</value></data>
-  <data name="Home_OpenBluetoothSettings" xml:space="preserve"><value>Bluetooth 設定を開く</value></data>
   <data name="Home_DeviceDisconnect_Title" xml:space="preserve"><value>「{0}」を切断しますか？</value></data>
   <data name="Home_DeviceDisconnect_Message" xml:space="preserve"><value>イヤホンとこのデバイスとの接続が切断されます。ここから再度接続できます。</value></data>
   <data name="Settings_Artwork.Text" xml:space="preserve"><value>デバイスのアートワーク</value></data>
@@ -559,7 +574,13 @@
   <data name="Lhdc_Help.Header" xml:space="preserve"><value>LHDC の使い方</value></data>
   <data name="Lhdc_HelpRestore.Text" xml:space="preserve"><value>4. LHDC の使用をやめる前や EncoDeck をアンインストールする前に、イヤホンを選択して「Windows オーディオに戻す」を選び、管理者アクセスを承認して完了まで待ちます。EncoDeck を閉じても、LHDC のバックグラウンドサービスは停止せず、Windows オーディオも元に戻りません。</value></data>
   <data name="Lhdc_Disclaimer.Text" xml:space="preserve"><value>免責事項: LHDC は、サードパーティのオープンソースプロジェクト LHDC-Win に基づく試験的な機能です。再生、再接続、復元は実機での検証がまだ必要であり、すべてのデバイスやシステムでの互換性は保証されません。音が出ない、途切れる、手動で音声を復元する必要があるなどの問題が発生する可能性があります。ドライバーのインストールとシステム設定の変更に伴うリスクを理解し、受け入れたうえでのみご使用ください。適用法で認められる範囲において、EncoDeck およびその開発者は、これにより生じた損害について責任を負いません。</value></data>
-  <data name="DeviceConnect.Content" xml:space="preserve"><value>Windows で接続</value></data>
+  <data name="Device_ConnectThisPc" xml:space="preserve"><value>この PC に接続</value></data>
+  <data name="Device_DisconnectThisPc" xml:space="preserve"><value>この PC から切断</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>この PC に接続</value></data>
+  <data name="Panel_Connect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>この PC に接続</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>この PC から切断</value></data>
+  <data name="Panel_Disconnect.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve"><value>この PC から切断</value></data>
+  <data name="Connection_DisconnectedByUser" xml:space="preserve"><value>EncoDeck で切断済み</value></data>
   <data name="Lhdc_Guide.Content" xml:space="preserve"><value>詳しいガイド: ドライバーのセットアップと復元</value></data>
   <data name="Lhdc_Version" xml:space="preserve"><value>コンポーネントのバージョン: {0}</value></data>
   <data name="Lhdc_UpdateAvailable" xml:space="preserve"><value>LHDC コンポーネント {0} が利用可能です。更新するまでは、インストール済みのものを引き続き使用できます。</value></data>
@@ -582,7 +603,7 @@
   <data name="Bridge_Stopped" xml:space="preserve"><value>A2DPWB {0} はインストール済みです（{1}）が、バックグラウンドプロセスは実行されていません。</value></data>
   <data name="Bridge_StoreMissing" xml:space="preserve"><value>Store 版では他のプログラムのダウンロードや起動は行いません。A2DP Windows Bridge をご自身でインストールしている場合は、起動すると EncoDeck が接続して状態を表示します。</value></data>
   <data name="Bridge_StoreStart" xml:space="preserve"><value>スタートメニューから A2DP Windows Bridge を起動してください。</value></data>
-  <data name="Bridge_Missing" xml:space="preserve"><value>インストールされていません。コンポーネント（約 {0:F1} MB）は A2DPWB 公式ビルドの無改変コピーで、EncoDeck のコンポーネントリリースからダウンロードし、固定の SHA-256 で検証します。ダウンロードによってドライバーが変更されることはありません。</value></data>
+  <data name="Bridge_Missing" xml:space="preserve"><value>未インストールです。コンポーネント（約 {0:F1} MB）は A2DPWB 公式のポータブル版ビルドで、A2DPWB 公式リリースから無改変でダウンロードし、SHA-256 で検証します。更新では最新の公式 2.x ビルド（ベータ版を含む）を取得します。ダウンロードによってドライバーが変更されることはありません。</value></data>
   <data name="Bridge_Unpublished" xml:space="preserve"><value>この EncoDeck バージョン用の A2DP Bridge コンポーネントはまだ公開されていません。</value></data>
   <data name="Bridge_UpdateAvailable" xml:space="preserve"><value>コンポーネント {0} に更新できます。</value></data>
   <data name="Bridge_StandaloneLink.Content" xml:space="preserve"><value>Store 版以外をダウンロード</value></data>
@@ -760,8 +781,14 @@
   <data name="Cap_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Cap_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Cap_ChannelSwap" xml:space="preserve"><value>左右チャンネル入れ替え</value></data>
+  <data name="Cap_FactoryReset" xml:space="preserve"><value>工場出荷時設定に戻す</value></data>
   <data name="Toggle_Ldac" xml:space="preserve"><value>LDAC</value></data>
   <data name="Toggle_Ldac_Description" xml:space="preserve"><value>デバイス側の LDAC スイッチです。Windows に LDAC エンコーダーがインストールされるわけではありません。</value></data>
+  <data name="Toggle_AptXAdaptive" xml:space="preserve"><value>aptX Adaptive</value></data>
+  <data name="Toggle_AptXAdaptive_Description" xml:space="preserve"><value>デバイス側の aptX Adaptive スイッチです。Windows に aptX エンコーダーがインストールされるわけではなく、対応するスマートフォンなどの接続元で使われます。</value></data>
+  <data name="Toggle_AptXLossless" xml:space="preserve"><value>aptX Lossless</value></data>
+  <data name="Toggle_AptXLossless_Description" xml:space="preserve"><value>デバイス側の aptX Lossless スイッチです。Windows に aptX エンコーダーがインストールされるわけではなく、対応するスマートフォンなどの接続元で使われます。</value></data>
+  <data name="Toggle_Ldac_EarFun_Description" xml:space="preserve"><value>デバイス側の LDAC スイッチです。マルチポイント接続と同時にはオンにできないため、どちらかをオンにするともう一方はオフになります。Windows に LDAC エンコーダーがインストールされるわけではありません。</value></data>
   <data name="Toggle_Lc3" xml:space="preserve"><value>LC3</value></data>
   <data name="Toggle_Lc3_Description" xml:space="preserve"><value>デバイス側の LC3 コーデックスイッチです。Windows の Bluetooth 転送方式は変更されません。</value></data>
   <data name="Toggle_ChannelSwap" xml:space="preserve"><value>左右チャンネルを入れ替え</value></data>
@@ -788,16 +815,78 @@
   <data name="Connection_WaitingForLeAudio" xml:space="preserve"><value>LC3 を待機中 · ケースのボタンを長押しして再接続</value></data>
   <data name="LeAudio_Title.Text" xml:space="preserve"><value>LE Audio（LC3）接続（試験的）</value></data>
   <data name="LeAudio_Summary.Text" xml:space="preserve"><value>クラシック Bluetooth の A2DP ではなく、LE Audio と LC3 コーデックで Windows がこのイヤホンに接続できるようにします。PC の Bluetooth が LE Audio に対応している必要があります。</value></data>
-  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>LE Audio に切り替えると、EncoDeck からノイズコントロールを変更できなくなります。イヤホン本体で変更してください。</value></data>
+  <data name="LeAudio_NoiseNote.Text" xml:space="preserve"><value>Enco X4 は LE Audio に切り替えると、PC からのノイズコントロール変更を受け付けません。イヤホン本体で変更してください。</value></data>
   <data name="LeAudio_Switch" xml:space="preserve"><value>LE Audio に切り替え</value></data>
-  <data name="LeAudio_Restore" xml:space="preserve"><value>クラシック Bluetooth に戻す</value></data>
+  <data name="LeAudio_Restore" xml:space="preserve"><value>LE Audio のペアリングを削除</value></data>
   <data name="LeAudio_StatusLe" xml:space="preserve"><value>左右両方のイヤホンが LE でペアリング済みです。実際のオーディオ接続は Windows が管理します。</value></data>
   <data name="LeAudio_StatusEndpointUnknown" xml:space="preserve"><value>Windows のオーディオエンドポイントの状態を確認できませんでした。ACL/GATT の準備完了は両耳再生を保証するものではありません。</value></data>
   <data name="LeAudio_DisableClassic" xml:space="preserve"><value>クラシックのオーディオエンドポイントを無効化</value></data>
   <data name="LeAudio_EnableClassic" xml:space="preserve"><value>クラシックのオーディオエンドポイントを復元</value></data>
-  <data name="LeAudio_MicOff.Header" xml:space="preserve"><value>ヘッドセットのマイクを無効化</value></data>
-  <data name="LeAudio_MicOffNote" xml:space="preserve"><value>アプリがヘッドセットのマイクを開くと、Windows は LE Audio を双方向通話構成に切り替え、再生音質が大きく低下します。無効にすると、アプリは他のマイクしか使用できず、イヤホンはメディア品質の再生を維持します。再ペアリング後は再度オンにしてください。</value></data>
   <data name="LeAudio_MicFailed" xml:space="preserve"><value>ヘッドセットのマイクを変更できませんでした: {0}</value></data>
+  <data name="LeAudioSync_Title.Text" xml:space="preserve"><value>LE Audio 左右チャンネルの調整（試験的）</value></data>
+  <data name="LeAudioSync_Summary.Text" xml:space="preserve"><value>Intel の Bluetooth を使う一部の PC では、LE Audio のオーディオリンクを確立するたびに一定の確率で左のイヤホンが右より約 7.5 ms（1 オーディオフレーム）遅れ、音が右に寄って聞こえます。リンク確立後はずれが変わらないため、EncoDeck がリンクを保ち続け、一度耳で確認できるようにします。ずれていればそろうまでリンクを作り直します。</value></data>
+  <data name="LeAudioSync_Enable.Header" xml:space="preserve"><value>LE Audio リンクを保ち、左右を調整する</value></data>
+  <data name="LeAudioSync_Notes.Text" xml:space="preserve"><value>オンの間、EncoDeck はイヤホンの LE Audio 出力を無音で再生し続け、あとから起動したプログラムも調整済みのリンクを使います。バッテリーの消費が少し増え、スマートフォンへの切り替えに影響することがあります。リンクを作り直す前に、再生中のほかのプログラムを一時停止してください。</value></data>
+  <data name="LeAudioSync_Help.Header" xml:space="preserve"><value>しくみと制限</value></data>
+  <data name="LeAudioSync_HelpHow.Text" xml:space="preserve"><value>Windows は LE Audio リンクを確立するたびに左右がそろうかどうかが決まり、リンクが閉じるまで変わりません。「左右がそろっているか確認」は、同じリンクで左右まったく同じクリック音を再生します。そろっていれば頭の真ん中で聞こえ、1 フレームずれていると片側に寄るか 2 回に聞こえます。その場合は「片側に寄る／2 回に聞こえる」をクリックすると、EncoDeck がリンクを作り直してもう一度再生します。通常 1～2 回でそろいます。</value></data>
+  <data name="LeAudioSync_HelpLimits.Text" xml:space="preserve"><value>イヤホンが再接続されたときや、プログラムがイヤホンのマイクを使ったとき（通話、ゲームのボイスチャット）は Windows がリンクを作り直すため、もう一度確認するよう表示します。Intel の Bluetooth で、LE Audio が Intel スマート・サウンド・テクノロジー（SST）経由で動作する PC 専用です。</value></data>
+  <data name="LeAudioSync_Check" xml:space="preserve"><value>左右がそろっているか確認</value></data>
+  <data name="LeAudioSync_CheckPrompt" xml:space="preserve"><value>テスト音（左右まったく同じクリック音）を再生しています。頭の真ん中で聞こえますか？</value></data>
+  <data name="LeAudioSync_Centered" xml:space="preserve"><value>真ん中で聞こえる</value></data>
+  <data name="LeAudioSync_Offset" xml:space="preserve"><value>片側に寄る／2 回に聞こえる</value></data>
+  <data name="LeAudioSync_Support_Checking" xml:space="preserve"><value>この PC が対応しているか確認しています…</value></data>
+  <data name="LeAudioSync_Support_Supported" xml:space="preserve"><value></value></data>
+  <data name="LeAudioSync_Support_NoRadio" xml:space="preserve"><value>Bluetooth アダプターが見つかりません。</value></data>
+  <data name="LeAudioSync_Support_NotIntel" xml:space="preserve"><value>この PC の Bluetooth は Intel 製ではないため、この機能は使えません。</value></data>
+  <data name="LeAudioSync_Support_NoIntelOffload" xml:space="preserve"><value>この PC の LE Audio は Intel スマート・サウンド・テクノロジー（SST）経由で動作していないため、この機能は使えません。</value></data>
+  <data name="LeAudioSync_Status_WaitingForDevice" xml:space="preserve"><value>LE Audio イヤホン（左右とも接続）を待っています。</value></data>
+  <data name="LeAudioSync_Status_NeedsCheck" xml:space="preserve"><value>LE Audio リンクを保っていますが、左右がそろっているかはまだ確認していません。</value></data>
+  <data name="LeAudioSync_Status_Checking" xml:space="preserve"><value>テスト音を再生しています…</value></data>
+  <data name="LeAudioSync_Status_Aligned" xml:space="preserve"><value>左右はそろっています。リンクを保っています。</value></data>
+  <data name="LeAudioSync_Status_Rebuilding" xml:space="preserve"><value>オーディオリンクを作り直しています（{0} 回目）…</value></data>
+  <data name="LeAudioSync_Status_WaitingForIdle" xml:space="preserve"><value>ほかのプログラムが再生中です。一時停止するとリンクを作り直します。</value></data>
+  <data name="LeAudioSync_Status_MicrophoneInUse" xml:space="preserve"><value>プログラムがイヤホンのマイクを使っているため、Windows が通話用のリンクに切り替えました。マイクが閉じたらもう一度確認してください。</value></data>
+  <data name="LeAudioCodec_Title.Text" xml:space="preserve"><value>LE Audio ビットレートと遅延（試験運用）</value></data>
+  <data name="LeAudioCodec_Summary.Text" xml:space="preserve"><value>Windows は LE Audio イヤホンに固定の LC3 プリセット（通常は 96 kbps、7.5 ms）を使い、伝送方式も自分で決めます（ゲーム中は遅延優先、それ以外は安定性優先）。ここでは別の標準プリセット（124.8 kbps など）を選んだり、伝送方式を固定したりできます。EncoDeck が Windows の Bluetooth オーディオ サービス内で要求される構成を置き換えるため、管理者権限が必要です。</value></data>
+  <data name="LeAudioCodec_Preset.Header" xml:space="preserve"><value>LC3 プリセット（48 kHz、片耳のビットレート）</value></data>
+  <data name="LeAudioCodec_PresetDefault" xml:space="preserve"><value>Windows の既定（変更しない）</value></data>
+  <data name="LeAudioCodec_PresetFormat" xml:space="preserve"><value>{0} kbps · {1} ms</value></data>
+  <data name="LeAudioCodec_Latency" xml:space="preserve"><value>遅延：LC3 の符号化は約 {0} ms。リンクの伝送は Windows が決め、上限はゲーム中 {1} ms、それ以外は {2} ms です。さらにイヤホン側に {3} ms の再生バッファーがあります。ビットレートはパケットの大きさを変えるだけで、遅延にはほとんど影響しません。</value></data>
+  <data name="LeAudioCodec_NoCall.Header" xml:space="preserve"><value>通話モードに切り替えない（イヤホンのマイクを無効化）</value></data>
+  <data name="LeAudioCodec_NoCallNote.Text" xml:space="preserve"><value>ゲームのボイスチャットや通話アプリの音も他の音と同じ高音質リンクで再生され、イヤホンが通話構成（音質の急低下、マイク チャンネル）に切り替わらなくなります。イヤホンのマイクも無効になり、プログラムからは見えなくなります。音声には別のマイクを使ってください。オンにした後、イヤホンを充電ケースに戻して取り出す（一度再接続する）と有効になります。</value></data>
+  <data name="LeAudioCodec_NoCallName" xml:space="preserve"><value>通話モードなし</value></data>
+  <data name="LeAudioCodec_Result_NoCallReconnect" xml:space="preserve"><value>「通話モードに切り替えない」は、イヤホンを充電ケースに戻して取り出した（一度再接続した）後に有効になります。</value></data>
+  <data name="LeAudioCodec_Result_SymbolsUnavailable" xml:space="preserve"><value>この PC の Windows Bluetooth オーディオ コンポーネントの公開シンボルを Microsoft のシンボル サーバーからダウンロードできませんでした（インターネット接続が必要、約 12 MB）。しばらくしてからもう一度お試しください。</value></data>
+  <data name="LeAudioCodec_Mode.Header" xml:space="preserve"><value>伝送方式</value></data>
+  <data name="LeAudioCodec_Mode_Auto" xml:space="preserve"><value>自動（Windows が決定：ゲーム中は遅延優先、それ以外は安定性優先）</value></data>
+  <data name="LeAudioCodec_Mode_LowLatency" xml:space="preserve"><value>遅延優先（常に低遅延。電波干渉が多いと途切れやすい）</value></data>
+  <data name="LeAudioCodec_Mode_HighReliability" xml:space="preserve"><value>安定性優先（常に再送を多く。途切れにくいが遅延は大きい）</value></data>
+  <data name="LeAudioCodec_ModeName_Auto" xml:space="preserve"><value>自動</value></data>
+  <data name="LeAudioCodec_ModeName_LowLatency" xml:space="preserve"><value>遅延優先</value></data>
+  <data name="LeAudioCodec_ModeName_HighReliability" xml:space="preserve"><value>安定性優先</value></data>
+  <data name="LeAudioCodec_Latency_Fixed" xml:space="preserve"><value>遅延：LC3 の符号化は約 {0} ms。リンクの伝送は上限 {1} ms・最大 {2} 回の再送に固定されます。さらにイヤホン側に {3} ms の再生バッファーがあります。</value></data>
+  <data name="LeAudioCodec_LinkFormat" xml:space="preserve"><value>{0} kbps · {1} ms · {2}（伝送上限 {3} ms、最大 {4} 回再送）</value></data>
+  <data name="LeAudioCodec_Link" xml:space="preserve"><value>現在のリンク：{0}（{1} に確立）。</value></data>
+  <data name="LeAudioCodec_LinkUnknown" xml:space="preserve"><value>現在のリンク：まだ記録がありません。次に LE Audio リンクが作られると表示されます。</value></data>
+  <data name="LeAudioCodec_Status_Pending" xml:space="preserve"><value>適用しました。Windows が次に LE Audio リンクを作るのを待っています（すべての再生を 5 秒以上止めるか、ゲームを開始・終了してください）。有効になると通知が表示されます。</value></data>
+  <data name="LeAudioCodec_HelpModes.Text" xml:space="preserve"><value>伝送方式：Windows はゲーム音声を再生しているプログラムがあると低遅延の伝送（リンク上限 15 ms、最大 5 回再送。実測約 12 ms）、それ以外では安定性重視の伝送（上限 75 ms、最大 13 回再送。実測約 48 ms）を使います。ゲームの音が始まる・止まるとこれを切り替えてリンクを作り直します。「遅延優先」か「安定性優先」に固定すると、何を再生しても同じ伝送を使います（切り替え時にリンクは作り直されますが、設定は変わりません）。</value></data>
+  <data name="Notify_LeAudioSwitched_Title" xml:space="preserve"><value>LE Audio を切り替えました</value></data>
+  <data name="LeAudioCodec_Apply" xml:space="preserve"><value>適用（管理者権限が必要）</value></data>
+  <data name="LeAudioCodec_Applying" xml:space="preserve"><value>適用しています…</value></data>
+  <data name="LeAudioCodec_Support_ComponentMissing" xml:space="preserve"><value>EncoDeck.LeHook.dll が見つかりません。EncoDeck を再インストールしてください。</value></data>
+  <data name="LeAudioCodec_Support_UnsupportedWindows" xml:space="preserve"><value>この PC の Windows Bluetooth オーディオ コンポーネントに変更すべき箇所が見つかりません（Windows Update で変わった可能性があります）。安全のため変更しません。</value></data>
+  <data name="LeAudioCodec_Status_Default" xml:space="preserve"><value>Windows の既定のプリセットを使っています。</value></data>
+  <data name="LeAudioCodec_Status_Active" xml:space="preserve"><value>適用済み：{0}。</value></data>
+  <data name="LeAudioCodec_Status_Lost" xml:space="preserve"><value>前回 {0} を適用しましたが、その後 Windows の Bluetooth オーディオ サービスが再起動しました（再起動、サインアウト、Bluetooth のオフ）。既定に戻っているので、もう一度適用してください。</value></data>
+  <data name="LeAudioCodec_Result_Ok" xml:space="preserve"><value>適用しました。次に LE Audio リンクが作られたときに有効になり、そのとき通知が表示されます。</value></data>
+  <data name="LeAudioCodec_Result_OkRebuilt" xml:space="preserve"><value>適用しました。リンクを作り直しています。有効になると通知が表示されます。作り直したあと、上の左右チャンネル調整カードでもう一度確認してください。</value></data>
+  <data name="LeAudioCodec_Result_Declined" xml:space="preserve"><value>キャンセルしました：管理者権限が得られませんでした。</value></data>
+  <data name="LeAudioCodec_Result_ServiceNotRunning" xml:space="preserve"><value>Windows の Bluetooth オーディオ サービスが動いていません。LE Audio イヤホンを接続してから適用してください。</value></data>
+  <data name="LeAudioCodec_Result_Failed" xml:space="preserve"><value>適用できませんでした（{0}）。詳しいログは {1} にあります。</value></data>
+  <data name="LeAudioCodec_Notes.Text" xml:space="preserve"><value>変更は Windows の Bluetooth オーディオ サービスが再起動するまで有効です（再起動、サインアウト、Bluetooth のオフ後はもう一度適用）。システム ファイルは変更しません。適用後に音が出ない、ノイズが出る場合は、イヤホンか PC の Bluetooth オーディオ ハードウェアがそのプリセットに対応していません。「Windows の既定」を選んで適用してください。</value></data>
+  <data name="LeAudioCodec_Help.Header" xml:space="preserve"><value>仕組みと制限</value></data>
+  <data name="LeAudioCodec_HelpHow.Text" xml:space="preserve"><value>Windows は LE Audio リンクを作るとき、まずイヤホンの対応範囲から LC3 構成を選び、次にそれに合う伝送設定（SDU のサイズ、間隔、遅延）を探します。EncoDeck はこの 2 か所でフレーム長と 1 フレームのバイト数を選んだプリセットに置き換えるので、両者は一致し、イヤホン、Windows、ハードウェア エンコーダーがすべて新しいプリセットで動きます。Bluetooth BAP 仕様の標準プリセット（48_1～48_5）のみを用意しています。</value></data>
+  <data name="LeAudioCodec_HelpLimits.Text" xml:space="preserve"><value>48 kHz のみ対応です。EncoDeck は Windows のバージョンに縛られません。初回利用時に Microsoft の公開シンボル サーバーからこの PC の Windows Bluetooth オーディオ コンポーネントのシンボル（約 12 MB、以後キャッシュ）をダウンロードし、変更すべき 2 か所を名前で探して先頭の命令を 1 つずつ確認します。見つからない、または一致しない場合（Windows Update で書き換えられた場合など）はこのカードを表示せず、何も変更しません。イヤホンが選んだプリセットに対応している必要があります。ビットレートが高いほど Bluetooth の電波を多く使うため、同じ Bluetooth アダプターにつないだコントローラーやキーボード、マウスが影響を受けやすくなります。</value></data>
   <data name="LeAudio_Endpoint_Disabled" xml:space="preserve"><value>クラシック A2DP のレンダリングエンドポイントを無効にしました。サウンド設定で LE Audio の「スピーカー」エンドポイントを選択してください。</value></data>
   <data name="LeAudio_Endpoint_AlreadyLeAudioOnly" xml:space="preserve"><value>クラシック A2DP エンドポイントは既に無効になっています。</value></data>
   <data name="LeAudio_Endpoint_NoClassicEndpoint" xml:space="preserve"><value>無効にできるクラシック A2DP エンドポイントが見つかりませんでした。</value></data>
@@ -844,9 +933,9 @@
   <data name="LeAudio_Help.Header" xml:space="preserve"><value>LE Audio について</value></data>
   <data name="LeAudio_Guide.Content" xml:space="preserve"><value>ガイドと仕組みを読む</value></data>
   <data name="LeAudio_HelpRequirements.Text" xml:space="preserve"><value>Windows 11 24H2 以降と、LE Audio に対応した Bluetooth アダプターおよびドライバー（Intel の「Smart Sound Technology for Bluetooth LE Audio」など）が必要です。[設定] → [Bluetooth とデバイス] → [デバイス] で「利用可能な場合は LE Audio を使用する」をオンにすることをお勧めします。</value></data>
-  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>このイヤホンは Windows の「デバイスの追加」に LE デバイスとして表示されないため、そこからのペアリングはクラシック Bluetooth になります。EncoDeck はイヤホンの LE アドレスに直接ペアリングし、Windows が関連するクラシックのペアリング情報を生成します。LE Audio 接続中、EncoDeck は GATT による制御のみを使用します。もう片方のイヤホンのアドレスは、1 つ目のイヤホンのアドバタイズから読み取ります。イヤホン本体の設定は一切変更しません。</value></data>
+  <data name="LeAudio_HelpSwitch.Text" xml:space="preserve"><value>このイヤホンは Windows の「デバイスの追加」に LE デバイスとして表示されないため、そこからのペアリングはクラシック Bluetooth になります。EncoDeck はイヤホンの LE アドレスに直接ペアリングし、Windows が関連するクラシックのペアリング情報を生成します。LE Audio 接続中、EncoDeck はこのクラシック ペアリングの制御チャネル（RFCOMM）でイヤホンを制御し、クラシック リンクも維持します。クラシック リンクが切れると、イヤホンは LE リンクも切断するためです。もう片方のイヤホンのアドレスは、1 つ目のイヤホンのアドバタイズから読み取ります。イヤホン本体の設定は一切変更しません。</value></data>
   <data name="LeAudio_HelpLimits.Text" xml:space="preserve"><value>切り替え後、もう片方のイヤホンは Bluetooth 設定に同じ名前で別項目として表示されます。LE Audio 接続中も EncoDeck は GATT でイヤホンを制御するため、ノイズコントロールやバッテリーなどの機能は引き続き使用できます。既知の問題: 再生開始時に、片方のイヤホンがもう片方より約 7.5 ms 遅れ、音が片側に寄ることがあります。すべての音声を数秒間停止してから再生し直すと揃います。</value></data>
-  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>クラシック Bluetooth に戻すには、「クラシック Bluetooth に戻す」をクリックしてこの PC 上のイヤホンのペアリングを削除します。削除後、イヤホンをペアリングモードにして、Windows の Bluetooth 設定の「デバイスの追加」から手動でペアリングしてください。EncoDeck はクラシック Bluetooth のペアリングを自動では行いません。</value></data>
+  <data name="LeAudio_HelpRestore.Text" xml:space="preserve"><value>LE Audio のペアリング後は、「クラシック Bluetooth を使う」と「LC3 を使う」でいつでも切り替えられ、ペアリングは削除されません。切り替えでは Windows の Bluetooth オーディオ サービスを再起動するため、初回だけ許可が必要です。「LE Audio のペアリングを削除」はこの PC 上のイヤホンのペアリングを削除します。削除後、イヤホンをペアリングモードにして、Windows の Bluetooth 設定の「デバイスの追加」から手動でペアリングしてください。EncoDeck はクラシック Bluetooth のペアリングを自動では行いません。</value></data>
   <data name="Honor_Anc_Cozy" xml:space="preserve"><value>快適</value></data>
   <data name="Honor_Anc_General" xml:space="preserve"><value>標準</value></data>
   <data name="Honor_Anc_Ultra" xml:space="preserve"><value>強</value></data>
@@ -930,6 +1019,30 @@
   <data name="Nothing_Eq_EnhanceVocals" xml:space="preserve"><value>ボーカル強調</value></data>
   <data name="Nothing_Eq_Classical" xml:space="preserve"><value>クラシック</value></data>
   <data name="Eq_DeviceCustom" xml:space="preserve"><value>カスタム EQ</value></data>
+  <data name="Eq_BandPreset.PlaceholderText" xml:space="preserve"><value>プリセットを適用</value></data>
+  <data name="Eq_WriteOnlyNote.Text" xml:space="preserve"><value>このイヤホンは現在の EQ を報告しません。ここに表示されるのは EncoDeck が最後に送信したカーブです。他のアプリで変更しても反映されず、どの帯域を動かしてもカーブ全体が再送信されます。</value></data>
+  <data name="EarFunEq_Flat" xml:space="preserve"><value>フラット</value></data>
+  <data name="EarFunEq_Rock" xml:space="preserve"><value>ロック</value></data>
+  <data name="EarFunEq_Pop" xml:space="preserve"><value>ポップ</value></data>
+  <data name="EarFunEq_Country" xml:space="preserve"><value>カントリー</value></data>
+  <data name="EarFunEq_RnB" xml:space="preserve"><value>R&amp;B</value></data>
+  <data name="EarFunEq_Classical" xml:space="preserve"><value>クラシック</value></data>
+  <data name="EarFunEq_Jazz" xml:space="preserve"><value>ジャズ</value></data>
+  <data name="EarFunEq_Electronic" xml:space="preserve"><value>エレクトロニック</value></data>
+  <data name="EarFunEq_Dance" xml:space="preserve"><value>ダンス</value></data>
+  <data name="EarFunEq_HipHop" xml:space="preserve"><value>ヒップホップ</value></data>
+  <data name="EarFunEq_Metal" xml:space="preserve"><value>メタル</value></data>
+  <data name="EarFunEq_Blues" xml:space="preserve"><value>ブルース</value></data>
+  <data name="EarFunEq_Soul" xml:space="preserve"><value>ソウル</value></data>
+  <data name="EarFunEq_Hits" xml:space="preserve"><value>ヒット</value></data>
+  <data name="EarFunEq_Latin" xml:space="preserve"><value>ラテン</value></data>
+  <data name="EarFunEq_Natural" xml:space="preserve"><value>ナチュラル</value></data>
+  <data name="EarFunEq_VocalBoost" xml:space="preserve"><value>ボーカル強調</value></data>
+  <data name="EarFunEq_VocalReduce" xml:space="preserve"><value>ボーカル抑制</value></data>
+  <data name="EarFunEq_BassBoost" xml:space="preserve"><value>低音強調</value></data>
+  <data name="EarFunEq_BassReduce" xml:space="preserve"><value>低音抑制</value></data>
+  <data name="EarFunEq_TrebleBoost" xml:space="preserve"><value>高音強調</value></data>
+  <data name="EarFunEq_TrebleReduce" xml:space="preserve"><value>高音抑制</value></data>
   <data name="Eq_DevicePreset" xml:space="preserve"><value>プリセット {0}</value></data>
   <data name="Sennheiser_EqOff" xml:space="preserve"><value>オフ</value></data>
   <data name="Sennheiser_EqPodcast" xml:space="preserve"><value>ポッドキャスト</value></data>
@@ -1017,7 +1130,133 @@
   <data name="UsbEq_Custom" xml:space="preserve"><value>カスタム</value></data>
   <data name="AutoOff_Minutes" xml:space="preserve"><value>{0} 分後</value></data>
   <data name="AutoOff_IdleDescription" xml:space="preserve"><value>選択した時間アイドル状態が続くと、ヘッドホンの電源をオフにします</value></data>
-  <data name="Codec_ReportedDescription" xml:space="preserve"><value>オーディオコーデック: {0}</value></data>
   <data name="Codec_BridgeDescription" xml:space="preserve"><value>A2DP Bridge がこのイヤホンに {0} 音声を送信しています。</value></data>
-  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>LE リンクは接続済みです。音声ストリームと LC3 コーデックは未確認です。</value></data>
+  <data name="Codec_LeAudioDescription" xml:space="preserve"><value>LE Audio で再生しています。コーデックは LC3 です。</value></data>
+  <data name="EarFun_Wind" xml:space="preserve"><value>風切り音低減</value></data>
+  <data name="EarFun_Anc1" xml:space="preserve"><value>ANC 1</value></data>
+  <data name="EarFun_EarAdaptive" xml:space="preserve"><value>外耳道に適応</value></data>
+  <data name="EarFun_Adaptive" xml:space="preserve"><value>自動調整</value></data>
+  <data name="EarFun_Level1" xml:space="preserve"><value>レベル 1（最小）</value></data>
+  <data name="EarFun_Level2" xml:space="preserve"><value>レベル 2</value></data>
+  <data name="EarFun_Level3" xml:space="preserve"><value>レベル 3</value></data>
+  <data name="EarFun_Level4" xml:space="preserve"><value>レベル 4（最大）</value></data>
+  <data name="EarFun_Manual" xml:space="preserve"><value>手動</value></data>
+  <data name="NoiseSelector_ManualLevel" xml:space="preserve"><value>手動ノイズキャンセリングの強さ</value></data>
+  <data name="EarFun_Strong" xml:space="preserve"><value>強</value></data>
+  <data name="EarFun_Balanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="EarFun_Default" xml:space="preserve"><value>標準</value></data>
+  <data name="EarFun_Natural" xml:space="preserve"><value>ナチュラル</value></data>
+  <data name="EarFun_Never" xml:space="preserve"><value>なし</value></data>
+  <data name="EarFun_Minutes" xml:space="preserve"><value>{0} 分</value></data>
+  <data name="EarFun_Sub" xml:space="preserve"><value>ノイズキャンセリングの種類</value></data>
+  <data name="EarFun_Ambient" xml:space="preserve"><value>外音取り込みの種類</value></data>
+  <data name="EarFun_AutoOff" xml:space="preserve"><value>自動電源オフ</value></data>
+  <data name="EarFun_Mic" xml:space="preserve"><value>通話マイク</value></data>
+  <data name="EarFun_MicAuto" xml:space="preserve"><value>自動</value></data>
+  <data name="EarFun_MicLeft" xml:space="preserve"><value>左イヤホンのみ</value></data>
+  <data name="EarFun_MicRight" xml:space="preserve"><value>右イヤホンのみ</value></data>
+  <data name="EarFun_TouchLock" xml:space="preserve"><value>タッチ操作を無効化</value></data>
+  <data name="EarFun_TouchLockOff" xml:space="preserve"><value>オフ</value></data>
+  <data name="EarFun_TouchLockBoth" xml:space="preserve"><value>両方のイヤホン</value></data>
+  <data name="EarFun_TouchLockLeft" xml:space="preserve"><value>左イヤホン</value></data>
+  <data name="EarFun_TouchLockRight" xml:space="preserve"><value>右イヤホン</value></data>
+  <data name="EarFun_CallTriple" xml:space="preserve"><value>通話中に3回タップ</value></data>
+  <data name="EarFun_CallHold" xml:space="preserve"><value>通話中に長押し</value></data>
+  <data name="EarFun_Button0Tap" xml:space="preserve"><value>音量 + · 1回押す</value></data>
+  <data name="EarFun_Button0Hold" xml:space="preserve"><value>音量 + · 長押し</value></data>
+  <data name="EarFun_Button1Tap" xml:space="preserve"><value>音量 - · 1回押す</value></data>
+  <data name="EarFun_Button1Hold" xml:space="preserve"><value>音量 - · 長押し</value></data>
+  <data name="EarFun_Button2Tap" xml:space="preserve"><value>NC ボタン · 1回押す</value></data>
+  <data name="EarFun_Button2Hold" xml:space="preserve"><value>NC ボタン · 長押し</value></data>
+  <data name="EarFun_QAction1" xml:space="preserve"><value>再生 / 一時停止</value></data>
+  <data name="EarFun_QAction2" xml:space="preserve"><value>音量を上げる</value></data>
+  <data name="EarFun_QAction3" xml:space="preserve"><value>音量を下げる</value></data>
+  <data name="EarFun_QAction4" xml:space="preserve"><value>前の曲</value></data>
+  <data name="EarFun_QAction5" xml:space="preserve"><value>次の曲</value></data>
+  <data name="EarFun_QAction6" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="EarFun_QAction7" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="EarFun_QAction8" xml:space="preserve"><value>ノイズ制御を切り替え</value></data>
+  <data name="EarFun_QAction9" xml:space="preserve"><value>ANC / オフ</value></data>
+  <data name="EarFun_QAction10" xml:space="preserve"><value>外音取り込み / オフ</value></data>
+  <data name="EarFun_QAction11" xml:space="preserve"><value>ANC / 外音取り込み</value></data>
+  <data name="EarFun_QAction13" xml:space="preserve"><value>リダイヤル</value></data>
+  <data name="EarFun_QAction16" xml:space="preserve"><value>なし</value></data>
+  <data name="EarFun_EAction0" xml:space="preserve"><value>なし</value></data>
+  <data name="EarFun_EAction1" xml:space="preserve"><value>再生 / 一時停止</value></data>
+  <data name="EarFun_EAction2" xml:space="preserve"><value>音量を上げる</value></data>
+  <data name="EarFun_EAction3" xml:space="preserve"><value>音量を下げる</value></data>
+  <data name="EarFun_EAction4" xml:space="preserve"><value>前の曲</value></data>
+  <data name="EarFun_EAction5" xml:space="preserve"><value>次の曲</value></data>
+  <data name="EarFun_EAction6" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="EarFun_EAction7" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="EarFun_EAction8" xml:space="preserve"><value>ノイズ制御を切り替え</value></data>
+  <data name="EarFun_EAction9" xml:space="preserve"><value>ANC / オフ</value></data>
+  <data name="EarFun_EAction10" xml:space="preserve"><value>電源オフ</value></data>
+  <data name="EarFun_EAction11" xml:space="preserve"><value>リダイヤル</value></data>
+  <data name="EarFun_EAction12" xml:space="preserve"><value>マルチポイント</value></data>
+  <data name="EarFun_TAction0" xml:space="preserve"><value>なし</value></data>
+  <data name="EarFun_TAction1" xml:space="preserve"><value>再生 / 一時停止</value></data>
+  <data name="EarFun_TAction2" xml:space="preserve"><value>音量を上げる</value></data>
+  <data name="EarFun_TAction3" xml:space="preserve"><value>音量を下げる</value></data>
+  <data name="EarFun_TAction4" xml:space="preserve"><value>前の曲</value></data>
+  <data name="EarFun_TAction5" xml:space="preserve"><value>次の曲</value></data>
+  <data name="EarFun_TAction6" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="EarFun_TAction7" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="EarFun_TAction8" xml:space="preserve"><value>ノイズ制御を切り替え</value></data>
+  <data name="EarFun_TAction9" xml:space="preserve"><value>ANC / オフ</value></data>
+  <data name="EarFun_TAction10" xml:space="preserve"><value>電源オフ</value></data>
+  <data name="EarFun_TAction11" xml:space="preserve"><value>リダイヤル</value></data>
+  <data name="EarFun_TAction12" xml:space="preserve"><value>空間オーディオ</value></data>
+  <data name="EarFun_TAction14" xml:space="preserve"><value>外音取り込み / オフ</value></data>
+  <data name="EarFun_TAction15" xml:space="preserve"><value>ANC / 外音取り込み</value></data>
+  <data name="EarFun_CAction0" xml:space="preserve"><value>なし</value></data>
+  <data name="EarFun_CAction1" xml:space="preserve"><value>再生 / 一時停止</value></data>
+  <data name="EarFun_CAction2" xml:space="preserve"><value>音量を上げる</value></data>
+  <data name="EarFun_CAction3" xml:space="preserve"><value>音量を下げる</value></data>
+  <data name="EarFun_CAction4" xml:space="preserve"><value>前の曲</value></data>
+  <data name="EarFun_CAction5" xml:space="preserve"><value>次の曲</value></data>
+  <data name="EarFun_CAction6" xml:space="preserve"><value>音声アシスタント</value></data>
+  <data name="EarFun_CAction7" xml:space="preserve"><value>ゲームモード</value></data>
+  <data name="EarFun_CAction8" xml:space="preserve"><value>ノイズ制御を切り替え</value></data>
+  <data name="EarFun_CAction9" xml:space="preserve"><value>ANC / オフ</value></data>
+  <data name="EarFun_CAction10" xml:space="preserve"><value>電源オフ</value></data>
+  <data name="EarFun_CAction11" xml:space="preserve"><value>リダイヤル</value></data>
+  <data name="EarFun_CAction12" xml:space="preserve"><value>低音強調</value></data>
+  <data name="EarFun_CAction13" xml:space="preserve"><value>マナーモード</value></data>
+  <data name="Codec_WindowsDescription" xml:space="preserve"><value>Windows が記録したオーディオ コーデック：{0}</value></data>
+  <data name="WindowsCodec_Title.Text" xml:space="preserve"><value>Windows からオーディオ コーデックを取得</value></data>
+  <data name="WindowsCodec_Summary.Text" xml:space="preserve"><value>イヤホンが報告するコーデックは PC で実際に使われているとは限らないため、EncoDeck は使用しません。オフの間、ホームには「A2DP」とだけ表示されます。一度許可すると、Windows が Bluetooth オーディオ（A2DP）の再生ごとにコーデックを記録し、ホームにはその記録が表示されます。以降は許可不要で、Store 版でも使えます。負荷はごくわずかです（PC の起動とともに開始する Windows のトレース セッション 1 つと、最大 1 MB の循環ファイル）。</value></data>
+  <data name="WindowsCodec_Status_Off" xml:space="preserve"><value>オフ：ホームには「A2DP」とだけ表示され、コーデックは表示されません。</value></data>
+  <data name="WindowsCodec_Status_Waiting" xml:space="preserve"><value>許可済み、まだ記録はありません：可能になり次第、自動的に記録されます。</value></data>
+  <data name="WindowsCodec_Status_On" xml:space="preserve"><value>許可済み：ホームには Windows が記録したコーデックが表示されます。</value></data>
+  <data name="WindowsCodec_Authorize" xml:space="preserve"><value>許可（管理者）</value></data>
+  <data name="WindowsCodec_Remove" xml:space="preserve"><value>許可を取り消す</value></data>
+  <data name="WindowsCodec_Result_Declined" xml:space="preserve"><value>管理者の確認が取り消されました。</value></data>
+  <data name="WindowsCodec_Result_NotApplied" xml:space="preserve"><value>完了しませんでした。もう一度お試しください。ログ ファイルは {0} にあります。</value></data>
+  <data name="WindowsCodec_Result_Failed" xml:space="preserve"><value>完了しませんでした：{0}</value></data>
+  <data name="WindowsCodec_Notes.Text" xml:space="preserve"><value>Windows は再生の終了時（しばらく一時停止、出力デバイスの切り替え、切断）にコーデックを記録し、イヤホンごとに記憶されます。新しいイヤホンは一度再生して停止すると表示されます。LE Audio イヤホンはこの方法を使いません。EncoDeck のインストーラー版をアンインストールすると許可も取り消されます。Store 版はアンインストール前に「許可を取り消す」を選んでください。</value></data>
+  <data name="Codec_A2dpDescription" xml:space="preserve"><value>Bluetooth A2DP で接続しています。ここには具体的なコーデックを表示しません。イヤホンが報告するコーデックは PC が実際に使うものとは限らないため使用しません。実際のコーデックは Windows だけが把握しており、「Windows からオーディオ コーデックを取得」をオンにする（管理者の許可が一度必要）と読み取れます。</value></data>
+  <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>Bluetooth A2DP で接続しています。Windows はこのイヤホンのコーデックをまだ記録していません。音声を再生して停止すると、ここに表示されます。</value></data>
+  <data name="Codec_LhdcDescription" xml:space="preserve"><value>このイヤホンの A2DP は LHDC コンポーネントのドライバーが担当しており、LHDC V5 で再生します。この接続のコーデックは Windows に記録されません。</value></data>
+  <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>LHDC コンポーネントがこのイヤホンに LHDC V5 音声を {0} kbps で送信しています。</value></data>
+  <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>Bluetooth A2DP で接続していますが、このイヤホンの A2DP はサードパーティ製ドライバーが担当しています。使われるコーデックは Windows に記録されないため、ここには具体的なコーデックを表示しません。</value></data>
+  <data name="CodecBadge_Enable" xml:space="preserve"><value>オンにする（管理者の許可が一度必要）</value></data>
+  <data name="CodecBadge_Enabled" xml:space="preserve"><value>オンにしました。音声を再生して停止すると、Windows が実際に使うコーデックがここに表示されます。</value></data>
+  <data name="LeAudio_UseClassic" xml:space="preserve"><value>クラシック Bluetooth を使う</value></data>
+  <data name="LeAudio_UseLe" xml:space="preserve"><value>LC3 を使う</value></data>
+  <data name="LeAudio_StatusUsingLe" xml:space="preserve"><value>Windows は LE Audio（LC3）で再生しています。</value></data>
+  <data name="LeAudio_StatusUsingClassic" xml:space="preserve"><value>Windows はクラシック Bluetooth（A2DP）で再生しています。ペアリングはそのままなので、いつでも LC3 に戻せます。</value></data>
+  <data name="LeAudio_ConfirmAuthorize" xml:space="preserve"><value>切り替えるために、EncoDeck は Windows の Bluetooth オーディオ サービス（AVCTP サービス）を再起動し、LC3 とクラシック Bluetooth のどちらを使うかを Windows に選び直させます。管理者の確認が一度だけ表示されます。お使いのアカウントにこのサービスの開始と停止の権限だけを追加し、以降の切り替えでは確認は表示されません。切り替え中は Bluetooth オーディオが数秒止まりますが、他の Bluetooth デバイスは接続されたままです。インストール版をアンインストールすると、この権限は取り消されます。</value></data>
+  <data name="LeAudio_Authorize" xml:space="preserve"><value>許可して切り替え</value></data>
+  <data name="LeAudio_Stage_ChangingWindowsAudio" xml:space="preserve"><value>Windows にオーディオ接続を選び直させています（Bluetooth オーディオ サービスを再起動中）…</value></data>
+  <data name="LeAudio_Stage_RestoringClassicAudio" xml:space="preserve"><value>クラシック Bluetooth オーディオ（A2DP、HFP）を復元しています…</value></data>
+  <data name="LeAudio_Stage_WaitingForAudio" xml:space="preserve"><value>Windows がオーディオ出力を用意するのを待っています…</value></data>
+  <data name="LeAudio_Result_SwitchedToClassic" xml:space="preserve"><value>クラシック Bluetooth（A2DP）に切り替えました。ペアリングはすべて残っているので、いつでも LC3 に戻せます。</value></data>
+  <data name="LeAudio_Result_ClassicAudioMissing" xml:space="preserve"><value>Windows はクラシック Bluetooth を選びましたが、A2DP 出力が時間内に現れませんでした。イヤホンをケースに戻してから取り出すか、しばらくしてから再試行してください。</value></data>
+  <data name="LeAudio_Result_NeedsServiceAccess" xml:space="preserve"><value>先に EncoDeck による Bluetooth オーディオ サービスの再起動を許可してください。</value></data>
+  <data name="LeAudio_Result_NotSetUp" xml:space="preserve"><value>このイヤホンはまだこの PC で LE Audio のペアリングが済んでいません。先に「LE Audio に切り替え」をクリックしてください。</value></data>
+  <data name="Panel_AudioTransport.Text" xml:space="preserve"><value>オーディオ接続</value></data>
+  <data name="Panel_AudioTransportClassic.Text" xml:space="preserve"><value>クラシック</value></data>
+  <data name="LeAudio_QuickSwitch.Header" xml:space="preserve"><value>イヤホン パネルに「LC3 / クラシック」の切り替えを表示</value></data>
+  <data name="LeAudio_Stage_ReconnectingLeAudio" xml:space="preserve"><value>LE リンクが切れています。クラシック リンクを再接続して、イヤホンの LE を復帰させています…</value></data>
 </root>

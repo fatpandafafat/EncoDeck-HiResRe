@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+using EncoDeck.App.Controls;
 using EncoDeck.App.Services;
 using EncoDeck.App.ViewModels;
 using EncoDeck.Core.Capabilities;
@@ -24,6 +25,9 @@ public sealed partial class HomePage : Page
     {
         InitializeComponent();
         AutomationProperties.SetName(Model, Loc.Get("Home_Model_Name"));
+        _ = new LowBatteryStates(this, "Left") { Item = ViewModel.Left };
+        _ = new LowBatteryStates(this, "Right") { Item = ViewModel.Right };
+        _ = new LowBatteryStates(this, "Case") { Item = ViewModel.Case };
         Loaded += (_, _) =>
         {
             Features.Changed += OnFeaturesChanged;
@@ -60,7 +64,7 @@ public sealed partial class HomePage : Page
 
             // Rows follow the (cached) model capabilities only, not whether the live value has been
             // read yet, so the layout is the same right after a restart as once connected.
-            bool spatial = f.Has(DeviceCapability.SpatialAudio);
+            bool spatial = f.SpatialOptions.IsAvailable;
             SpatialRow.Visibility = spatial ? Visibility.Visible : Visibility.Collapsed;
             SpatialValue.Text = f.State.Spatial is null ? string.Empty : f.SpatialMode switch
             {
@@ -87,8 +91,8 @@ public sealed partial class HomePage : Page
 
     private void SyncDevices(FeaturesViewModel f, bool ready)
     {
-        // The connected-device list is read with OPPO's multi-connect commands.
-        bool list = f.Has(DeviceCapability.DualDeviceConnection) && f.Model is not null;
+        // The connected-device list is read with OPPO's multi-connect commands, or EarFun's paired-host list.
+        bool list = f.Has(DeviceCapability.DualDeviceConnection) && (f.Model is not null || f.IsEarFunHostList);
         bool toggle = f.Has(DeviceCapability.DualDeviceConnection) && f.HasSwitch(DeviceToggle.DualDeviceConnection);
         bool available = list || toggle;
         DevicesCard.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
@@ -127,12 +131,11 @@ public sealed partial class HomePage : Page
     /// <summary>
     /// A round device icon (accent when connected) with its name and state. Tapping a disconnected
     /// device connects it, tapping a connected one disconnects it (after a confirmation); this PC is
-    /// disconnected from Windows Bluetooth settings, as the official client does for the phone.
+    /// disconnected as the earbuds panel's Disconnect does, so EncoDeck does not reconnect it.
     /// </summary>
     private Button DeviceCell(SourceDevice device, bool ready, bool cached)
     {
-        // Device type icons: 1 phone, 2 computer, 3 tablet, 4 watch.
-        string glyph = device.DeviceType switch { 1 => "", 2 => "", 3 => "", 4 => "", _ => "" };
+        string symbol = FluentIcons.ForDeviceType(device.DeviceType);
         bool connected = device.IsConnected;
         var circle = new Border
         {
@@ -141,10 +144,8 @@ public sealed partial class HomePage : Page
             CornerRadius = new CornerRadius(28),
             HorizontalAlignment = HorizontalAlignment.Center,
             Background = (Brush)Application.Current.Resources[connected ? "AccentFillColorDefaultBrush" : "ControlFillColorSecondaryBrush"],
-            Child = new FontIcon
+            Child = new FluentIcon(symbol, 22)
             {
-                Glyph = glyph,
-                FontSize = 22,
                 Foreground = (Brush)Application.Current.Resources[connected ? "TextOnAccentFillColorPrimaryBrush" : "TextFillColorSecondaryBrush"],
             },
         };
@@ -185,10 +186,10 @@ public sealed partial class HomePage : Page
             VerticalAlignment = VerticalAlignment.Stretch,
             VerticalContentAlignment = VerticalAlignment.Top,
             Padding = new Thickness(4, 8, 4, 8),
-            IsEnabled = ready && !busy,
+            IsEnabled = ready && !busy && (connected || Features.CanConnectAnother),
         };
         AutomationProperties.SetName(cell, $"{name.Text}, {status.Text}");
-        ToolTipService.SetToolTip(cell, Loc.Get(device.IsThisDevice ? "Home_DeviceThisPc_Hint" : connected ? "Dual_Disconnect" : "Dual_Connect"));
+        ToolTipService.SetToolTip(cell, Loc.Get(device.IsThisDevice ? "Device_DisconnectThisPc" : connected ? "Dual_Disconnect" : "Dual_Connect"));
         cell.Click += OnDeviceClick;
         return cell;
     }
@@ -199,16 +200,20 @@ public sealed partial class HomePage : Page
         string name = string.IsNullOrWhiteSpace(device.Name) ? device.AddressText : device.Name;
         if (device.IsThisDevice)
         {
-            var hint = new ContentDialog
+            if (!ViewModel.CanDisconnect || ViewModel.IsChangingConnection) return;
+            var confirmThisPc = new ContentDialog
             {
                 XamlRoot = XamlRoot,
-                Title = Loc.Get("Home_DeviceThisPc_Title"),
-                Content = new TextBlock { Text = Loc.Get("Home_DeviceThisPc_Message"), TextWrapping = TextWrapping.Wrap },
-                PrimaryButtonText = Loc.Get("Home_OpenBluetoothSettings"),
+                Title = Loc.Get("Dual_DisconnectThisPc_Title"),
+                Content = new TextBlock { Text = Loc.Get("Dual_DisconnectThisPc_Message"), TextWrapping = TextWrapping.Wrap },
+                PrimaryButtonText = Loc.Get("Dual_Disconnect"),
                 CloseButtonText = Loc.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Close,
             };
-            if (await hint.ShowAsync() == ContentDialogResult.Primary) await Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:bluetooth"));
+            if (await confirmThisPc.ShowAsync() != ContentDialogResult.Primary) return;
+            _devicesSignature = string.Empty;
+            await Features.DisconnectThisPcAsync();
+            Sync();
             return;
         }
         if (device.IsConnected)
@@ -228,8 +233,22 @@ public sealed partial class HomePage : Page
             Sync();
             return;
         }
+        // Dual connection off: the earbuds leave this PC for the other device, and EncoDeck disconnects with them.
+        if (Features.ConnectHandsOverThisPc)
+        {
+            var handOver = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = Loc.Get("Dual_HandOver_Title"),
+                Content = new TextBlock { Text = Loc.Format("Dual_HandOver_Message", name), TextWrapping = TextWrapping.Wrap },
+                PrimaryButtonText = Loc.Get("Dual_Connect"),
+                CloseButtonText = Loc.Get("Common_Cancel"),
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await handOver.ShowAsync() != ContentDialogResult.Primary) return;
+        }
         // Official: with two devices already connected, connecting a third drops one of them.
-        if (Features.SourceDevices.Count(d => d.IsConnected) >= 2)
+        else if (Features.SourceDevices.Count(d => d.IsConnected) >= 2)
         {
             var dialog = new ContentDialog
             {
@@ -243,7 +262,7 @@ public sealed partial class HomePage : Page
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
         }
         _devicesSignature = string.Empty;
-        await Features.MultiConnectAsync(MultiConnectOperation.Connect, device);
+        await Features.ConnectSourceAsync(device);
         Sync();
     }
 
@@ -276,7 +295,7 @@ public sealed partial class HomePage : Page
             DeviceMenu.Items.Add(item);
         }
         DeviceMenu.Items.Add(new MenuFlyoutSeparator());
-        var manage = new MenuFlyoutItem { Text = Loc.Get("Home_ManageDevices"), Icon = new FontIcon { Glyph = "\uE713" } };
+        var manage = new MenuFlyoutItem { Text = Loc.Get("Home_ManageDevices"), Icon = new FluentIcon("settings") };
         manage.Click += (_, _) => App.Instance.Windows.ShowMain("Devices");
         DeviceMenu.Items.Add(manage);
     }

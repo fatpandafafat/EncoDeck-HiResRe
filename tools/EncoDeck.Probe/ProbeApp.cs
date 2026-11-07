@@ -34,6 +34,17 @@ internal static class ProbeApp
                 "le-br-switch" => await WriteCommands.SetLeBrSwitchAsync(options, ct),
                 "monitor" => await MonitorCommand.RunAsync(options, ct),
                 "le-audio" => await LeAudioCommand.RunAsync(options, ct),
+                "le-dual" => await LeDualCommand.RunAsync(options, ct),
+                "bats" => await BatsCommand.RunAsync(options, ct),
+                "link" => await LinkCommand.RunAsync(options, ct),
+                "le-sync" => await LeSyncCommand.RunAsync(options, ct),
+                "le-sync-selftest" => await LeSyncCommand.SelfTestAsync(options, ct),
+                "le-sync-snapshot" => await LeSyncCommand.SnapshotAsync(ct),
+                "le-trace" => await LeSyncCommand.TraceAsync(options, ct),
+                "fw-mem-read" => LeSyncCommand.FirmwareMemoryRead(options),
+                "fw-pair-state" => await LeSyncCommand.FirmwarePairStateAsync(options, ct),
+                "le-hook" => await LeHookCommand.RunAsync(options, ct),
+                "a2dp-codec" => await A2dpCodecCommand.RunAsync(options),
                 "multipoint-off" => await LeAudioCommand.DisableMultipointCommandAsync(options, ct),
                 "render-model" => await RenderModelCommand.RunAsync(options, ct),
                 "bridge" => await BridgeCommand.RunAsync(options, ct),
@@ -66,6 +77,8 @@ internal static class ProbeApp
 
             Usage: EncoDeck.Probe <command> [options]
 
+            query, listen, get and the write commands speak only the OPPO protocol and refuse other models.
+
             Read-only commands:
               devices                     List paired Bluetooth Classic devices.
               usb-devices                 List verified supported USB receivers and read standard HID battery.
@@ -81,6 +94,8 @@ internal static class ProbeApp
               watch  [--seconds N]        Subscribe and also poll battery / noise control / features,
                      [--interval-ms N]    printing only changes (default 120 s, 2000 ms).
                      [--codec]            Also poll codec reports; vendor ids need model validation.
+                                          Other brands: runs the app's runtime with the model's own protocol
+                                          (as 'monitor') and prints every control frame it sends and receives.
               get --cmd 0x01NN            Send exactly one read (GET-group) request.
                   [--payload HEX]         Commands outside 0x01xx are refused.
 
@@ -99,9 +114,34 @@ internal static class ProbeApp
                        [--pair --confirm-write]  Confirm multipoint off, then wait for pairing mode and replace this PC's bonds.
                        [--legacy-pairing]  With --pair, use explicit addresses without Windows set discovery for comparison.
                        [--restore --confirm-write]  Remove this PC's LE Audio pairings (pair again in Windows Settings).
+              link [status]               The PC's Classic and LE links, the audio endpoints and their driver filters.
+              link disconnect|connect --confirm-write  Ask the audio drivers to disconnect/reconnect (KS ONESHOT),
+                   [--ioctl]             or force the Classic link down instead (disconnect only),
+                   [--seconds N]         then log links and endpoints (default 20 s). Exit the app first.
+              le-sync [--seconds N]       Hold the active LE Audio link like the Labs left/right calibration and
+                      [--resync-file <path>]  print its status; creating the file rebuilds the link, creating
+                      [--check-file <path>]   the check file plays the check clicks. Default 60 s.
+                      [--render <endpoint id>]  Use this render endpoint instead of the active LE Audio one.
+              le-sync-selftest [--seconds N]  Research, run elevated: turn on Intel link statistics and print the
+                                              per-CIS reports while audio plays, then restore the controller.
+              le-sync-snapshot              Research, run elevated: read one Intel report per active CIS.
+              le-trace [--seconds N] [--all]
+                                            Research, run elevated: print every controller event the Intel driver forwards to ETW
+                                            and mark payloads carrying the ABxx firmware log tags (--all prints everything).
+              fw-mem-read [--addr A --len N]  Research, run elevated: read Intel controller memory (image code or the
+                                              LC3 queue slots only); no --addr checks the image header.
+              fw-pair-state [--samples N --rounds N --gap-ms N]  Research, run elevated, Intel Solar A3 only: sample
+                            [--log <jsonl>] [--verbose]          the LC3 queues and print the left/right pairing state.
+              le-hook [status]            Labs LE Audio bitrate: support, applied preset and the hook's log.
+              le-hook apply --preset <id> Elevated: what the card's Apply does (48_1..48_5, or default).
+                      [--mode auto|low|high]  Transport: Windows' choice, latency first or reliability first.
+                      [--no-call]             Calls and game chat do not switch the earbuds to a call link.
+              a2dp-codec [read]           The A2DP codec Windows logged per stream (--file <etl> for another log).
+              a2dp-codec authorize|remove Register or unregister that log's boot-time session (administrator prompt).
               monitor [--seconds N]       Run the app's device runtime headlessly, print state changes
                                           and finally every feature value the session start read.
                       [--set-anc a,b --confirm-write]  Also run commands (off|anc|transparency|adaptive|smart|deep|medium|light|less|standard|more).
+                      [--disconnect-cycle --confirm-write [--dwell 15]]  Once control is ready, Disconnect then Connect the device as the app does.
 
             A2DP Windows Bridge:
               bridge [--seconds N]        Connect to the A2DPWB core's pipe, print its state and changes.
@@ -114,8 +154,9 @@ internal static class ProbeApp
 
             Components:
               components                  List the component pins of this build (LHDC, A2DP Bridge).
-                         [--install lhdc|a2dpwb --root <folder>]  Download and unpack one as the app does.
-                         [--check [--floor <x.y.z-rN>]]  Look for component releases online as the Labs page does.
+                         [--install lhdc|a2dpwb --root <folder> [--upstream]]  Download and unpack one as the app does
+                                     (--upstream: the newest official A2DPWB 2.x build instead of the pin).
+                         [--check [--floor <x.y.z-rN>]]  Look for updates online as the Labs page does (A2DPWB: its official releases).
 
             Diagnostics:
               render-model --file <x.vfxms> --out <dir>  Render a HeyMelody 3D model off screen to PNG

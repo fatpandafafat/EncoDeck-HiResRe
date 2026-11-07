@@ -89,6 +89,9 @@ public sealed record AppSettings
     /// <summary>Device id the user last selected, so it is preferred when several are paired.</summary>
     public string? PreferredDeviceId { get; init; }
 
+    /// <summary>Devices the user disconnected in EncoDeck; left alone (also after a restart) until connected in EncoDeck again.</summary>
+    public IReadOnlyList<string>? DisconnectedDeviceIds { get; init; }
+
     /// <summary>
     /// Check GitHub Releases for a new version daily and download it in the background (never installs
     /// without the user). Nullable only so a file from an older version (which reads as null) gets the default, on.
@@ -104,6 +107,12 @@ public sealed record AppSettings
     /// <summary>Start the A2DP Windows Bridge core (in the background) when EncoDeck starts, if it is installed and not running.</summary>
     public bool A2dpBridgeAutoStart { get; init; }
 
+    /// <summary>Labs: hold the LE Audio link and let the user check (and rebuild) its left/right alignment.</summary>
+    public bool LeAudioSyncGuard { get; init; }
+
+    /// <summary>Earbuds set up for both LE Audio and Classic: offer "LC3 / Classic" in the earbuds panel (null = default, on).</summary>
+    public bool? ShowAudioTransportSwitch { get; init; } = true;
+
     /// <summary>The main window's last size and position, or null for the default (centered).</summary>
     public WindowBounds? MainWindowBounds { get; init; }
 
@@ -116,6 +125,7 @@ public sealed record AppSettings
         // Missing in settings saved by older versions (read as 0): the standard size.
         PopupScale = double.IsFinite(PopupScale) && PopupScale > 0 ? Math.Clamp(PopupScale, 0.6, 1.6) : 1.0,
         ShowAboveQuickSettings = ShowAboveQuickSettings ?? true,
+        ShowAudioTransportSwitch = ShowAudioTransportSwitch ?? true,
         HideQuickSettingsPanelWhenBluetoothOff = HideQuickSettingsPanelWhenBluetoothOff ?? true,
         QuickSettingsPanelTheme = Enum.IsDefined(QuickSettingsPanelTheme) ? QuickSettingsPanelTheme : AppTheme.System,
         PopupPosition = Enum.IsDefined(PopupPosition) ? PopupPosition : PopupPosition.NearTray,

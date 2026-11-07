@@ -10,6 +10,7 @@ using EncoDeck.Core.Privacy;
 using EncoDeck.Core.Resources;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Brands;
+using EncoDeck.Protocol.Brands.EarFun;
 using EncoDeck.Protocol.Brands.Moondrop;
 using EncoDeck.Protocol.Brands.Sennheiser;
 using EncoDeck.App.ViewModels;
@@ -156,7 +157,8 @@ internal sealed class BrandDemo
             Toggles = toggles.ToImmutableDictionary(t => t, t => O(t is DeviceToggle.DualDeviceConnection or DeviceToggle.InEarDetection
                 or DeviceToggle.LowLatency or DeviceToggle.IndicatorLight or DeviceToggle.PromptTone)),
             Spatial = Has(DeviceCapability.SpatialAudio) ? O(SpatialAudioMode.Off) : null,
-            Firmware = Has(DeviceCapability.FirmwareInformation) ? O(new FirmwareInfo("1.0.0", null, new Dictionary<string, string>())) : null,
+            Firmware = Has(DeviceCapability.FirmwareInformation)
+                ? O(new FirmwareInfo("1.0.0", (profile as EarFunProfile)?.Model.Id, new Dictionary<string, string>())) : null,
             GameSound = model is { GameSoundTypes.Count: > 0 } ? O(new GameSoundState(0, model.GameSoundTypes)) : null,
             PromptVolume = Has(DeviceCapability.PromptVolume)
                 ? O(model is not null ? (model.PromptVolumeRange.Min + model.PromptVolumeRange.Max) / 2 : profile is MoondropProfile ? 40 : 5) : null,
@@ -173,24 +175,30 @@ internal sealed class BrandDemo
             ]) : null,
             PreferredDevice = dual ? O(new PreferredDeviceState(null)) : null,
             CustomEqualizers = Has(DeviceCapability.CustomEqualizer) && model?.CustomEqualizer is { } spec
-                ? O<IReadOnlyList<CustomEqualizer>>([DemoCustomEqualizer(spec, 1, false)]) : null,
+                ? O<IReadOnlyList<CustomEqualizer>>([DemoCustomEqualizer(spec, 1, false)])
+                // EarFun: the curve last sent, here its first preset after "flat".
+                : profile is EarFunProfile earfun ? O<IReadOnlyList<CustomEqualizer>>(new[] { EarFunEqualizer.Curve(earfun.Model, earfun.BandEqualizer.Presets[1].Gains) })
+                : null,
         };
     }
 
     private static DeviceState ApplyCodecScenario(DeviceState state, string? scenario)
     {
-        Observed<T> O<T>(T value) => Observed.From(value, DateTimeOffset.UtcNow, StateSource.QueryResponse);
         // Explicit diagnostic fixtures only. The normal application never calls BrandDemo.
         return scenario switch
         {
             null => state,
-            "reported-aac" => state with { Codec = O(AudioCodec.Aac), ReportedCodecId = O((byte)2) },
-            "unknown" => state with { ReportedCodecId = O((byte)7) },
-            "le" => state with { IsLeAudio = true, LeAudioLinks = new(true, true, true, true), Codec = O(AudioCodec.Aac) },
-            "bridge-aac" => state with { Bridge = new(true, "AAC", 256, 48000, "demo"), IsLeAudio = true, Codec = O(AudioCodec.Lhdc) },
-            "bridge-unknown" => state with { Bridge = new(true, null, 256, 48000, "demo"), Codec = O(AudioCodec.Aac) },
+            "windows-aac" => state with { WindowsCodecLogged = true, WindowsCodec = "AAC" },
+            "a2dp" => state with { WindowsCodecLogged = false, WindowsCodec = null },
+            "a2dp-not-logged" => state with { WindowsCodecLogged = true, WindowsCodec = null },
+            // Windows' log still holds the codec from before the LHDC component took the earbuds over.
+            "lhdc" => state with { A2dpDriver = CodecDisplay.LhdcA2dpDriver, LhdcKbps = 900, WindowsCodecLogged = true, WindowsCodec = "AAC" },
+            "a2dp-other-driver" => state with { A2dpDriver = "ThirdPartyA2dp", WindowsCodecLogged = true, WindowsCodec = "AAC" },
+            "le" => state with { IsLeAudio = true, LeAudioLinks = new(true, true, true, true), WindowsCodecLogged = true, WindowsCodec = "AAC" },
+            "bridge-aac" => state with { Bridge = new(true, "AAC", 256, 48000, "demo"), IsLeAudio = true },
+            "bridge-unknown" => state with { Bridge = new(true, null, 256, 48000, "demo"), WindowsCodecLogged = true, WindowsCodec = "AAC" },
             "bridge-idle" => state with { Bridge = new(false, "AAC", 0, 0, "demo"), Connection = DeviceConnectionState.PairedNotConnected },
-            "disconnected" => state with { Connection = DeviceConnectionState.Disconnected, Codec = O(AudioCodec.Aac), ReportedCodecId = O((byte)2) },
+            "disconnected" => state with { Connection = DeviceConnectionState.Disconnected, WindowsCodecLogged = true, WindowsCodec = "AAC" },
             _ => throw new InvalidDataException($"Unknown codec preview scenario: {scenario}"),
         };
     }

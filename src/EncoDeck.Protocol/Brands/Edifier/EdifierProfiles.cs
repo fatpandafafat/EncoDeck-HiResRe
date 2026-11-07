@@ -3,6 +3,7 @@
 // Per-model feature gating follows mEDIFIER Qt/devices/deviceinfo.json (https://github.com/wh201906/mEDIFIER,
 // 10056b5, MIT, Copyright (c) 2023 Self Not Found; MIT notice in THIRD_PARTY_NOTICES.md) and the
 // device records of HyperEars (https://github.com/silverpoetry/HyperEars, 361d279, GPL-3.0-only).
+// W830NB framing follows the devicePEQ capture (https://github.com/jeromeof/devicePEQ, 0617f38, 0BSD).
 using System.Text;
 using EncoDeck.Core.Capabilities;
 using EncoDeck.Core.Commands;
@@ -38,6 +39,11 @@ public static partial class EdifierProfiles
         new EdifierProfile("edifier-w860nb-pro", "EDIFIER W860NB PRO", "w860nbpro", isGeneric: false,
             spec: new EdifierSpec(EdifierFraming.V2Xor, StateBattery: false, EdifierAnc.SlotW860, EdifierFeatures.Noise,
                 Evidence: "W860NB PRO: HyperEars real-device verification (battery, noise slot 0x10)")),
+        // devicePEQ W830NB capture: BES v2 with XOR payloads; v1 frames go unanswered and the link
+        // drops (issue #18). Its noise slot is not recorded, so 0xCC is never sent and only battery is read.
+        new EdifierProfile("edifier-w830nb", "EDIFIER W830NB", "w830nb", isGeneric: false,
+            spec: new EdifierSpec(EdifierFraming.V2Xor, StateBattery: false, EdifierAnc.Probe, EdifierFeatures.None,
+                Evidence: "W830NB: devicePEQ capture (BES v2, XOR payloads); battery only, its noise slot is not recorded")),
         .. CreateTwsProfiles(),
         new EdifierProfile("edifier", "EDIFIER headphones", "edifier", isGeneric: true),
     ];
@@ -80,7 +86,7 @@ internal enum EdifierAnc
     /// <summary>V1 <c>[mode][ambient level]</c>: 1 standard (off), 2 noise cancelling, 3 ambient.</summary>
     V1,
 
-    /// <summary>Unknown TWS: V1 modes, queried only after falling back to v1 framing.</summary>
+    /// <summary>Unknown TWS, or a v1 headset found on v2 framing: V1 modes, queried only over v1 framing.</summary>
     Probe,
 
     /// <summary><c>[10][value]</c>: 1 deep, 2 comfort, 3 wind, 4 ambient, 5 off (W860NB PRO).</summary>
@@ -130,6 +136,20 @@ internal sealed record EdifierSpec(
 
     public static EdifierSpec LegacyTws { get; } = new(EdifierFraming.Negotiate, true, EdifierAnc.Probe, EdifierFeatures.Noise,
         Evidence: "TWS state from the EDIFIER v2 protocol; noise control only after a v1 read-back. No hardware verification.");
+
+    /// <summary>
+    /// A v1 headset that answered only the BES v2 battery query: battery alone. Its noise layout and
+    /// settings are unknown, so noise control is never queried or offered (<see cref="EdifierAnc.Probe"/>
+    /// only reads it over v1 framing).
+    /// </summary>
+    public static EdifierSpec BesFallback(EdifierSpec listed) => listed with
+    {
+        Framing = EdifierFraming.Negotiate,
+        Anc = listed.Anc == EdifierAnc.None ? EdifierAnc.None : EdifierAnc.Probe,
+        Features = EdifierFeatures.None,
+        Experimental = EdifierFeatures.None,
+        Evidence = "Battery answered over BES v2 framing, not the v1 framing this model is listed with; noise control and settings are unknown for this variant.",
+    };
 }
 
 /// <summary>One EDIFIER model (or the generic family).</summary>
@@ -186,6 +206,10 @@ public sealed class EdifierProfile : IControllableProfile, IBrandGestureProfile
         confirmed == Confirmed && offerExperimental == _offerExperimental
             ? this
             : new(ModelId, DisplayName, _nameKey, IsGeneric, IsTws, HasSpp, false, GattService, Spec, AlternateGattService, confirmed, offerExperimental);
+
+    /// <summary>The same model speaking another dialect than listed; nothing is confirmed for it yet.</summary>
+    internal EdifierProfile WithSpec(EdifierSpec spec) =>
+        new(ModelId, DisplayName, _nameKey, IsGeneric, IsTws, HasSpp, false, GattService, spec, AlternateGattService, EdifierFeatures.None, _offerExperimental);
 
     /// <summary>Whether a confirmed feature may be offered: always, or for features without reply samples only when opted in.</summary>
     internal bool Offers(EdifierFeatures feature) =>

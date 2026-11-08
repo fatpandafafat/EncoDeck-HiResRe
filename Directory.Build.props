@@ -21,7 +21,8 @@
     <RepositoryUrl>https://github.com/TIANLI0/EncoDeck</RepositoryUrl>
 
     <VersionPrefix>1.15.0</VersionPrefix>
-    <VersionSuffix></VersionSuffix>
+    <!-- The fork's own line: the Hi-Res build is 1.15.0-hires, the official build is 1.15.0. -->
+    <VersionSuffix>hires</VersionSuffix>
 
     <!-- Single source of truth for the Windows TFM used by every Windows-specific project. -->
     <EncoDeckWindowsTfm>net10.0-windows10.0.26100.0</EncoDeckWindowsTfm>

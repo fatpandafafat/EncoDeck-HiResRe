@@ -4,6 +4,32 @@
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
 
+## [1.15.0-hires] - 2026-11-08 · HiRes 分支：LHDC 高码率与耳机 Hi-Res 开关 / HiRes branch: LHDC high bitrates and the earbud's Hi-Res switch
+
+### 新增
+
+- 实验室的 LHDC 卡片新增耳机 Hi-Res 开关：直接读取耳机自身的 Hi-Res 状态并切换。开关决定耳机向 Windows 宣告的能力，所以它打开后才会出现 400 kbps 以上的选项。
+- 码率列表按耳机实际协商到的能力生成：只列出耳机支持、且单帧能放进媒体负载的格式；耳机不支持的码率不会出现在列表里。
+- LHDC 卡片显示服务当前实际使用的档位（采样率 / 位深 / 码率 / 自适应）。
+- 切换耳机 Hi-Res 后驱动会重新协商能力，码率上限随之更新。
+
+### 改进
+
+- 合并上游 1.15.0-beta.2：LC3 编码与 LE Audio 同步、Windows 侧 A2DP 编解码设置、EarFun 全系支持、AKG / realme / Edifier 扩展、Fluent 图标与工厂重置。
+
+---
+
+### Added
+
+- The Labs LHDC card now has the earbud's own Hi-Res switch: it reads the earbud's state over the control channel and toggles it. The switch decides what the earbud advertises to Windows, so the options above 400 kbps only appear while it is on.
+- The bitrate lists are built from the capabilities the earbud actually negotiated: only the formats the earbud accepts, and that fit into the media payload, are offered.
+- The LHDC card shows the profile the service actually runs with (sample rate / depth / bitrate / adaptive).
+- After the earbud's Hi-Res switch changes, the driver negotiates the capabilities again and the bitrate ceiling follows.
+
+### Improved
+
+- Merged upstream 1.15.0-beta.2: the LC3 codec and LE Audio sync, the Windows-side A2DP codec settings, the full EarFun support, the AKG / realme / Edifier additions, the Fluent icons and the factory reset.
+
 ## [1.15.0-beta.2] - 2026-11-06 · 华为空间音频与 EarFun 降噪档位 / HUAWEI spatial audio and EarFun noise cancelling levels
 
 ### 改进

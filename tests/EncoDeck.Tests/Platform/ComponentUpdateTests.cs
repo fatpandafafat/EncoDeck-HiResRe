@@ -32,13 +32,13 @@ public sealed class ComponentUpdateTests
         var assets = new JsonArray(new JsonObject
         {
             ["name"] = $"A2DPWB-{version[..5]}-win64-portable.zip", ["size"] = assetSize, ["digest"] = "sha256:" + (assetSha ?? Sha),
-            ["browser_download_url"] = $"https://github.com/TIANLI0/EncoDeck/releases/download/a2dpwb-v{version}/A2DPWB-{version[..5]}-win64-portable.zip",
+            ["browser_download_url"] = $"https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/download/a2dpwb-v{version}/A2DPWB-{version[..5]}-win64-portable.zip",
         });
         if (manifest)
             assets.Add(new JsonObject
             {
                 ["name"] = "component.json", ["size"] = 900, ["digest"] = "sha256:" + new string('b', 64),
-                ["browser_download_url"] = $"https://github.com/TIANLI0/EncoDeck/releases/download/a2dpwb-v{version}/component.json",
+                ["browser_download_url"] = $"https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/download/a2dpwb-v{version}/component.json",
             });
         return new JsonObject { ["tag_name"] = "a2dpwb-v" + version, ["draft"] = false, ["prerelease"] = prerelease, ["assets"] = assets };
     }

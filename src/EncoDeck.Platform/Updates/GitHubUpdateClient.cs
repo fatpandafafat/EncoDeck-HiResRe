@@ -51,7 +51,7 @@ internal sealed partial class GitHubJsonContext : JsonSerializerContext;
 public sealed partial class GitHubUpdateClient(HttpClient http, string downloadDirectory, SemanticVersion current, Uri? releasesApi = null) : IDisposable
 {
     /// <summary>Component releases (lhdc-v…, a2dpwb-v…) share this list; their tags never parse as app versions.</summary>
-    public static Uri DefaultReleasesApi { get; } = new("https://api.github.com/repos/TIANLI0/EncoDeck/releases?per_page=30");
+    public static Uri DefaultReleasesApi { get; } = new("https://api.github.com/repos/fatpandafafat/EncoDeck-HiResRe/releases?per_page=30");
 
     private const long MaxMetadata = 4L * 1024 * 1024;
     private const long MaxChecksumFile = 64 * 1024;
@@ -294,7 +294,7 @@ public sealed partial class GitHubUpdateClient(HttpClient http, string downloadD
         var request = new HttpRequestMessage(HttpMethod.Get, uri);
         // GitHub rejects API requests without a User-Agent.
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("EncoDeck", Current.ToString()));
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("(+https://github.com/TIANLI0/EncoDeck)"));
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("(+https://github.com/fatpandafafat/EncoDeck-HiResRe)"));
         return request;
     }
 

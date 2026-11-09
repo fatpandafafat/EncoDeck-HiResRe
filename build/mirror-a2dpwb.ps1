@@ -34,7 +34,7 @@ $files = foreach ($package in $pin.packages) {
 # What apps released earlier read to find this component without an app update.
 $files = @($files) + @(& (Join-Path $PSScriptRoot 'component-manifest.ps1') -Id a2dpwb -OutputDirectory $output)
 if ($Publish) {
-    & gh release view $tag --repo TIANLI0/EncoDeck *> $null
+    & gh release view $tag --repo fatpandafafat/EncoDeck-HiResRe *> $null
     if ($LASTEXITCODE -eq 0) { throw "Component release $tag exists already." }
     $notes = @"
 Unmodified official A2DP Windows Bridge $($pin.source.release) portable builds, mirrored for EncoDeck's Labs page.
@@ -43,7 +43,7 @@ Source: $($pin.source.repository) at commit $($pin.source.commit) (see SOURCE.tx
 A2DPWB is Apache-2.0 OR MIT; the distributed a2dpwb-core.exe statically links BTstack, licensed for personal, non-commercial use only. See LICENSE and THIRD_PARTY_LICENSES.md inside the archive.
 "@
     # An upstream pre-release (2.0.2-beta.10-r1) is published as one: apps without pre-release updates skip it.
-    $options = @('--repo', 'TIANLI0/EncoDeck', '--title', "A2DP Windows Bridge component $($pin.version)", '--notes', $notes, '--latest=false')
+    $options = @('--repo', 'fatpandafafat/EncoDeck-HiResRe', '--title', "A2DP Windows Bridge component $($pin.version)", '--notes', $notes, '--latest=false')
     if (($pin.version -replace '-r\d+$', '').Contains('-')) { $options += '--prerelease' }
     & gh release create $tag @files @options
     if ($LASTEXITCODE -ne 0) { throw 'Could not publish the A2DPWB component release.' }

@@ -9,10 +9,10 @@ namespace EncoDeck.App.Services;
 
 /// <summary>
 /// Projects which driver carries the active device's A2DP (<see cref="A2dpSinkDriver"/>), and the LHDC component's
-/// bitrate while it does, into the device state. Windows logs codecs only for its own driver, so without this the tag
-/// kept the codec Windows streamed before the LHDC component took the earbuds over. That component swaps the driver when
-/// it applies LHDC or restores Windows audio, so it is read every few seconds while a link is up (a few CfgMgr32 calls
-/// and a registry read, no administrator rights) and right away when the device or its link changes.
+/// bitrate, sample rate and bit depth while it does, into the device state. Windows logs codecs only for its own driver,
+/// so without this the tag kept the codec Windows streamed before the LHDC component took the earbuds over. That component
+/// swaps the driver when it applies LHDC or restores Windows audio, so it is read every few seconds while a link is up
+/// (a few CfgMgr32 calls and a registry read, no administrator rights) and right away when the device or its link changes.
 /// </summary>
 public sealed class A2dpDriverCompanion : IDisposable
 {
@@ -65,7 +65,10 @@ public sealed class A2dpDriverCompanion : IDisposable
         {
             ulong? target = Target(_store.Current);
             string? driver = target is { } address ? A2dpSinkDriver.ServiceFor(address) : null;
-            int kbps = string.Equals(driver, CodecDisplay.LhdcA2dpDriver, StringComparison.OrdinalIgnoreCase) ? LhdcComponent.ActiveBitrate() : 0;
+            bool lhdc = string.Equals(driver, CodecDisplay.LhdcA2dpDriver, StringComparison.OrdinalIgnoreCase);
+            int kbps = lhdc ? LhdcComponent.ActiveBitrate() : 0;
+            int sampleRate = lhdc ? LhdcComponent.ActiveSampleRate() : 0;
+            int bits = lhdc ? LhdcComponent.ActiveBits() : 0;
             if (driver != _logged)
             {
                 _logged = driver;
@@ -73,7 +76,8 @@ public sealed class A2dpDriverCompanion : IDisposable
             }
             // Only onto the device it was read for: the active device may have changed meanwhile (that change reads again).
             _store.TryUpdate(null, s => Target(s) != target || s.A2dpDriver == driver && s.LhdcKbps == kbps
-                ? s : s with { A2dpDriver = driver, LhdcKbps = kbps });
+                && s.LhdcSampleRate == sampleRate && s.LhdcBits == bits
+                ? s : s with { A2dpDriver = driver, LhdcKbps = kbps, LhdcSampleRate = sampleRate, LhdcBits = bits });
         }
     }
 

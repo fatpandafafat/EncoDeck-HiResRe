@@ -6,7 +6,7 @@
   never published with a pin nobody can download.
 #>
 [CmdletBinding()]
-param([string]$Repository = 'TIANLI0/EncoDeck')
+param([string]$Repository = 'fatpandafafat/LHDC-Win')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $manifest = Get-Content (Join-Path $root 'src/EncoDeck.Platform/Components/components.json') -Raw | ConvertFrom-Json

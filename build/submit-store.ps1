@@ -21,7 +21,7 @@ param(
     # Delete a pending (uncommitted or CommitFailed) submission first, e.g. the one left behind by a failed run;
     # Partner Center cannot commit a CommitFailed submission again.
     [switch] $ReplacePending,
-    [string] $ReleaseNotesUrl = "https://github.com/TIANLI0/EncoDeck/releases"
+    [string] $ReleaseNotesUrl = "https://github.com/fatpandafafat/EncoDeck-HiResRe/releases"
 )
 
 # Partner Center rejects release notes over 1500 characters; cut at a line and point to the full notes.

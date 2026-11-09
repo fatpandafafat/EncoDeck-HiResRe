@@ -383,6 +383,9 @@ public sealed partial class SoundPage : Page
             SyncBandEditor();
             SyncBass(f, ready);
             SyncSpatial(f, ready);
+            // The LHDC stream's live format: extra information, so it never decides the empty state.
+            LiveFormatCard.Visibility = Show(ViewModel.HasLiveFormat);
+            if (LiveFormatCard.Visibility == Visibility.Visible) LiveFormatText.Text = ViewModel.LiveFormatText;
             EmptyCard.Visibility = Show(ready && EqCard.Visibility == Visibility.Collapsed
                 && BassCard.Visibility == Visibility.Collapsed && SpatialCard.Visibility == Visibility.Collapsed);
             LayoutColumns();

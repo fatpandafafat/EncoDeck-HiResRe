@@ -12,7 +12,7 @@ namespace EncoDeck.Platform.Lhdc;
 /// </summary>
 public static class LhdcComponent
 {
-    public const string Repository = "https://github.com/Wayne-u/LHDC-Win";
+    public const string Repository = "https://github.com/fatpandafafat/LHDC-Win";
 
     /// <summary>The backend contract this app drives (lhdc-host queries and Set-AudioMode.ps1 parameters).</summary>
     public const int Interface = 1;
@@ -58,6 +58,36 @@ public static class LhdcComponent
         {
             using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\LHDC-Win");
             return key?.GetValue("ActiveBitrate") is int kbps && kbps > 0 ? kbps : 0;
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException) { return 0; }
+    }
+
+    /// <summary>
+    /// The sample rate the LHDC service streams at now, in Hz; 0 while it plays nothing or is turned off. The service
+    /// publishes it in its registry key, which needs no administrator rights to read.
+    /// </summary>
+    public static int ActiveSampleRate()
+    {
+        if (!ServiceEnabled()) return 0;
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\LHDC-Win");
+            return key?.GetValue("ActiveSampleRate") is int rate && rate > 0 ? rate : 0;
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException) { return 0; }
+    }
+
+    /// <summary>
+    /// The bit depth the LHDC service streams at now; 0 while it plays nothing or is turned off. The service
+    /// publishes it in its registry key, which needs no administrator rights to read.
+    /// </summary>
+    public static int ActiveBits()
+    {
+        if (!ServiceEnabled()) return 0;
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\LHDC-Win");
+            return key?.GetValue("ActiveBits") is int bits && bits > 0 ? bits : 0;
         }
         catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException) { return 0; }
     }

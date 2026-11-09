@@ -32,4 +32,4 @@ EncoDeck 把手机耳机 App 里常用的设置搬到了电脑上：查看电量
 
 使用前请先在 Windows 蓝牙设置中配对并连接耳机。部分型号的设备图片和动画需要首次联网获取。
 
-EncoDeck 是开源的非官方工具，与各耳机品牌没有关联。除 OPPO Enco X4 外，多数型号尚未经过真机测试，欢迎在 GitHub 反馈测试结果：https://github.com/TIANLI0/EncoDeck
+EncoDeck 是开源的非官方工具，与各耳机品牌没有关联。除 OPPO Enco X4 外，多数型号尚未经过真机测试，欢迎在 GitHub 反馈测试结果：https://github.com/fatpandafafat/EncoDeck-HiResRe

@@ -27,7 +27,7 @@
     <TextBlock x:Uid="Bridge_OwnInstallNote" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />
     <HyperlinkButton x:Uid="Bridge_OpenAppsSettings" NavigateUri="ms-settings:appsfeatures" Padding="0" />
    </StackPanel>
-   <HyperlinkButton x:Name="StandaloneLink" x:Uid="Bridge_StandaloneLink" NavigateUri="https://github.com/TIANLI0/EncoDeck/releases/latest" Visibility="Collapsed" Padding="0" />
+   <HyperlinkButton x:Name="StandaloneLink" x:Uid="Bridge_StandaloneLink" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/latest" Visibility="Collapsed" Padding="0" />
    <ProgressBar x:Name="Progress" Visibility="Collapsed" Maximum="100" />
    <local:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
     <Button x:Name="Download" Click="OnDownload" Style="{StaticResource AccentButtonStyle}" Visibility="Collapsed" />
@@ -69,7 +69,7 @@
      <TextBlock x:Uid="Bridge_HelpDaily" TextWrapping="Wrap" />
      <TextBlock x:Uid="Bridge_HelpControls" TextWrapping="Wrap" />
      <TextBlock x:Uid="Bridge_HelpRestore" TextWrapping="Wrap" />
-     <HyperlinkButton x:Uid="Bridge_Guide" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/A2DP_BRIDGE.md" Padding="0" />
+     <HyperlinkButton x:Uid="Bridge_Guide" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/A2DP_BRIDGE.md" Padding="0" />
      <HyperlinkButton x:Uid="Bridge_Upstream" NavigateUri="https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge" Padding="0" />
     </StackPanel>
    </Expander>

@@ -24,6 +24,25 @@ internal sealed record LhdcHiResState(bool Supported, bool? Enabled, bool ViaEnc
 internal sealed class LhdcHiResService(LhdcBackend backend)
 {
     /// <summary>
+    /// Whether the earbud's Hi-Res switch can be read at all right now.
+    /// <para>
+    /// An earbud EncoDeck drives itself is read over EncoDeck's own control channel, which needs no Windows
+    /// A2DP link: the switch is a feature of the earbud, not of the audio stream. Any other earbud goes
+    /// through the upstream CLI, which opens its own RFCOMM channel and therefore needs the earbud connected
+    /// to Windows.
+    /// </para>
+    /// </summary>
+    /// <param name="target">The earbud the switch would be read from.</param>
+    /// <param name="bluetoothConnected">Whether Windows has the earbud connected (the upstream CLI's condition).</param>
+    public bool CanRead(LhdcDevice target, bool bluetoothConnected)
+    {
+        // EncoDeck holds the control channel itself: it needs no Windows A2DP link.
+        if (IsControlled(target)) return App.Instance.Features is not null;
+        // The upstream CLI opens its own RFCOMM channel: the earbud must be connected to Windows.
+        return bluetoothConnected;
+    }
+
+    /// <summary>
     /// Reads the switch. Returns null when the earbud cannot be asked at all, and a state with
     /// <c>Supported</c> false when the earbud has no such switch.
     /// </summary>

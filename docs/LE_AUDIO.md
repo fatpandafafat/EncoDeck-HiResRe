@@ -2,7 +2,7 @@
 
 部分 OPPO 耳机的固件同时支持传统蓝牙（A2DP）和 LE Audio（LC3）。在 OPPO 手机上，LE Audio 由系统蓝牙自行切换；Windows 的“添加设备”找不到这些耳机的 LE 身份，所以总是按传统蓝牙配对。EncoDeck 的“实验室”页提供一个实验性开关，帮 Windows 通过 LE Audio 配对这类耳机。
 
-目前只在 **OPPO Enco X4** 上真机验证过。Enco X4、Enco X3 提供实验性入口；其他 OPPO 型号须回复 LE/BR 开关查询（`0x0136`）或已有 LE 配对，才会显示入口。Enco X3 尚未完成 Windows 真机配对与双耳播放验证：它的另一只耳机以自己的 LE 地址广播，EncoDeck 接受 Windows 按 LE Audio 集合协议找到的这只耳机，并在副耳配对前尝试上报主机已改用 LE 传输（功能开关 `0x1F`），X4 不需要这一步（[#12](https://github.com/TIANLI0/EncoDeck/issues/12)）。
+目前只在 **OPPO Enco X4** 上真机验证过。Enco X4、Enco X3 提供实验性入口；其他 OPPO 型号须回复 LE/BR 开关查询（`0x0136`）或已有 LE 配对，才会显示入口。Enco X3 尚未完成 Windows 真机配对与双耳播放验证：它的另一只耳机以自己的 LE 地址广播，EncoDeck 接受 Windows 按 LE Audio 集合协议找到的这只耳机，并在副耳配对前尝试上报主机已改用 LE 传输（功能开关 `0x1F`），X4 不需要这一步（[#12](https://github.com/fatpandafafat/EncoDeck-HiResRe/issues/12)）。
 
 X3 的配对流程先完成主耳 LE 配对，等待本机绑定可见并开放 GATT 控制，尝试上报 `0x0403 [1F 01]`，再发起副耳配对。Windows 提前报告的集合成员会等待这一步结束，保留系统发现的身份。上报成功后等待 3 秒；上报失败会记录结果并继续尝试副耳，不能把上报 ACK 当作双耳配对成功。
 

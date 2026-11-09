@@ -67,6 +67,12 @@ public sealed record DeviceState
     /// <summary>The bitrate the LHDC component streams to this device at, in kbps; 0 while it plays nothing or is not in use.</summary>
     public int LhdcKbps { get; init; }
 
+    /// <summary>The sample rate the LHDC component streams at, in Hz; 0 while it plays nothing or is not in use.</summary>
+    public int LhdcSampleRate { get; init; }
+
+    /// <summary>The bit depth the LHDC component streams at; 0 while it plays nothing or is not in use.</summary>
+    public int LhdcBits { get; init; }
+
     /// <summary>24-bit product id reported by the device (e.g. 0x06EC10 for Enco X4).</summary>
     public uint? ProductId { get; init; }
 

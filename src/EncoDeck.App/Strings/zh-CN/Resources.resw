@@ -564,6 +564,9 @@
   <data name="Lhdc_Refresh" xml:space="preserve"><value>刷新</value></data>
   <data name="Lhdc_Adaptive" xml:space="preserve"><value>自适应码率（所选值为上限）</value></data>
   <data name="Lhdc_Rate" xml:space="preserve"><value>采样率</value></data>
+  <data name="Lhdc_LiveFormat" xml:space="preserve"><value>实时码率 {0} kbps · {1} Hz · {2} bit</value></data>
+  <data name="Lhdc_LiveFormatUnavailable" xml:space="preserve"><value>当前没有 LHDC 播放，暂无实时码率。</value></data>
+  <data name="Lhdc_LiveFormatTitle.Text" xml:space="preserve"><value>LHDC 播放流</value></data>
   <data name="Lhdc_Device" xml:space="preserve"><value>音频设备</value></data>
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>下载非商店版本</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>商店版暂不支持 LHDC</value></data>
@@ -588,11 +591,13 @@
   <data name="Lhdc_HiResOff" xml:space="preserve"><value>已关闭。开启后才能选择更高的采样率和码率，切换会短暂中断音频。</value></data>
   <data name="Lhdc_HiResUnknown" xml:space="preserve"><value>连接耳机后读取其 Hi-Res 状态。</value></data>
   <data name="Lhdc_HiResUnsupported" xml:space="preserve"><value>该耳机没有 Hi-Res 开关，只能按 LHDC V5 标准参数使用。</value></data>
+  <data name="Lhdc_HiResNotNegotiated" xml:space="preserve"><value>耳机已连接，但驱动还没有协商过它的能力：先跑一次 LHDC 音频会话，驱动才会协商。</value></data>
   <data name="Lhdc_HiResBusy" xml:space="preserve"><value>正在切换耳机 Hi-Res…</value></data>
   <data name="Lhdc_HiResPending" xml:space="preserve"><value>耳机开关已确认，但驱动还没有重新协商能力。请稍后点击“刷新”。</value></data>
   <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>关闭 Hi-Res 前，请先应用不高于 48 kHz / 400 kbps 的 LHDC 参数。</value></data>
   <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>驱动当前协商到的最高码率 {0} kbps</value></data>
   <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>耳机 Hi-Res 已开启，但驱动缓存的还是旧能力</value></data>
+  <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>驱动尚未协商到耳机能力</value></data>
   <data name="Lhdc_Negotiating" xml:space="preserve"><value>正在让驱动重新协商耳机能力…</value></data>
   <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>未找到该设备</value></data>
   <data name="Lhdc_Version" xml:space="preserve"><value>组件版本：{0}</value></data>
@@ -1252,6 +1257,7 @@
   <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>已通过蓝牙 A2DP 连接。Windows 还没有记录这副耳机的编码：播放一段音频并停下后就会显示。</value></data>
   <data name="Codec_LhdcDescription" xml:space="preserve"><value>这副耳机的 A2DP 已由 LHDC 组件的驱动接管，播放时使用 LHDC V5。Windows 不会记录这条连接的编码。</value></data>
   <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>LHDC 组件正在以 {0} kbps 向这副耳机发送 LHDC V5 音频。</value></data>
+  <data name="Codec_LhdcStreamingFullDescription" xml:space="preserve"><value>LHDC 组件正在以 {0} kbps、{1} Hz、{2} bit 向这副耳机发送 LHDC V5 音频。</value></data>
   <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>已通过蓝牙 A2DP 连接，但这副耳机的 A2DP 由第三方驱动接管。Windows 不会记录它使用的编码，所以这里不显示具体编码。</value></data>
   <data name="CodecBadge_Enable" xml:space="preserve"><value>开启（需要管理员授权一次）</value></data>
   <data name="CodecBadge_Enabled" xml:space="preserve"><value>已开启。播放一段音频并停下后，这里会显示 Windows 实际使用的编码。</value></data>

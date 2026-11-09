@@ -15,12 +15,17 @@ param(
     [Parameter(Mandatory)][ValidateSet('lhdc', 'a2dpwb')][string] $Id,
     [Parameter(Mandatory)][string] $OutputDirectory,
     [string] $Archive,
-    [switch] $Upload
+    [switch] $Upload,
+    # The repository the component's own release lives in; the LHDC component is released with its source.
+    [string] $Repository
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $pin = (Get-Content (Join-Path $root 'src/EncoDeck.Platform/Components/components.json') -Raw | ConvertFrom-Json).components | Where-Object id -eq $Id
 if (-not $pin) { throw "No component '$Id' in components.json." }
+if (-not $Repository) {
+    $Repository = if ($Id -eq 'lhdc') { 'fatpandafafat/LHDC-Win' } else { 'fatpandafafat/EncoDeck-HiResRe' }
+}
 if ($Archive) {
     $name = [IO.Path]::GetFileName($Archive)
     $package = $pin.packages | Where-Object file -eq $name
@@ -38,7 +43,7 @@ $path = Join-Path ([IO.Path]::GetFullPath($OutputDirectory)) 'component.json'
 # UTF-8 without a byte order mark, in Windows PowerShell 5.1 as in PowerShell 7.
 [IO.File]::WriteAllText($path, ($manifest | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
 if ($Upload) {
-    & gh release upload $pin.tag $path --clobber --repo TIANLI0/EncoDeck
+    & gh release upload $pin.tag $path --clobber --repo $Repository
     if ($LASTEXITCODE -ne 0) { throw "Could not attach component.json to $($pin.tag)." }
 }
 $path

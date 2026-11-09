@@ -564,6 +564,11 @@
   <data name="Lhdc_Refresh" xml:space="preserve"><value>更新</value></data>
   <data name="Lhdc_Adaptive" xml:space="preserve"><value>適応型ビットレート（選択した値が上限）</value></data>
   <data name="Lhdc_Rate" xml:space="preserve"><value>サンプリングレート</value></data>
+  <data name="Lhdc_LiveFormat" xml:space="preserve"><value>リアルタイム: {0} kbps · {1} Hz · {2} bit</value></data>
+  <data name="Lhdc_LiveFormatUnavailable" xml:space="preserve"><value>現在 LHDC 再生中ではないため、リアルタイムのビットレートはありません。</value></data>
+  <data name="Lhdc_LiveFormatTitle.Text" xml:space="preserve"><value>LHDC ストリーム</value></data>
+  <data name="Lhdc_HiResNotNegotiated" xml:space="preserve"><value>イヤホンは接続されていますが、ドライバーはまだ能力をネゴシエートしていません。LHDC のセッションが 1 度動くとネゴシエートされます。</value></data>
+  <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>ドライバーは未だイヤホンの能力をネゴシエートしていません</value></data>
   <data name="Lhdc_Device" xml:space="preserve"><value>オーディオデバイス</value></data>
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>Store 版以外をダウンロード</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>Store 版では LHDC を利用できません</value></data>
@@ -1239,6 +1244,7 @@
   <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>Bluetooth A2DP で接続しています。Windows はこのイヤホンのコーデックをまだ記録していません。音声を再生して停止すると、ここに表示されます。</value></data>
   <data name="Codec_LhdcDescription" xml:space="preserve"><value>このイヤホンの A2DP は LHDC コンポーネントのドライバーが担当しており、LHDC V5 で再生します。この接続のコーデックは Windows に記録されません。</value></data>
   <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>LHDC コンポーネントがこのイヤホンに LHDC V5 音声を {0} kbps で送信しています。</value></data>
+  <data name="Codec_LhdcStreamingFullDescription" xml:space="preserve"><value>LHDC コンポーネントが {0} kbps、{1} Hz、{2} bit で LHDC V5 オーディオを再生しています。</value></data>
   <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>Bluetooth A2DP で接続していますが、このイヤホンの A2DP はサードパーティ製ドライバーが担当しています。使われるコーデックは Windows に記録されないため、ここには具体的なコーデックを表示しません。</value></data>
   <data name="CodecBadge_Enable" xml:space="preserve"><value>オンにする（管理者の許可が一度必要）</value></data>
   <data name="CodecBadge_Enabled" xml:space="preserve"><value>オンにしました。音声を再生して停止すると、Windows が実際に使うコーデックがここに表示されます。</value></data>

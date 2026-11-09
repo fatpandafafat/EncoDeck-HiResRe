@@ -175,7 +175,7 @@ LHDC 服务仍为启用状态，或有音频设备仍在使用 LHDC 驱动时，
 
 ## 源码构建与云端发布
 
-组件构建从 https://github.com/Wayne-u/LHDC-Win.git 全新克隆，并检出 `components.json` 中固定的提交
+组件构建从 https://github.com/fatpandafafat/LHDC-Win.git 全新克隆，并检出 `components.json` 中固定的提交
 （不是构建当天的 main），按上游固定提交拉取编码器与 Windows 驱动样例。拉取失败立即中止。
 自编译四个原生后台工具及传输、音频驱动，运行上游测试、生成测试签名并验证包。
 不编译或分发上游 WPF UI，运行时仅包含后端、驱动、部署脚本和完整 PowerShell 7。

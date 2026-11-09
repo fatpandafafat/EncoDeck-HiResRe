@@ -15,16 +15,37 @@ public sealed record LhdcDevice(string Instance, string Name, string Address)
 
 public sealed record LhdcProfile(int SampleRate = 48000, int Bits = 24, int Kbps = 400, bool Adaptive = false)
 {
+    /// <summary>
+    /// The bitrates the encoder has a table entry for at 44.1 kHz. The encoder's table is per
+    /// sample rate: 44.1 kHz uses 240 and 480 where the other rates use 256 and 500, so a
+    /// bitrate without an entry for the chosen rate is rejected here rather than failing inside
+    /// the driver later on.
+    /// </summary>
+    private static readonly int[] Bitrates44100 = [64, 160, 192, 240, 320, 400, 480, 900, 1000];
+
+    /// <summary>The bitrates the encoder has a table entry for at every other sample rate.</summary>
+    private static readonly int[] BitratesOther = [64, 160, 192, 256, 320, 400, 500, 900, 1000];
+
+    /// <summary>Whether the encoder accepts this bitrate at this sample rate.</summary>
+    public static bool AllowsBitrate(int sampleRate, int kbps) =>
+        (sampleRate == 44100 ? Bitrates44100 : BitratesOther).Contains(kbps);
+
     public void Validate()
     {
         if (SampleRate is not (44100 or 48000 or 96000 or 192000) || Bits is not (16 or 24)
-            || Kbps is not (64 or 160 or 192 or 240 or 256 or 320 or 400 or 480 or 500 or 900 or 1000))
+            || !AllowsBitrate(SampleRate, Kbps))
             throw new ArgumentOutOfRangeException(nameof(SampleRate), "Invalid LHDC profile.");
     }
 }
 
 /// <summary>The profile the LHDC service currently runs with, as installed in the registry.</summary>
 public sealed record LhdcInstalledProfile(int SampleRate, int Bits, int Kbps, bool Adaptive);
+
+/// <summary>One stage of the LHDC deployment, as the deployment script reports it.</summary>
+/// <param name="Stage">The stage's stable identifier (e.g. "negotiate", "done", "failed").</param>
+/// <param name="Detail">A human-readable description of the stage.</param>
+/// <param name="Elapsed">How long the deployment has been running.</param>
+public sealed record LhdcDeploymentProgress(string Stage, string Detail, TimeSpan Elapsed);
 
 /// <summary>
 /// The bitrates the upstream encoder accepts. 44.1 kHz uses 240 and 480 where the other sample
@@ -53,6 +74,20 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
     {
         "targets", "target", "inspect", "audio-status", "profile-options", "profile-check", "configure", "connection",
     };
+
+    /// <summary>
+    /// The upper bound of a whole deployment. The script's own polls add up to about two minutes,
+    /// so this leaves room for a slow disk without letting a deployment wait forever.
+    /// </summary>
+    private static readonly TimeSpan DeploymentTimeout = TimeSpan.FromSeconds(180);
+
+    /// <summary>
+    /// The log the deployment script writes its stages to: one JSON line per stage, under
+    /// %ProgramData%\LHDC-Win.
+    /// </summary>
+    private static string ProgressLogPath() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "LHDC-Win", "deployment-progress.jsonl");
 
     public async Task<JsonObject> QueryAsync(string? instance, string command, params string[] arguments)
     {
@@ -173,7 +208,14 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
             + (profile.Adaptive ? "-AdaptiveBitrate " : "") + $"-ResultFile {Quote(resultFile)}";
     }
 
-    public async Task<JsonObject> ApplyAsync(string instance, bool lhdc, LhdcProfile profile)
+    /// <summary>
+    /// Runs the elevated deployment script and reports the stages it goes through. The script
+    /// appends one JSON line per stage to a log file under %ProgramData%, and this method follows
+    /// that file while the script runs, so a deployment that takes a minute does not look like a
+    /// hang.
+    /// </summary>
+    public async Task<JsonObject> ApplyAsync(string instance, bool lhdc, LhdcProfile profile,
+        IProgress<LhdcDeploymentProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(resultsDirectory);
         string resultFile = Path.Combine(resultsDirectory, $"mode-{Guid.NewGuid():N}.json");
@@ -184,14 +226,148 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
             Arguments = "-NoProfile -ExecutionPolicy Bypass -EncodedCommand " + Convert.ToBase64String(Encoding.Unicode.GetBytes(command)),
         };
         using var process = Process.Start(start) ?? throw new IOException("Cannot start LHDC deployment.");
+        DateTime started = DateTime.UtcNow;
+        // The script's own upper bound is about two minutes; this leaves room for a slow disk.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(DeploymentTimeout);
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token);
+        Task watcher = WatchProgressAsync(progress, started, watching.Token);
         // Never kill a deployment: the upstream script must be allowed to finish rollback.
-        await process.WaitForExitAsync().ConfigureAwait(false);
+        try
+        {
+            await process.WaitForExitAsync(deadline.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // A deployment that was given up on is left alone as well: the script may still be
+            // rolling back, and killing it would leave the drivers in an unknown state.
+            if (cancellationToken.IsCancellationRequested) throw;
+            throw new TimeoutException($"LHDC deployment timed out after {DeploymentTimeout.TotalSeconds:F0}s.");
+        }
+        finally
+        {
+            watching.Cancel();
+            await watcher.ConfigureAwait(false);
+        }
         if (!File.Exists(resultFile)) throw new IOException($"LHDC deployment returned no result (exit {process.ExitCode}).");
         var result = JsonNode.Parse(await File.ReadAllTextAsync(resultFile).ConfigureAwait(false))?.AsObject()
             ?? throw new InvalidDataException("Invalid LHDC deployment result.");
         if (process.ExitCode != 0 || result["Completed"]?.GetValue<bool>() != true)
             throw new IOException($"{result["Error"]} {result["RecoveryError"]} RebootRequired={result["RebootRequired"]}. {result["EvidenceDirectory"]}");
         return result;
+    }
+
+    /// <summary>
+    /// Follows the deployment script's progress log and reports every stage it appends. The file
+    /// may not exist yet, may be removed and recreated by the script and may be half-written while
+    /// it is read, so everything that cannot be read is skipped instead of failing the deployment.
+    /// </summary>
+    private static async Task WatchProgressAsync(IProgress<LhdcDeploymentProgress>? progress, DateTime started, CancellationToken cancellationToken)
+    {
+        if (progress is null) return;
+        string path = ProgressLogPath();
+        long offset = 0;
+        string pending = "";
+        DateTime? creation = null;
+        bool baselined = false;
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    foreach (string line in ReadProgressLines(path, started, ref offset, ref pending, ref creation, ref baselined))
+                    {
+                        if (ParseProgress(line) is { } stage) progress.Report(stage);
+                    }
+                }
+                catch (Exception ex) when (ex is not OutOfMemoryException) { }
+                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { }
+    }
+
+    /// <summary>
+    /// Reads the lines the progress log grew by since the last read. A line that is still being
+    /// written is kept back until its newline arrives, so a half-written line is never parsed.
+    /// </summary>
+    private static List<string> ReadProgressLines(string path, DateTime started, ref long offset, ref string pending,
+        ref DateTime? creation, ref bool baselined)
+    {
+        var lines = new List<string>();
+        if (!File.Exists(path)) return lines;
+        DateTime created = new FileInfo(path).CreationTimeUtc;
+        if (creation is { } previous && previous != created)
+        {
+            // The script removed the log and started a new one: read it from the beginning.
+            offset = 0;
+            pending = "";
+        }
+        creation = created;
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        long length = stream.Length;
+        if (length < offset)
+        {
+            // The log was truncated or replaced: start over.
+            offset = 0;
+            pending = "";
+        }
+        if (!baselined)
+        {
+            baselined = true;
+            // A log that is clearly older than this deployment belongs to an earlier run: skip it.
+            if (created < started.AddSeconds(-2))
+            {
+                offset = length;
+                pending = "";
+                return lines;
+            }
+        }
+        if (length <= offset) return lines;
+        stream.Seek(offset, SeekOrigin.Begin);
+        byte[] buffer = new byte[(int)Math.Min(length - offset, 64 * 1024)];
+        int read = stream.Read(buffer, 0, buffer.Length);
+        offset += read;
+        pending += Encoding.UTF8.GetString(buffer, 0, read);
+        int newline;
+        while ((newline = pending.IndexOf('\n')) >= 0)
+        {
+            string line = pending[..newline].Trim().TrimStart('\uFEFF');
+            pending = pending[(newline + 1)..];
+            if (line.Length > 0) lines.Add(line);
+        }
+        return lines;
+    }
+
+    /// <summary>One stage of the progress log, or null when the line does not hold one.</summary>
+    private static LhdcDeploymentProgress? ParseProgress(string line)
+    {
+        try
+        {
+            if (JsonNode.Parse(line) is not JsonObject node) return null;
+            string stage = StringValue(node["stage"]);
+            if (stage.Length == 0) return null;
+            return new LhdcDeploymentProgress(stage, StringValue(node["detail"]), TimeSpan.FromMilliseconds(NumberValue(node["elapsed_ms"])));
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return null; }
+    }
+
+    /// <summary>A string field of a JSON value; empty when it is missing or not a string.</summary>
+    private static string StringValue(JsonNode? node)
+    {
+        if (node is not JsonValue value) return "";
+        try { return value.GetValue<string>() ?? ""; }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return ""; }
+    }
+
+    /// <summary>A numeric field of a JSON value; zero when it is missing or not a number.</summary>
+    private static long NumberValue(JsonNode? node)
+    {
+        if (node is not JsonValue value) return 0;
+        try { return value.GetValue<long>(); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return 0; }
     }
 
     private async Task<JsonObject> RunAsync(string? instance, string command, string[] arguments, TimeSpan? timeout)

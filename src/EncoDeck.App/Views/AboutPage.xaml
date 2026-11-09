@@ -33,9 +33,9 @@
                         <TextBlock x:Uid="About_Tagline" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}"
                                    Text="Manage your earbuds on Windows — no more reaching for your phone just to switch noise cancelling." />
                         <controls:WrapPanel Style="{StaticResource LinkRowStyle}" Margin="0,2,0,0">
-                            <HyperlinkButton x:Uid="Settings_Source" Content="Source code" NavigateUri="https://github.com/TIANLI0/EncoDeck" />
-                            <HyperlinkButton x:Uid="About_Compatibility" Content="Device compatibility" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/COMPATIBILITY.md" />
-                            <HyperlinkButton x:Uid="About_Changelog" Content="Changelog" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CHANGELOG.md" />
+                            <HyperlinkButton x:Uid="Settings_Source" Content="Source code" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe" />
+                            <HyperlinkButton x:Uid="About_Compatibility" Content="Device compatibility" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/COMPATIBILITY.md" />
+                            <HyperlinkButton x:Uid="About_Changelog" Content="Changelog" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/CHANGELOG.md" />
                         </controls:WrapPanel>
                     </StackPanel>
                 </Grid>
@@ -173,8 +173,8 @@
                         <Button x:Name="CopyInfo" Click="OnCopySystemInfo" />
                     </controls:SettingRow>
                     <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
-                        <HyperlinkButton x:Uid="About_ReportIssue" Content="Report an issue" NavigateUri="https://github.com/TIANLI0/EncoDeck/issues" />
-                        <HyperlinkButton x:Uid="About_Contributing" Content="Contributing" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/CONTRIBUTING.md" />
+                        <HyperlinkButton x:Uid="About_ReportIssue" Content="Report an issue" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/issues" />
+                        <HyperlinkButton x:Uid="About_Contributing" Content="Contributing" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/CONTRIBUTING.md" />
                     </controls:WrapPanel>
                 </StackPanel>
             </Border>
@@ -282,7 +282,7 @@
                     <TextBlock x:Uid="About_ThanksComponents" Text="Components and libraries" Style="{StaticResource BodyStrongTextBlockStyle}" />
                     <StackPanel Spacing="2">
                         <TextBlock x:Uid="About_ThanksLhdc" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="LHDC V5 component" />
-                        <HyperlinkButton Content="LHDC-Win" NavigateUri="https://github.com/Wayne-u/LHDC-Win" />
+                        <HyperlinkButton Content="LHDC-Win" NavigateUri="https://github.com/fatpandafafat/LHDC-Win" />
                     </StackPanel>
                     <StackPanel Spacing="2">
                         <TextBlock x:Uid="About_ThanksBridge" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" Text="A2DP Bridge component" />
@@ -319,8 +319,8 @@
                                Text="EncoDeck has no accounts, ads, analytics or telemetry. It goes online only for updates, device artwork and the optional components you download." />
                     <controls:WrapPanel Style="{StaticResource LinkRowStyle}">
                         <HyperlinkButton x:Uid="Settings_Notices" Content="Third-party notices" Click="OnOpenNotices" />
-                        <HyperlinkButton x:Uid="About_LicenseLink" Content="License" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/LICENSE" />
-                        <HyperlinkButton x:Uid="About_Privacy" Content="Privacy policy" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/PRIVACY.md" />
+                        <HyperlinkButton x:Uid="About_LicenseLink" Content="License" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/LICENSE" />
+                        <HyperlinkButton x:Uid="About_Privacy" Content="Privacy policy" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/PRIVACY.md" />
                     </controls:WrapPanel>
                 </StackPanel>
             </Border>

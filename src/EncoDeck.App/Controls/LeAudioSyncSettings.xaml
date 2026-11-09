@@ -27,7 +27,7 @@
     <StackPanel Spacing="10">
      <TextBlock x:Uid="LeAudioSync_HelpHow" TextWrapping="Wrap" />
      <TextBlock x:Uid="LeAudioSync_HelpLimits" TextWrapping="Wrap" />
-     <HyperlinkButton x:Uid="LeAudio_Guide" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/LE_AUDIO.md" Padding="0" />
+     <HyperlinkButton x:Uid="LeAudio_Guide" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/LE_AUDIO.md" Padding="0" />
     </StackPanel>
    </Expander>
   </StackPanel>

@@ -14,7 +14,7 @@ namespace EncoDeck.App.Views;
 /// <summary>Version, developer, sponsorship, acknowledgements and legal notices.</summary>
 public sealed partial class AboutPage : Page
 {
-    private const string NoticesUrl = "https://github.com/TIANLI0/EncoDeck/blob/main/THIRD_PARTY_NOTICES.md";
+    private const string NoticesUrl = "https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/THIRD_PARTY_NOTICES.md";
 
     private DispatcherQueueTimer? _copiedTimer;
 

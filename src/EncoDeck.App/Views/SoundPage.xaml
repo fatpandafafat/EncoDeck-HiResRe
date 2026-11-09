@@ -14,6 +14,14 @@
                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                 CloseButtonCommand="{x:Bind ViewModel.DismissErrorCommand}" />
 
+            <!-- The LHDC component's live stream format: what it is sending to these earbuds right now. -->
+            <Border x:Name="LiveFormatCard" Style="{StaticResource CardStyle}" Visibility="Collapsed">
+                <StackPanel Spacing="4">
+                    <TextBlock x:Uid="Lhdc_LiveFormatTitle" Text="LHDC stream" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock x:Name="LiveFormatText" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />
+                </StackPanel>
+            </Border>
+
             <!-- Connected earbuds with none of the cards below, instead of a blank page. -->
             <Border x:Name="EmptyCard" Style="{StaticResource CardStyle}" Visibility="Collapsed">
                 <StackPanel Spacing="4">

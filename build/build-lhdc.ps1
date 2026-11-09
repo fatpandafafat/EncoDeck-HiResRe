@@ -21,7 +21,7 @@ if ($ComponentVersion -notmatch '^\d+\.\d+\.\d+-r\d+$') { throw "A component ver
 if ($Commit -notmatch '^[0-9a-f]{40}$') { throw 'A full 40-digit upstream commit is required.' }
 $destinationPath = [IO.Path]::GetFullPath($Destination)
 if (Test-Path -LiteralPath $destinationPath) { throw "Destination must not already exist: $destinationPath" }
-$repository = 'https://github.com/Wayne-u/LHDC-Win.git'
+$repository = 'https://github.com/fatpandafafat/LHDC-Win.git'
 # A unique checkout prevents stale binaries or a modified local remote from being reused.
 $source = Join-Path $root ('artifacts/lhdc/sources/' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path (Split-Path -Parent $source) -Force | Out-Null
@@ -86,7 +86,7 @@ Copy-Item -LiteralPath (Join-Path $source 'LICENSE'),(Join-Path $source 'NOTICE.
 Get-ChildItem -LiteralPath (Join-Path $source 'licenses') -File | Copy-Item -Destination (Join-Path $package 'licenses')
 Copy-Item -LiteralPath (Join-Path $PowerShellDirectory 'LICENSE.txt') -Destination (Join-Path $package 'licenses/PowerShell-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $PowerShellDirectory 'ThirdPartyNotices.txt') -Destination (Join-Path $package 'licenses/PowerShell-ThirdPartyNotices.txt')
-[ordered]@{Schema=2;Component='lhdc';ComponentVersion=$ComponentVersion;SourceRepository='https://github.com/Wayne-u/LHDC-Win';Architecture='x64';Interface='EncoDeck-native';SourceCommit=$commit} | ConvertTo-Json | Set-Content (Join-Path $package 'runtime.json') -Encoding UTF8
+[ordered]@{Schema=2;Component='lhdc';ComponentVersion=$ComponentVersion;SourceRepository='https://github.com/fatpandafafat/LHDC-Win';Architecture='x64';Interface='EncoDeck-native';SourceCommit=$commit} | ConvertTo-Json | Set-Content (Join-Path $package 'runtime.json') -Encoding UTF8
 [ordered]@{ComponentVersion=$ComponentVersion;SourceCommit=$commit;SourceTreeDirty=$false;BuiltAt=Get-Date -Format o;Architecture='x64';MinimumWindowsBuild=22621;DriverSigning='Test';PowerShellVersion=$runtimeInfo[0];SelfContainedUI=$false} | ConvertTo-Json | Set-Content (Join-Path $package 'release.json') -Encoding UTF8
 $hashes = foreach ($file in Get-ChildItem -LiteralPath $package -Recurse -File) {
     [pscustomobject]@{Path=[IO.Path]::GetRelativePath($package,$file.FullName).Replace('\','/');SHA256=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash}

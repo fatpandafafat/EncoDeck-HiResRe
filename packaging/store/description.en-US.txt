@@ -32,4 +32,4 @@ WINDOWS INTEGRATION
 
 Pair and connect your earbuds in Windows Bluetooth settings first. Some product images and animations are downloaded on first use.
 
-EncoDeck is an open-source, unofficial tool and is not affiliated with any earbud brand. Apart from the OPPO Enco X4, most models have not yet been tested on real hardware — feedback is welcome on GitHub: https://github.com/TIANLI0/EncoDeck
+EncoDeck is an open-source, unofficial tool and is not affiliated with any earbud brand. Apart from the OPPO Enco X4, most models have not yet been tested on real hardware — feedback is welcome on GitHub: https://github.com/fatpandafafat/EncoDeck-HiResRe

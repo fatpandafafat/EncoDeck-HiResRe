@@ -20,7 +20,7 @@ public sealed class ComponentInstallerTests : IDisposable
     public void BuiltInManifestPinsEveryComponent()
     {
         var lhdc = ComponentCatalog.Lhdc;
-        Assert.Equal("https://github.com/Wayne-u/LHDC-Win", lhdc.Source.Repository);
+        Assert.Equal("https://github.com/fatpandafafat/LHDC-Win", lhdc.Source.Repository);
         Assert.StartsWith("lhdc-v", lhdc.Tag);
         Assert.NotNull(lhdc.PackageFor(System.Runtime.InteropServices.Architecture.X64));
         var bridge = ComponentCatalog.A2dpBridge;
@@ -33,7 +33,7 @@ public sealed class ComponentInstallerTests : IDisposable
             Assert.NotEmpty(package.Mirrors);
             Assert.All(bridge.Sources(package), m => Assert.StartsWith("https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge/releases/download/", m.AbsoluteUri));
         }
-        Assert.Equal(new Uri($"https://github.com/TIANLI0/EncoDeck/releases/download/{lhdc.Tag}/{lhdc.Packages[0].File}"), lhdc.Sources(lhdc.Packages[0])[0]);
+        Assert.Equal(new Uri($"https://github.com/fatpandafafat/LHDC-Win/releases/download/{lhdc.Tag}/{lhdc.Packages[0].File}"), lhdc.Sources(lhdc.Packages[0])[0]);
         // Component tags never parse as app versions, so the app's update check cannot pick them.
         Assert.All(ComponentCatalog.Components, c => Assert.False(SemanticVersion.TryParse(c.Tag, out _)));
     }
@@ -69,7 +69,7 @@ public sealed class ComponentInstallerTests : IDisposable
     public async Task WrongBytesFromTheReleaseFallBackToTheMirror()
     {
         byte[] zip = LhdcPackage("0.8.8-r1");
-        var http = new FakeHttp(zip) { Corrupt = uri => uri.Host == "github.com" && uri.AbsolutePath.StartsWith("/TIANLI0/", StringComparison.Ordinal) };
+        var http = new FakeHttp(zip) { Corrupt = uri => uri.Host == "github.com" && uri.AbsolutePath.StartsWith("/fatpandafafat/", StringComparison.Ordinal) };
         var installer = Lhdc(http, zip, "0.8.8-r1", mirror: new Uri("https://mirror.example/lhdc.zip"));
         await installer.InstallAsync(ct: TestContext.Current.CancellationToken);
         Assert.NotNull(installer.Installed);

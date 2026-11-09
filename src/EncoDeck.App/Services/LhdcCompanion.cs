@@ -68,7 +68,8 @@ internal static class LhdcCompanion
         var app = SemanticVersion.FromAssembly(typeof(LhdcCompanion).Assembly);
         using var http = new HttpClient();
         string floor = Component.Installed is { } installed && ComponentVersion.IsNewer(installed.Version, Component.Release.Version) ? installed.Version : Component.Release.Version;
-        var result = await new ComponentUpdateClient(http, app).CheckAsync(ComponentCatalog.LhdcId, LhdcComponent.Interface, floor, includePrerelease, ct).ConfigureAwait(false);
+        var result = await new ComponentUpdateClient(http, app, ComponentCatalog.ReleasesApi(ComponentCatalog.Repository))
+            .CheckAsync(ComponentCatalog.LhdcId, LhdcComponent.Interface, floor, includePrerelease, ct).ConfigureAwait(false);
         if (result.Outcome is ComponentUpdateOutcome.Available or ComponentUpdateOutcome.UpToDate)
         {
             OnlineRelease = result.Release;

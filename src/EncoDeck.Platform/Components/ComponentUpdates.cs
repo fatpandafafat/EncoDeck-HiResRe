@@ -25,11 +25,12 @@ public sealed record ComponentUpdateResult(ComponentUpdateOutcome Outcome, Compo
 /// interface, accepts this app version, and every package it lists is an asset of that release with the same
 /// size and GitHub digest. The installer then holds the download to that size and digest, as for a pin.
 /// </summary>
+/// <param name="releasesApi">The releases list to search; the component's own repository, not the app's.</param>
 public sealed class ComponentUpdateClient(HttpClient http, SemanticVersion app, Uri? releasesApi = null)
 {
     private const long MaxList = 4L * 1024 * 1024;
     private const long MaxManifest = 64 * 1024;
-    private readonly Uri _api = releasesApi ?? GitHubUpdateClient.DefaultReleasesApi;
+    private readonly Uri _api = releasesApi ?? ComponentCatalog.ReleasesApi(ComponentCatalog.AppRepository);
 
     public async Task<ComponentUpdateResult> CheckAsync(string id, int contract, string? newerThan, bool includePrerelease, CancellationToken ct = default)
     {
@@ -206,7 +207,7 @@ public sealed class ComponentUpdateClient(HttpClient http, SemanticVersion app, 
     {
         var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.UserAgent.Add(new ProductInfoHeaderValue("EncoDeck", app.ToString()));
-        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("(+https://github.com/TIANLI0/EncoDeck)"));
+        request.Headers.UserAgent.Add(new ProductInfoHeaderValue("(+https://github.com/fatpandafafat/EncoDeck-HiResRe)"));
         return request;
     }
 

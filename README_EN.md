@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TIANLI0/EncoDeck/releases/latest">Download installer</a> ·
+  <a href="https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/latest">Download installer</a> ·
   <a href="README.md">简体中文</a> ·
   <a href="docs/COMPATIBILITY.md">Compatibility</a> ·
   <a href="docs/DEVELOPMENT.md">Development</a>
@@ -130,7 +130,7 @@ For more models, per-feature details and verification records, see the **[device
 | --- | --- | --- |
 | Platform | x64 / ARM64 | x64 |
 | Updates | Automatic via Microsoft Store; can also check in-app | Checks GitHub Releases in-app; installs after you confirm |
-| Install | [Open Store](https://apps.microsoft.com/detail/9PN6D8G1K9WZ) | [Download from Releases](https://github.com/TIANLI0/EncoDeck/releases) |
+| Install | [Open Store](https://apps.microsoft.com/detail/9PN6D8G1K9WZ) | [Download from Releases](https://github.com/fatpandafafat/EncoDeck-HiResRe/releases) |
 
 **Requirements: Windows 10 19041+, Windows 11 recommended.**
 
@@ -140,7 +140,7 @@ Before using it, **pair and connect your earbuds in Windows Bluetooth settings**
 
 ### LHDC V5 (optional / experimental)
 
-The non-Store x64 build can optionally integrate [LHDC-Win](https://github.com/Wayne-u/LHDC-Win). After downloading the separate component from the Labs page, you can pick an audio device, set playback parameters, and try enabling LHDC or restoring the original Windows audio configuration.
+The non-Store x64 build can optionally integrate [LHDC-Win](https://github.com/fatpandafafat/LHDC-Win). After downloading the separate component from the Labs page, you can pick an audio device, set playback parameters, and try enabling LHDC or restoring the original Windows audio configuration.
 
 This is not a regular earbud control feature: it involves test-signed drivers, admin rights and system audio configuration, and requires Windows 11 22H2+, x64 and earbuds that support LHDC V5. **The Store version doesn't support it, and real-world playback compatibility is still unverified on hardware.** EncoDeck never changes Secure Boot or system test mode on its own. Read the [LHDC guide and recovery steps](docs/LHDC.md) before trying it.
 
@@ -157,7 +157,7 @@ The LHDC and A2DP Bridge components have their own releases, so updating EncoDec
 Requires .NET SDK 10.0.100 or later. Visual Studio is not needed for a regular build.
 
 ```powershell
-git clone https://github.com/TIANLI0/EncoDeck.git
+git clone https://github.com/fatpandafafat/EncoDeck-HiResRe.git
 cd EncoDeck
 
 dotnet test tests/EncoDeck.Tests
@@ -170,7 +170,7 @@ The repo also ships a command-line diagnostic tool, **EncoDeck.Probe**, for insp
 
 ## Reporting issues
 
-If your earbuds won't connect, a setting doesn't take effect or the model is misidentified, please open an [issue](https://github.com/TIANLI0/EncoDeck/issues). Include the earbud model, firmware version, Windows version and steps to reproduce, plus a Probe report if you can.
+If your earbuds won't connect, a setting doesn't take effect or the model is misidentified, please open an [issue](https://github.com/fatpandafafat/EncoDeck-HiResRe/issues). Include the earbud model, firmware version, Windows version and steps to reproduce, plus a Probe report if you can.
 
 Protocol research, device testing and code contributions are all welcome. Before contributing, have a look at [CONTRIBUTING.md](CONTRIBUTING.md) and the [protocol findings](docs/PROTOCOL_FINDINGS.md).
 

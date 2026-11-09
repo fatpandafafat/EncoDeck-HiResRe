@@ -38,7 +38,7 @@
      <TextBlock x:Uid="LeAudio_HelpSwitch" TextWrapping="Wrap" />
      <TextBlock x:Uid="LeAudio_HelpLimits" TextWrapping="Wrap" />
      <TextBlock x:Uid="LeAudio_HelpRestore" TextWrapping="Wrap" />
-     <HyperlinkButton x:Uid="LeAudio_Guide" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/LE_AUDIO.md" Padding="0" />
+     <HyperlinkButton x:Uid="LeAudio_Guide" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/LE_AUDIO.md" Padding="0" />
     </StackPanel>
    </Expander>
   </StackPanel>

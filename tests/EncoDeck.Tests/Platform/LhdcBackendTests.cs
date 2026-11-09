@@ -12,6 +12,37 @@ public sealed class LhdcBackendTests
     public void RejectsUnsupportedFormatsBeforeStartingDeployment(int rate, int bits, int kbps) =>
         Assert.Throws<ArgumentOutOfRangeException>(() => LhdcBackend.ModeCommand("C:/runtime", "BTHENUM\\device", true, new(rate, bits, kbps), "C:/result.json"));
 
+    [Theory]
+    // 44.1 kHz uses 240 and 480 where every other rate uses 256 and 500, so the
+    // bitrates of the other rate must not be accepted at 44.1 kHz.
+    [InlineData(44100, 240, true)]
+    [InlineData(44100, 480, true)]
+    [InlineData(44100, 256, false)]
+    [InlineData(44100, 500, false)]
+    [InlineData(48000, 256, true)]
+    [InlineData(48000, 500, true)]
+    [InlineData(48000, 240, false)]
+    [InlineData(48000, 480, false)]
+    [InlineData(96000, 400, true)]
+    [InlineData(192000, 1000, true)]
+    public void AcceptsOnlyTheBitratesTheEncoderHasAtThatSampleRate(int rate, int kbps, bool allowed) =>
+        Assert.Equal(allowed, LhdcProfile.AllowsBitrate(rate, kbps));
+
+    [Theory]
+    [InlineData(44100, 24, 240)]
+    [InlineData(48000, 24, 256)]
+    public void AcceptsTheRateSpecificBitrateInAProfile(int rate, int bits, int kbps)
+    {
+        var profile = new LhdcProfile(rate, bits, kbps);
+        profile.Validate();
+    }
+
+    [Theory]
+    [InlineData(44100, 24, 500)]
+    [InlineData(48000, 24, 480)]
+    public void RejectsTheOtherRatesBitrateInAProfile(int rate, int bits, int kbps) =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new LhdcProfile(rate, bits, kbps).Validate());
+
     [Fact]
     public void QuotesDeviceAndPathsAsLiterals()
     {

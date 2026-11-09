@@ -203,6 +203,12 @@ public sealed partial class DeviceViewModel : ObservableObject
     [ObservableProperty] public partial bool IsEqualizerAvailable { get; set; }
     [ObservableProperty] public partial string EqualizerText { get; set; } = string.Empty;
 
+    /// <summary>The LHDC stream's live format, when the LHDC component is streaming to this device.</summary>
+    [ObservableProperty] public partial string LiveFormatText { get; set; } = string.Empty;
+
+    /// <summary>True when the LHDC component is streaming to this device right now.</summary>
+    [ObservableProperty] public partial bool HasLiveFormat { get; set; }
+
     /// <summary>Band values (dB offsets, -6..+6) the device reported for the active preset.</summary>
     [ObservableProperty] public partial IReadOnlyList<int> EqualizerBands { get; set; } = [];
 
@@ -493,8 +499,7 @@ public sealed partial class DeviceViewModel : ObservableObject
         {
             CodecDisplayKind.BridgeStream => Loc.Format("Codec_BridgeDescription", codecDisplay.Codec),
             CodecDisplayKind.WindowsStream => Loc.Format("Codec_WindowsDescription", codecDisplay.Codec),
-            CodecDisplayKind.LhdcStream => state.LhdcKbps > 0 ? Loc.Format("Codec_LhdcStreamingDescription", state.LhdcKbps)
-                : Loc.Get("Codec_LhdcDescription"),
+            CodecDisplayKind.LhdcStream => DescribeLhdc(state),
             CodecDisplayKind.LeLink => Loc.Get("Codec_LeAudioDescription"),
             CodecDisplayKind.A2dpLogOff => Loc.Get("Codec_A2dpDescription"),
             CodecDisplayKind.A2dpNotLogged => Loc.Get("Codec_A2dpNotLoggedDescription"),
@@ -504,6 +509,13 @@ public sealed partial class DeviceViewModel : ObservableObject
         CodecIsDetailed = codecDisplay.Kind is not (CodecDisplayKind.A2dpLogOff or CodecDisplayKind.A2dpNotLogged or CodecDisplayKind.A2dpOtherDriver);
         CodecCanEnable = codecDisplay.Kind == CodecDisplayKind.A2dpLogOff;
         HasCodec = CodecLabel.Length > 0;
+        // The sound page's live status: what the LHDC component is sending right now (all three measured values,
+        // or nothing at all while it is not streaming). The text comes first, so the card never shows a stale value.
+        bool liveFormat = state.LhdcKbps > 0 && state.LhdcSampleRate > 0 && state.LhdcBits > 0;
+        LiveFormatText = liveFormat
+            ? Loc.Format("Lhdc_LiveFormat", state.LhdcKbps, state.LhdcSampleRate, state.LhdcBits)
+            : Loc.Get("Lhdc_LiveFormatUnavailable");
+        HasLiveFormat = liveFormat;
         // One earbud worn while the other charges is ordinary use; warn only when the other should be up.
         if (LeAudioStatus.IsMissingEarbud(state, warnWithoutWear: profile is OppoDeviceProfile))
             ConnectionText = Loc.Get("Connection_LeAudioSingleEar");
@@ -844,6 +856,17 @@ public sealed partial class DeviceViewModel : ObservableObject
         if (link.SampleRate > 0) parts.Add((link.SampleRate / 1000.0).ToString(link.SampleRate % 1000 == 0 ? "0" : "0.#", System.Globalization.CultureInfo.CurrentCulture) + " kHz");
         return parts.Count > 0 ? string.Join(" · ", parts) : "A2DP";
     }
+
+    /// <summary>
+    /// What the LHDC component is sending to these earbuds right now: the measured bitrate, and the sample rate and
+    /// bit depth of the format it actually follows. Older services publish the bitrate only, so that is all it shows.
+    /// </summary>
+    private static string DescribeLhdc(DeviceState state) =>
+        state.LhdcKbps > 0 && state.LhdcSampleRate > 0 && state.LhdcBits > 0
+            ? Loc.Format("Codec_LhdcStreamingFullDescription", state.LhdcKbps, state.LhdcSampleRate, state.LhdcBits)
+            : state.LhdcKbps > 0
+                ? Loc.Format("Codec_LhdcStreamingDescription", state.LhdcKbps)
+                : Loc.Get("Codec_LhdcDescription");
 
     private static bool IsAllowed(CapabilitySupport support) => support == CapabilitySupport.Supported;
 

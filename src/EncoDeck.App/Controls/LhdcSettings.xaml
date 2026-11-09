@@ -13,8 +13,13 @@
    </local:WrapPanel>
    <TextBlock x:Uid="Lhdc_Summary" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />
    <TextBlock x:Name="Status" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+   <!-- The deployment stages, while the elevated script runs. -->
+   <StackPanel x:Name="DeployProgressPanel" Spacing="4" Visibility="Collapsed">
+    <ProgressBar x:Name="DeployProgress" IsIndeterminate="True" />
+    <TextBlock x:Name="DeployStage" TextWrapping="Wrap" Style="{StaticResource SecondaryTextStyle}" />
+   </StackPanel>
    <InfoBar x:Name="Notice" IsOpen="False" Visibility="Collapsed" />
-   <HyperlinkButton x:Name="StandaloneLink" x:Uid="Lhdc_StandaloneLink" NavigateUri="https://github.com/TIANLI0/EncoDeck/releases/latest" Visibility="Collapsed" Padding="0" />
+   <HyperlinkButton x:Name="StandaloneLink" x:Uid="Lhdc_StandaloneLink" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/latest" Visibility="Collapsed" Padding="0" />
    <ProgressBar x:Name="Progress" Visibility="Collapsed" Maximum="100" />
    <local:WrapPanel HorizontalSpacing="8" VerticalSpacing="8">
     <Button x:Name="Download" Click="OnDownload" Style="{StaticResource AccentButtonStyle}" />
@@ -56,7 +61,7 @@
      <TextBlock x:Uid="Lhdc_HelpApply" TextWrapping="Wrap" />
      <TextBlock x:Uid="Lhdc_HelpQuality" TextWrapping="Wrap" />
      <TextBlock x:Uid="Lhdc_HelpRestore" TextWrapping="Wrap" />
-     <HyperlinkButton x:Uid="Lhdc_Guide" NavigateUri="https://github.com/TIANLI0/EncoDeck/blob/main/docs/LHDC.md" Padding="0" />
+     <HyperlinkButton x:Uid="Lhdc_Guide" NavigateUri="https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/LHDC.md" Padding="0" />
     </StackPanel>
    </Expander>
   </StackPanel>

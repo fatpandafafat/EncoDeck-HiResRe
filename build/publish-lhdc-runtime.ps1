@@ -12,7 +12,7 @@
   rebuilt or overwritten; bump the -r<n> revision instead.
 #>
 [CmdletBinding()]
-param([string]$PowerShellDirectory, [string]$OutputDirectory, [switch]$Publish)
+param([string]$PowerShellDirectory, [string]$OutputDirectory, [switch]$Publish, [string]$Repository = 'fatpandafafat/LHDC-Win')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $pin = (Get-Content (Join-Path $root 'src/EncoDeck.Platform/Components/components.json') -Raw | ConvertFrom-Json).components | Where-Object id -eq 'lhdc'
@@ -31,13 +31,13 @@ $sha = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvari
 [ordered]@{ id = 'lhdc'; version = $version; tag = $tag; file = $file; size = $item.Length; sha256 = $sha; commit = $pin.source.commit } |
     ConvertTo-Json | Set-Content (Join-Path $output 'component-pin.json') -Encoding utf8
 # What apps released earlier read to find this component without an app update.
-$manifest = & (Join-Path $PSScriptRoot 'component-manifest.ps1') -Id lhdc -OutputDirectory $output -Archive $archive
+$manifest = & (Join-Path $PSScriptRoot 'component-manifest.ps1') -Id lhdc -OutputDirectory $output -Archive $archive -Repository $Repository
 if ($Publish) {
-    & gh release view $tag --repo TIANLI0/EncoDeck *> $null
+    & gh release view $tag --repo $Repository *> $null
     if ($LASTEXITCODE -eq 0) { throw "Component release $tag exists already; publish a new revision instead of replacing it." }
     $notes = "LHDC component $version, compiled from LHDC-Win $($pin.source.release) ($($pin.source.repository)/commit/$($pin.source.commit)).`n`nSHA-256: $sha"
     # A component release is never the repository's latest release: that stays the newest app.
-    & gh release create $tag $archive ($archive + '.sha256') $manifest --repo TIANLI0/EncoDeck --title "LHDC component $version" --notes $notes --latest=false
+    & gh release create $tag $archive ($archive + '.sha256') $manifest --repo $Repository --title "LHDC component $version" --notes $notes --latest=false
     if ($LASTEXITCODE -ne 0) { throw 'Could not publish the LHDC component release.' }
 }
 Write-Host "LHDC component $version : $archive ($($item.Length) bytes, sha256 $sha)"

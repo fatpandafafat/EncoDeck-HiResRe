@@ -32,16 +32,27 @@ public sealed partial class LhdcSettings : UserControl
 
     // True while the earbud advertises more than the negotiated capabilities describe.
     private bool _capabilitiesStale;
+    // True while the driver has not published any capability set for the earbud at all: the
+    // bitrate list then shows the fallback table, not what the earbud can really do.
+    private bool _capabilitiesMissing;
     // The driver is only asked to renegotiate once per device, so a driver that cannot
     // renegotiate does not restart its session over and over.
     private bool _negotiated;
     private LhdcHiResService? _hiRes;
+    // True while a deployment is running, so a late progress line cannot bring the progress
+    // area back after the deployment is over.
+    private bool _deploying;
 
     public LhdcSettings()
     {
         InitializeComponent();
         Loaded += async (_, _) =>
         {
+            // The Hi-Res switch of the earbud EncoDeck drives itself is read over EncoDeck's own
+            // control channel, so the service has to exist even when the LHDC component is not
+            // installed. Only the CLI branch needs the component's backend, and that branch needs
+            // the component anyway.
+            _hiRes = new LhdcHiResService(LhdcCompanion.IsReady ? LhdcCompanion.Backend : new LhdcBackend("", ""));
             Cancel.Content = Loc.Get("Lhdc_Cancel");
             CheckUpdates.Content = Loc.Get("Component_CheckUpdates");
             Uninstall.Content = Loc.Get("Component_Uninstall");
@@ -58,7 +69,6 @@ public sealed partial class LhdcSettings : UserControl
             Sync();
             if (LhdcCompanion.IsReady)
             {
-                _hiRes = new LhdcHiResService(LhdcCompanion.Backend);
                 await Operate(RefreshDevices);
             }
             // At most once a day, quietly: a later component release can arrive without an app update.
@@ -154,6 +164,7 @@ public sealed partial class LhdcSettings : UserControl
         _bitratesByRate = [];
         _hiResEnabled = null;
         _hiResUnsupported = false;
+        _capabilitiesMissing = false;
         if (Devices.SelectedItem is not LhdcDevice device)
         {
             Observed.Text = Loc.Get("Lhdc_SelectDevice");
@@ -178,7 +189,10 @@ public sealed partial class LhdcSettings : UserControl
         if (heyMelody)
         {
             HiResRow.Visibility = Visibility.Visible;
-            if (connected && _hiRes is not null)
+            // The earbud EncoDeck drives itself is read over its own control channel, which needs
+            // no Windows A2DP link; every other earbud goes through the upstream CLI, which
+            // needs the earbud to be connected to Windows.
+            if (_hiRes is not null && _hiRes.CanRead(device, connected))
             {
                 try
                 {
@@ -218,7 +232,11 @@ public sealed partial class LhdcSettings : UserControl
         string observed = Loc.Format("Lhdc_Observed", mode) + (active > 0 ? $" · {active} kbps" : "");
         if (_maxKbps > 0) observed += " · " + Loc.Format("Lhdc_NegotiatedLimit", _maxKbps);
         Observed.Text = observed;
-        if (_capabilitiesStale) Observed.Text += " · " + Loc.Get("Lhdc_NegotiatedStale");
+        // A driver that has not negotiated with the earbud has no limit to show: say so instead
+        // of letting the missing limit look like a negotiated one.
+        if (_capabilitiesMissing) Observed.Text += " · " + Loc.Get("Lhdc_CapabilitiesNotNegotiated");
+        // A stale set only exists when there is a set at all.
+        if (_capabilitiesStale && !_capabilitiesMissing) Observed.Text += " · " + Loc.Get("Lhdc_NegotiatedStale");
         if (!found) Observed.Text += " · " + Loc.Get("Lhdc_DeviceMissing");
     }
 
@@ -235,6 +253,9 @@ public sealed partial class LhdcSettings : UserControl
         _allowedRates = [];
         _allowedDepths = [];
         _bitratesByRate = [];
+        // Without a capability set the driver has not negotiated with the earbud yet: the lists
+        // that are built from it are the fallback table, not the earbud's own capabilities.
+        _capabilitiesMissing = _capabilities.Length == 0;
         if (_capabilities.Length == 0) return;
         // The media MTU narrows the result: the encoder cannot split a frame, so a single frame
         // that does not fit into the negotiated payload is not offered at all. Without a known
@@ -258,7 +279,11 @@ public sealed partial class LhdcSettings : UserControl
         {
             true => Loc.Get("Lhdc_HiResOn"),
             false => Loc.Get("Lhdc_HiResOff"),
-            _ => _hiResUnsupported ? Loc.Get("Lhdc_HiResUnsupported") : Loc.Get("Lhdc_HiResUnknown"),
+            // An earbud the driver has not negotiated with yet is a different case than one that
+            // is simply not connected: the first one waits for a session, the second one for the
+            // earbud.
+            _ => _hiResUnsupported ? Loc.Get("Lhdc_HiResUnsupported")
+                : _capabilitiesMissing ? Loc.Get("Lhdc_HiResNotNegotiated") : Loc.Get("Lhdc_HiResUnknown"),
         };
     }
 
@@ -391,8 +416,19 @@ public sealed partial class LhdcSettings : UserControl
             _hiResEnabled = state.Enabled;
             _hiResUnsupported = !state.Supported;
             UpdateHiRes();
-            // The driver caches what the earbud advertised, so it has to negotiate again.
-            bool renegotiated = await RefreshCapabilitiesAsync(device, request: state.ViaEncoDeck);
+            // The driver caches what the earbud advertised, so it has to negotiate again. The
+            // cache is dropped whether or not the switch itself changed, so the new limits show
+            // up without a manual refresh.
+            try
+            {
+                LhdcBackend.RequestCapabilityRefresh();
+                _negotiated = true;
+            }
+            catch (Exception ex) when (ex is not OutOfMemoryException)
+            {
+                // LHDC is not installed, so there is nothing to renegotiate.
+            }
+            bool renegotiated = await RefreshCapabilitiesAsync(device, request: false);
             await ReadStatus(waitForDevice: true);
             Status.Text = !renegotiated ? Loc.Get("Lhdc_HiResPending")
                 : desired ? Loc.Get("Lhdc_HiResOn") : Loc.Get("Lhdc_HiResOff");
@@ -457,7 +493,25 @@ public sealed partial class LhdcSettings : UserControl
                 await backend.QueryAsync(device.Instance, "profile-check", $"{profile.SampleRate}", $"{profile.Bits}", $"{profile.Kbps}");
             }
         }
-        await backend.ApplyAsync(device.Instance, lhdc, profile);
+        // The deployment runs for a while: the script reports the stage it is in, so the card
+        // shows where the wait is instead of only saying that it is waiting.
+        _deploying = true;
+        var progress = new Progress<LhdcDeploymentProgress>(p =>
+        {
+            if (!_deploying) return;
+            DeployProgressPanel.Visibility = Visibility.Visible;
+            DeployStage.Text = string.IsNullOrWhiteSpace(p.Detail) ? p.Stage
+                : $"{p.Detail}（{p.Elapsed.TotalSeconds:F0}s）";
+        });
+        try
+        {
+            await backend.ApplyAsync(device.Instance, lhdc, profile, progress);
+        }
+        finally
+        {
+            _deploying = false;
+            DeployProgressPanel.Visibility = Visibility.Collapsed;
+        }
         _capabilitiesStale = false;
         CardNotice.Show(Notice, InfoBarSeverity.Success, Loc.Get("Lhdc_Applied"));
         await ReadStatus();

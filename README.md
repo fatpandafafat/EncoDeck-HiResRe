@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/TIANLI0/EncoDeck/releases/latest">下载安装包</a> ·
+  <a href="https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/latest">下载安装包</a> ·
   <a href="README_EN.md">English</a> ·
   <a href="docs/COMPATIBILITY.md">设备兼容性</a> ·
   <a href="docs/DEVELOPMENT.md">开发文档</a>
@@ -131,7 +131,7 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 | --- | --- | --- |
 | 平台 | x64 / ARM64 | x64 |
 | 更新 | Microsoft Store 自动更新；应用内也可检查 | 应用内检查 GitHub Releases，下载后由你确认安装 |
-| 安装 | [打开商店](https://apps.microsoft.com/detail/9PN6D8G1K9WZ) | [下载 Releases](https://github.com/TIANLI0/EncoDeck/releases) |
+| 安装 | [打开商店](https://apps.microsoft.com/detail/9PN6D8G1K9WZ) | [下载 Releases](https://github.com/fatpandafafat/EncoDeck-HiResRe/releases) |
 
 **系统要求：Windows 10 19041+，推荐 Windows 11。**
 
@@ -141,7 +141,7 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 
 ### LHDC V5（可选 / 实验性）
 
-非商店 x64 版可按需接入 [LHDC-Win](https://github.com/Wayne-u/LHDC-Win)。在“实验室”页面下载独立组件后，可以选择音频设备、设置播放参数，并尝试启用 LHDC 或恢复 Windows 原有音频配置。
+非商店 x64 版可按需接入 [LHDC-Win](https://github.com/fatpandafafat/LHDC-Win)。在“实验室”页面下载独立组件后，可以选择音频设备、设置播放参数，并尝试启用 LHDC 或恢复 Windows 原有音频配置。
 
 这不是普通耳机控制功能：它涉及测试签名驱动、管理员权限和系统音频配置，要求 Windows 11 22H2+、x64 及支持 LHDC V5 的耳机。**商店版不支持，实际播放兼容性仍待真机验证。** EncoDeck 不会自动修改 Secure Boot 或系统测试模式。操作前请先阅读 [LHDC 说明与恢复方法](docs/LHDC.md)。
 
@@ -158,7 +158,7 @@ LHDC 与 A2DP Bridge 组件都有各自独立的 Release，更新 EncoDeck 不�
 需要 .NET SDK 10.0.100 或更新版本。普通构建不需要安装 Visual Studio。
 
 ```powershell
-git clone https://github.com/TIANLI0/EncoDeck.git
+git clone https://github.com/fatpandafafat/EncoDeck-HiResRe.git
 cd EncoDeck
 
 dotnet test tests/EncoDeck.Tests
@@ -171,7 +171,7 @@ pwsh build/build-installer.ps1
 
 ## 反馈问题
 
-如果遇到连不上、某项设置不生效或者型号识别错误，可以开一个 [Issue](https://github.com/TIANLI0/EncoDeck/issues)。请尽量写明耳机型号、固件版本、Windows 版本、操作步骤；有条件的话可以附上 Probe 报告。
+如果遇到连不上、某项设置不生效或者型号识别错误，可以开一个 [Issue](https://github.com/fatpandafafat/EncoDeck-HiResRe/issues)。请尽量写明耳机型号、固件版本、Windows 版本、操作步骤；有条件的话可以附上 Probe 报告。
 
 协议研究、设备测试和代码贡献都欢迎。参与开发前可以看看 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [协议记录](docs/PROTOCOL_FINDINGS.md)。
 

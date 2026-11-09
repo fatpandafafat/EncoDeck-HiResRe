@@ -564,6 +564,9 @@
   <data name="Lhdc_Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Lhdc_Adaptive" xml:space="preserve"><value>Adaptive bitrate (selected value is the ceiling)</value></data>
   <data name="Lhdc_Rate" xml:space="preserve"><value>Sample rate</value></data>
+  <data name="Lhdc_LiveFormat" xml:space="preserve"><value>Live: {0} kbps · {1} Hz · {2} bit</value></data>
+  <data name="Lhdc_LiveFormatUnavailable" xml:space="preserve"><value>No LHDC playback right now, so there is no live bitrate.</value></data>
+  <data name="Lhdc_LiveFormatTitle.Text" xml:space="preserve"><value>LHDC stream</value></data>
   <data name="Lhdc_Device" xml:space="preserve"><value>Audio device</value></data>
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>Download the non-Store edition</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>LHDC unavailable in Store edition</value></data>
@@ -588,11 +591,13 @@
   <data name="Lhdc_HiResOff" xml:space="preserve"><value>Off. Turn it on to select higher sample rates and bitrates; switching interrupts audio briefly.</value></data>
   <data name="Lhdc_HiResUnknown" xml:space="preserve"><value>Connect the earbuds to read their Hi-Res state.</value></data>
   <data name="Lhdc_HiResUnsupported" xml:space="preserve"><value>These earbuds have no Hi-Res switch, so only the standard LHDC V5 formats are available.</value></data>
+  <data name="Lhdc_HiResNotNegotiated" xml:space="preserve"><value>The earbuds are connected, but the driver has not negotiated their capabilities yet: it does so once an LHDC session runs.</value></data>
   <data name="Lhdc_HiResBusy" xml:space="preserve"><value>Switching the earbuds' Hi-Res state…</value></data>
   <data name="Lhdc_HiResPending" xml:space="preserve"><value>The earbuds confirmed the switch, but the driver has not negotiated the capabilities again yet. Select Refresh in a moment.</value></data>
   <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>Before turning Hi-Res off, apply LHDC settings of at most 48 kHz and 400 kbps.</value></data>
   <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>Highest bitrate the driver negotiated {0} kbps</value></data>
   <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>Hi-Res is on, but the driver still holds the old capabilities</value></data>
+  <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>The driver has not negotiated the earbuds' capabilities yet</value></data>
   <data name="Lhdc_Negotiating" xml:space="preserve"><value>Asking the driver to negotiate the earbuds' capabilities again…</value></data>
   <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>Device not found</value></data>
   <data name="Lhdc_Version" xml:space="preserve"><value>Component version: {0}</value></data>
@@ -1252,6 +1257,7 @@ Afterwards Windows lists two entries with the same name (one is the other earbud
   <data name="Codec_A2dpNotLoggedDescription" xml:space="preserve"><value>Connected over Bluetooth A2DP. Windows has not logged a codec for these earbuds yet: play some audio and stop it, and it shows here.</value></data>
   <data name="Codec_LhdcDescription" xml:space="preserve"><value>The LHDC component's driver has taken over these earbuds' A2DP and plays with LHDC V5. Windows does not log a codec for this link.</value></data>
   <data name="Codec_LhdcStreamingDescription" xml:space="preserve"><value>The LHDC component is sending LHDC V5 audio to these earbuds at {0} kbps.</value></data>
+  <data name="Codec_LhdcStreamingFullDescription" xml:space="preserve"><value>The LHDC component is streaming LHDC V5 audio to these earbuds at {0} kbps, {1} Hz, {2} bit.</value></data>
   <data name="Codec_OtherDriverDescription" xml:space="preserve"><value>Connected over Bluetooth A2DP, but a third-party driver has taken over these earbuds' A2DP. Windows does not log the codec it uses, so no codec is shown here.</value></data>
   <data name="CodecBadge_Enable" xml:space="preserve"><value>Turn on (one administrator authorization)</value></data>
   <data name="CodecBadge_Enabled" xml:space="preserve"><value>Turned on. Play some audio and stop it, and the codec Windows actually uses shows here.</value></data>

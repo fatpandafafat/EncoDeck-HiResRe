@@ -64,7 +64,7 @@ public sealed class SemanticVersionTests
 public sealed class GitHubUpdateTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("encodeck-update-test").FullName;
-    private static readonly Uri Api = new("https://api.github.test/repos/TIANLI0/EncoDeck/releases");
+    private static readonly Uri Api = new("https://api.github.test/repos/fatpandafafat/EncoDeck-HiResRe/releases");
     private CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
@@ -77,14 +77,14 @@ public sealed class GitHubUpdateTests : IDisposable
         }
     }
 
-    private static string Url(string tag, string name) => $"https://github.com/TIANLI0/EncoDeck/releases/download/{tag}/{name}";
+    private static string Url(string tag, string name) => $"https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/download/{tag}/{name}";
 
     private static object Asset(string tag, string name, long size, string? digest = null) =>
         new { name, size, browser_download_url = Url(tag, name), digest };
 
     private static object Release(string tag, bool draft = false, bool prerelease = false, params object[] assets) => new
     {
-        tag_name = tag, name = $"EncoDeck {tag}", draft, prerelease, html_url = $"https://github.com/TIANLI0/EncoDeck/releases/tag/{tag}",
+        tag_name = tag, name = $"EncoDeck {tag}", draft, prerelease, html_url = $"https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/tag/{tag}",
         published_at = "2026-10-20T00:00:00Z", assets,
     };
 
@@ -111,7 +111,7 @@ public sealed class GitHubUpdateTests : IDisposable
         Assert.Equal(UpdateCheckOutcome.Available, result.Outcome);
         Assert.Equal("0.6.0", result.Release!.Version.ToString());
         Assert.Equal("EncoDeck-Setup-0.6.0-win-x64.exe", result.Release.Installer.Name);
-        Assert.Equal("https://github.com/TIANLI0/EncoDeck/releases/tag/v0.6.0", result.Release.NotesUrl!.AbsoluteUri);
+        Assert.Equal("https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/tag/v0.6.0", result.Release.NotesUrl!.AbsoluteUri);
         Assert.Contains("EncoDeck/0.5.0", handler.Requests[0].Headers.UserAgent.ToString());
 
         var withPreview = await client.CheckAsync(includePrerelease: true, Ct);

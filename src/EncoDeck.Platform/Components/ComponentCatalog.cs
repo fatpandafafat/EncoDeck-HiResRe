@@ -113,9 +113,18 @@ public sealed record ComponentRelease
 /// <summary>The component pins built into this app (<c>components.json</c>); online releases are only offered on top of them.</summary>
 public static class ComponentCatalog
 {
-    public const string Repository = "TIANLI0/EncoDeck";
+    /// <summary>The repository the LHDC component's own releases live in; the app's releases are elsewhere.</summary>
+    public const string Repository = "fatpandafafat/LHDC-Win";
+
+    /// <summary>The repository the app's own releases live in.</summary>
+    public const string AppRepository = "fatpandafafat/EncoDeck-HiResRe";
+
     public const string LhdcId = "lhdc";
     public const string A2dpBridgeId = "a2dpwb";
+
+    /// <summary>The releases API of the repository a component's releases live in.</summary>
+    public static Uri ReleasesApi(string repository) =>
+        new($"https://api.github.com/repos/{repository}/releases?per_page=30");
 
     /// <summary>The asset of every component release that describes it (the same shape as an entry of components.json).</summary>
     public const string ManifestAsset = "component.json";

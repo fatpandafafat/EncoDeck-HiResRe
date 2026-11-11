@@ -20,8 +20,8 @@
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/fatpandafafat/EncoDeck-HiResRe</RepositoryUrl>
 
-    <VersionPrefix>1.15.0</VersionPrefix>
-    <!-- The fork's own line: the Hi-Res build is 1.15.0-hires, the official build is 1.15.0. -->
+    <VersionPrefix>1.15.1</VersionPrefix>
+    <!-- The fork's own line: the Hi-Res build is 1.15.1-hires, the official build is 1.15.1. -->
     <VersionSuffix>hires</VersionSuffix>
 
     <!-- Single source of truth for the Windows TFM used by every Windows-specific project. -->

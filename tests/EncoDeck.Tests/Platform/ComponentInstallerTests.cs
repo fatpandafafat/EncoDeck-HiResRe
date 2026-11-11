@@ -31,7 +31,7 @@ public sealed class ComponentInstallerTests : IDisposable
             Assert.True(package.IsPublished);
             // Downloaded from the upstream release only, held to the same pin.
             Assert.NotEmpty(package.Mirrors);
-            Assert.All(bridge.Sources(package), m => Assert.StartsWith("https://github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge/releases/download/", m.AbsoluteUri));
+            Assert.All(bridge.Sources(package), m => Assert.StartsWith("https://github.com/SeiyaFunaokaJP/BlueCaster/releases/download/", m.AbsoluteUri));
         }
         Assert.Equal(new Uri($"https://github.com/fatpandafafat/LHDC-Win/releases/download/{lhdc.Tag}/{lhdc.Packages[0].File}"), lhdc.Sources(lhdc.Packages[0])[0]);
         // Component tags never parse as app versions, so the app's update check cannot pick them.

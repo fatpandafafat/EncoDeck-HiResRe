@@ -4,6 +4,28 @@
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
 
+## [1.15.1-hires] - 2026-11-11 · 修复：切换播放格式不再要求手动重启电脑 / Fix: switching the playback format no longer asks for a reboot
+
+### 修复
+
+- 切换 LHDC 播放格式时，若 Windows 推迟了音频子设备的重启（3010），改为就地重装该子设备的驱动绑定并自行核验格式是否生效，不再要求手动重启电脑。
+- LHDC 组件升级到 0.8.8-r4：当包内驱动与设备当前绑定的驱动一致时不再重复发布驱动包，正在加载的驱动文件不会被替换成又一次待重启的升级。
+
+### 改进
+
+- A2DP 桥接组件随上游仓库改名（A2DP-Windows-Bridge → BlueCaster）更新镜像地址，组件下载继续可用。
+
+---
+
+### Fixed
+
+- When switching the LHDC playback format, a deferred audio child restart (3010) now reinstalls that child's driver binding in place and verifies the format itself, instead of asking for a manual reboot.
+- The LHDC component moves to 0.8.8-r4: when the packaged driver matches the one the device is bound to, the package is no longer staged again, so the loaded driver file is not replaced by another pending restart.
+
+### Improved
+
+- The A2DP bridge component follows the upstream repository rename (A2DP-Windows-Bridge → BlueCaster) and its mirror addresses are updated, so the component keeps downloading.
+
 ## [1.15.0-hires] - 2026-11-08 · HiRes 分支：LHDC 高码率与耳机 Hi-Res 开关 / HiRes branch: LHDC high bitrates and the earbud's Hi-Res switch
 
 ### 新增

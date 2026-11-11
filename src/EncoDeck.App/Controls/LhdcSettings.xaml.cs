@@ -5,6 +5,7 @@ using EncoDeck.Platform.Components;
 using EncoDeck.Platform.Lhdc;
 using EncoDeck.Platform.Updates;
 using EncoDeck.Platform.Packaging;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -42,6 +43,14 @@ public sealed partial class LhdcSettings : UserControl
     // True while a deployment is running, so a late progress line cannot bring the progress
     // area back after the deployment is over.
     private bool _deploying;
+
+    // The observed line is rebuilt whenever the live bitrate changes, so the parts that stay the
+    // same are kept apart from the bitrate itself.
+    private string _observedHead = "", _observedTail = "";
+    // The bitrate the LHDC service is really playing, as it publishes it.
+    private int _activeKbps;
+    private DispatcherQueueTimer? _liveTimer;
+    private bool _liveQuery;
 
     public LhdcSettings()
     {
@@ -81,8 +90,14 @@ public sealed partial class LhdcSettings : UserControl
                 }
             }
             catch (Exception ex) when (ex is not OutOfMemoryException) { }
+            // The service publishes the bitrate it is really playing, so the observed line can
+            // follow it while the earbuds keep playing.
+            _liveTimer = DispatcherQueue.CreateTimer();
+            _liveTimer.Interval = TimeSpan.FromSeconds(3);
+            _liveTimer.Tick += OnLiveTick;
+            _liveTimer.Start();
         };
-        Unloaded += (_, _) => _download?.Cancel();
+        Unloaded += (_, _) => { _download?.Cancel(); _liveTimer?.Stop(); };
     }
 
     /// <summary>The state, and which component build is installed (an app update keeps using it until a newer pin is downloaded).</summary>
@@ -155,6 +170,9 @@ public sealed partial class LhdcSettings : UserControl
     private async Task ReadStatus(bool waitForDevice = false)
     {
         Observed.Text = "";
+        _observedHead = "";
+        _observedTail = "";
+        _activeKbps = 0;
         HiResRow.Visibility = Visibility.Collapsed;
         _capabilities = "";
         _mediaMtu = 0;
@@ -229,15 +247,50 @@ public sealed partial class LhdcSettings : UserControl
         }
         RebuildChoices();
         UpdateHiRes();
-        string observed = Loc.Format("Lhdc_Observed", mode) + (active > 0 ? $" · {active} kbps" : "");
-        if (_maxKbps > 0) observed += " · " + Loc.Format("Lhdc_NegotiatedLimit", _maxKbps);
-        Observed.Text = observed;
+        // The observed line is rebuilt whenever the live bitrate changes, so everything that does
+        // not change with it is kept in its own part.
+        _observedHead = Loc.Format("Lhdc_Observed", mode);
+        _observedTail = _maxKbps > 0 ? " · " + Loc.Format("Lhdc_NegotiatedLimit", _maxKbps) : "";
         // A driver that has not negotiated with the earbud has no limit to show: say so instead
         // of letting the missing limit look like a negotiated one.
-        if (_capabilitiesMissing) Observed.Text += " · " + Loc.Get("Lhdc_CapabilitiesNotNegotiated");
+        if (_capabilitiesMissing) _observedTail += " · " + Loc.Get("Lhdc_CapabilitiesNotNegotiated");
         // A stale set only exists when there is a set at all.
-        if (_capabilitiesStale && !_capabilitiesMissing) Observed.Text += " · " + Loc.Get("Lhdc_NegotiatedStale");
-        if (!found) Observed.Text += " · " + Loc.Get("Lhdc_DeviceMissing");
+        if (_capabilitiesStale && !_capabilitiesMissing) _observedTail += " · " + Loc.Get("Lhdc_NegotiatedStale");
+        if (!found) _observedTail += " · " + Loc.Get("Lhdc_DeviceMissing");
+        _activeKbps = active;
+        RenderObserved();
+    }
+
+    /// <summary>
+    /// Rebuilds the observed line from its parts: the mode, the live bitrate and the notes that
+    /// belong to the current negotiation.
+    /// </summary>
+    private void RenderObserved()
+    {
+        if (_observedHead.Length == 0) return;
+        Observed.Text = _observedHead + (_activeKbps > 0 ? $" · {_activeKbps} kbps" : "") + _observedTail;
+    }
+
+    /// <summary>
+    /// Follows the bitrate the LHDC service is really playing. The service publishes it when the
+    /// stream starts and whenever the adaptive control changes it, so the observed line shows the
+    /// current bitrate while the earbuds play.
+    /// </summary>
+    private async void OnLiveTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_busy || _liveQuery || !LhdcCompanion.IsReady) return;
+        if (Devices.SelectedItem is not LhdcDevice device) return;
+        _liveQuery = true;
+        try
+        {
+            var audio = await LhdcCompanion.Backend.QueryAsync(device.Instance, "audio-status");
+            int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
+            if (active == _activeKbps) return;
+            _activeKbps = active;
+            RenderObserved();
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { }
+        finally { _liveQuery = false; }
     }
 
     /// <summary>

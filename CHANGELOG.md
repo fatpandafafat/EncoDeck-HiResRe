@@ -4,6 +4,28 @@
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
 
+## [1.15.2-hires] - 2026-11-11 · 修复：开启 Hi-Res 的耳机不再安装失败，并实时显示当前码率 / Fix: Hi-Res earbuds install again, and the current bitrate is shown live
+
+### 修复
+
+- 耳机开启 Hi-Res 后，LHDC 安装不再因为对端返回的配置读回与通告能力不同而失败：安装校验改为以“所选配置是否落在对端通告能力范围内”为准，配置读回只作为诊断记录在协商日志里（对应 LHDC-Win issue #5）。
+- LHDC 组件升级到 0.8.8-r5。
+
+### 改进
+
+- LHDC 卡片实时显示当前播放码率：服务在起播和自适应换挡时发布实际码率，卡片定时刷新，播放过程中即可看到当前码率。
+
+---
+
+### Fixed
+
+- Installing LHDC no longer fails on an earbud with Hi-Res on: the installation check now follows the selected configuration against the advertised capabilities, and the configuration readback is only recorded as a diagnostic (LHDC-Win issue #5).
+- The LHDC component moves to 0.8.8-r5.
+
+### Improved
+
+- The LHDC card shows the bitrate that is really being played: the service publishes it when the stream starts and whenever the adaptive control changes it, and the card refreshes it while the card is open.
+
 ## [1.15.1-hires] - 2026-11-11 · 修复：切换播放格式不再要求手动重启电脑 / Fix: switching the playback format no longer asks for a reboot
 
 ### 修复

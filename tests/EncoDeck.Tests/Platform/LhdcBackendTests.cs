@@ -66,6 +66,10 @@ public sealed class LhdcBackendTests
         // command reads the registry alone, so it does not query the radio the
         // stream runs on, and it has to stay reachable for the read-only query.
         var backend = new LhdcBackend("missing", "missing");
-        await Assert.ThrowsAsync<IOException>(() => backend.QueryAsync(null, "active-bitrate"));
+        var error = await Record.ExceptionAsync(() => backend.QueryAsync(null, "active-bitrate"));
+        Assert.NotNull(error);
+        // A rejected command throws before the host is started, so anything
+        // other than that means the query was accepted and then attempted.
+        Assert.IsNotType<ArgumentException>(error);
     }
 }

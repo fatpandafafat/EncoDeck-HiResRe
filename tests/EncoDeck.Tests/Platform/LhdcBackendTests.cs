@@ -58,4 +58,14 @@ public sealed class LhdcBackendTests
         var backend = new LhdcBackend("missing", "missing");
         await Assert.ThrowsAsync<ArgumentException>(() => backend.QueryAsync(null, "hires", "on"));
     }
+
+    [Fact]
+    public async Task TheLiveBitrateQueryIsAllowed()
+    {
+        // The panel polls the published bitrate while the earbuds play. The
+        // command reads the registry alone, so it does not query the radio the
+        // stream runs on, and it has to stay reachable for the read-only query.
+        var backend = new LhdcBackend("missing", "missing");
+        await Assert.ThrowsAsync<IOException>(() => backend.QueryAsync(null, "active-bitrate"));
+    }
 }

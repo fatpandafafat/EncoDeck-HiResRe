@@ -72,7 +72,7 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
     // the drivers or the service gets its own method so it cannot be reached through a query.
     private static readonly HashSet<string> ReadOnlyCommands = new(StringComparer.Ordinal)
     {
-        "targets", "target", "inspect", "audio-status", "profile-options", "profile-check", "configure", "connection",
+        "targets", "target", "inspect", "audio-status", "active-bitrate", "profile-options", "profile-check", "configure", "connection",
     };
 
     /// <summary>

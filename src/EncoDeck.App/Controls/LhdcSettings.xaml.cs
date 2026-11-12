@@ -276,6 +276,11 @@ public sealed partial class LhdcSettings : UserControl
     /// stream starts and whenever the adaptive control changes it, so the observed line shows the
     /// current bitrate while the earbuds play.
     /// </summary>
+    /// <remarks>
+    /// The query asks the service for the published bitrate alone. The wider status query also
+    /// enumerates the paired devices and asks the Bluetooth stack about them, and doing that every
+    /// few seconds while the earbuds are playing touches the radio the stream runs on.
+    /// </remarks>
     private async void OnLiveTick(DispatcherQueueTimer sender, object args)
     {
         if (_busy || _liveQuery || !LhdcCompanion.IsReady) return;
@@ -283,7 +288,7 @@ public sealed partial class LhdcSettings : UserControl
         _liveQuery = true;
         try
         {
-            var audio = await LhdcCompanion.Backend.QueryAsync(device.Instance, "audio-status");
+            var audio = await LhdcCompanion.Backend.QueryAsync(device.Instance, "active-bitrate");
             int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
             if (active == _activeKbps) return;
             _activeKbps = active;

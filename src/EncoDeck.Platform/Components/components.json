@@ -9,15 +9,15 @@
       "minApp": "1.11.0",
       "source": {
         "repository": "https://github.com/fatpandafafat/LHDC-Win",
-        "commit": "467fae69ee9add35ff931ae2f119a3abaab11499",
+        "commit": "7fe3b208615bc8384899bf737eb8ec985a53b459",
         "release": "0.8.8"
       },
       "packages": [
         {
           "architecture": "x64",
           "file": "EncoDeck-LHDC-0.8.8-r6-win-x64.zip",
-          "size": 110649237,
-          "sha256": "9e8ec91f871b4023bac0e11d21e3dd8b653f76fba2539cbc03c4956e1fd97460"
+          "size": 110649227,
+          "sha256": "b5697cc4ce8fe9ece9e12da7459e540308dba1ca37c8ae5e2862a4941fd78417"
         }
       ]
     },

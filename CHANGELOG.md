@@ -1,5 +1,14 @@
 # 更新日志（CHANGELOG）
 
+## [1.15.3-hires] - 2026-11-12 · 修复：播放不再被通话状态检查阻塞 / Fix: playback is no longer blocked by the call-state check
+
+- 面板的实时码率轮询改用新增的 `active-bitrate` 命令。该命令只读注册表与 SCM 状态，不枚举设备、不查询蓝牙射频，因此播放中反复轮询不会再触碰音频流所在的射频。
+- LHDC 组件升级到 0.8.8-r6：通话状态检查改由后台线程轮询并发布原子标志，播放线程只读取该标志，不再每 100 ms 在提交媒体包的线程上做一次 COM 端点枚举。
+- 服务日志超过 8 MB 时轮转，避免长期运行写满磁盘。
+- The live bitrate poll now uses the new `active-bitrate` command. It reads the registry and the service state only, so polling it during playback no longer queries the radio the audio stream runs on.
+- The LHDC component moves to 0.8.8-r6: the call state is polled on its own thread and published as an atomic flag, so the thread that submits the media packets no longer performs a COM endpoint enumeration every 100 ms.
+- The service log is rotated once it passes 8 MB, so a long-running service no longer fills the disk with its own history.
+
 本文件记录 EncoDeck 每个版本的用户可见变化，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。每个版本按“新增 / 改进 / 修复 / 移除”分类；自 1.15.0 起，每个版本先列中文，分隔线下是对应的英文。
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.

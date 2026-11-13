@@ -6,6 +6,7 @@
 // Copyright (c) 2024-present Macifier Contributors); MIT notices in THIRD_PARTY_NOTICES.md. BES v2
 // XOR payloads, noise slots and TWS models follow HyperEars (https://github.com/silverpoetry/HyperEars,
 // 361d279, GPL-3.0-only) and BudsLink (https://github.com/maniacx/BudsLink, ba3160d, GPL-3.0).
+// W830NB noise slot, ambient level and scene follow the user recordings in issue #18.
 using EncoDeck.Core.Commands;
 using EncoDeck.Core.State;
 using EncoDeck.Protocol.Oppo;
@@ -28,6 +29,22 @@ public sealed class EdifierDeviceController : BrandControllerBase
     /// <summary>The W860NB PRO plays a ~1.9 s voice prompt after a noise change and ignores requests meanwhile (HyperEars).</summary>
     private static readonly TimeSpan PromptRetryDelay = TimeSpan.FromSeconds(2);
 
+    /// <summary>
+    /// The W830NB announces a new scene with a voice prompt and ignores scene writes until it ends (issue #18: a
+    /// change 1.3 s after the previous one went unanswered, one after 2.3 s was applied). A scene write waits this
+    /// long after the last scene change, whether it was made here or with the headset's button.
+    /// </summary>
+    internal static readonly TimeSpan ScenePrompt = TimeSpan.FromMilliseconds(2500);
+
+    /// <summary>Detail of a scene the headset refused: it sent a <see cref="EdifierConstants.StateNotice"/> instead of the echo and kept its scene.</summary>
+    public const string SceneUnavailableDetail = "scene-unavailable";
+
+    /// <summary>When the voice prompt of the last scene change is over (see <see cref="ScenePrompt"/>).</summary>
+    private DateTimeOffset _sceneQuietUntil;
+
+    /// <summary>Number of <see cref="EdifierConstants.StateNotice"/> frames received.</summary>
+    private int _notices;
+
     private EdifierFrameDecoder _decoder = new();
     private readonly Lock _gate = new();
     private readonly List<(byte Command, TaskCompletionSource<EdifierFrame> Waiter)> _waiters = [];
@@ -39,6 +56,12 @@ public sealed class EdifierDeviceController : BrandControllerBase
     private bool _version2;
     private bool _xor;
     private bool _xorKnown;
+
+    /// <summary>Last ambient level the headset reported; plain ambient writes keep it (W830NB).</summary>
+    private int _ambientLevel;
+
+    /// <summary>Second <c>0x08</c> byte of the W830NB scene report (06 in every recording), echoed on writes.</summary>
+    private byte _sceneExtra = 6;
 
     public EdifierDeviceController(IDuplexByteChannel channel, ControllerContext context, EdifierProfile? profile = null)
         : base(channel, context)
@@ -156,7 +179,7 @@ public sealed class EdifierDeviceController : BrandControllerBase
         try
         {
             var features = Spec.Features;
-            if (features.HasFlag(EdifierFeatures.GameMode)) await QueryAsync(EdifierConstants.QueryGameMode, [], ct).ConfigureAwait(false);
+            if (features.HasFlag(EdifierFeatures.GameMode) || features.HasFlag(EdifierFeatures.SceneMode)) await QueryAsync(EdifierConstants.QueryGameMode, [], ct).ConfigureAwait(false);
             if (features.HasFlag(EdifierFeatures.PowerOffTimer)) await QueryAsync(EdifierConstants.QueryPowerOffTimer, [], ct).ConfigureAwait(false);
         }
         finally
@@ -210,6 +233,7 @@ public sealed class EdifierDeviceController : BrandControllerBase
             }
             else
             {
+                if (frame.Command == EdifierConstants.StateNotice) Interlocked.Increment(ref _notices);
                 // Late or unsolicited answer: still apply what it says.
                 Apply(frame, StateSource.DeviceNotification);
             }
@@ -260,7 +284,7 @@ public sealed class EdifierDeviceController : BrandControllerBase
     {
         bool battery = await RefreshBatteryAsync(cancellationToken).ConfigureAwait(false);
         bool noise = CanQueryNoise && await RefreshNoiseAsync(cancellationToken).ConfigureAwait(false) is not null;
-        if (Has(EdifierFeatures.GameMode)) await QueryAsync(EdifierConstants.QueryGameMode, [], cancellationToken).ConfigureAwait(false);
+        if (Has(EdifierFeatures.GameMode) || Has(EdifierFeatures.SceneMode)) await QueryAsync(EdifierConstants.QueryGameMode, [], cancellationToken).ConfigureAwait(false);
         bool noiseExpected = CanQueryNoise && (Spec.StaticNoise && !IsTws || Has(EdifierFeatures.Noise));
         return battery && (noise || !noiseExpected) ? CommandResult.Ok : new CommandResult(CommandStatus.Timeout, "Device did not answer every query.");
     }
@@ -269,8 +293,10 @@ public sealed class EdifierDeviceController : BrandControllerBase
     {
         var profile = CurrentProfile;
         if (profile.NoiseControlOptions.Count == 0) return NotSupported("Noise control has not been confirmed by this device.");
+        int ambientLevel;
+        lock (_gate) ambientLevel = _ambientLevel;
         if (!profile.NoiseControlOptions.Any(o => o.Matches(target))
-            || EdifierSettings.EncodeNoise(Spec.Anc, target, Has(EdifierFeatures.AmbientLevel)) is not { } payload)
+            || EdifierSettings.EncodeNoise(Spec.Anc, target, Has(EdifierFeatures.AmbientLevel), ambientLevel) is not { } payload)
         {
             return NotSupported($"Noise mode {target.Mode}/{target.LevelId}");
         }
@@ -295,7 +321,8 @@ public sealed class EdifierDeviceController : BrandControllerBase
             var ack = await RequestAsync(EdifierConstants.SetNoiseMode, payload, cancellationToken).ConfigureAwait(false);
             // Even without an ack the write may have landed: trust a matching read-back.
             var actual = await RefreshNoiseAsync(cancellationToken).ConfigureAwait(false);
-            if (actual is null && Spec.Anc == EdifierAnc.SlotW860)
+            // Over-ear BES headsets announce the new mode; the W830NB is given the same grace as the W860NB PRO.
+            if (actual is null && Spec.Anc is EdifierAnc.SlotW860 or EdifierAnc.SlotW830)
             {
                 await Task.Delay(PromptRetryDelay, Context.Time, cancellationToken).ConfigureAwait(false);
                 actual = await RefreshNoiseAsync(cancellationToken).ConfigureAwait(false);
@@ -397,6 +424,7 @@ public sealed class EdifierDeviceController : BrandControllerBase
     /// </summary>
     public override Task<CommandResult> SetOptionAsync(string id, int value, CancellationToken cancellationToken = default)
     {
+        if (id == EdifierSettings.SceneOption) return SetSceneAsync(value, cancellationToken);
         if (id != PowerOffOption || !CurrentProfile.Offers(EdifierFeatures.PowerOffTimer)) return Task.FromResult(NotSupported($"Option {id}"));
         int minutes = value;
         if (minutes != 0 && !EdifierConstants.PowerOffTimerMinutes.Contains(minutes)) return Task.FromResult(NotSupported($"A {minutes}-minute timer"));
@@ -405,6 +433,64 @@ public sealed class EdifierDeviceController : BrandControllerBase
                 s => PowerOffMinutes(s) == 0, cancellationToken)
             : WriteSettingAsync("power-off-timer", EdifierConstants.SetPowerOffTimer, [(byte)(minutes >> 8), (byte)minutes], EdifierConstants.QueryPowerOffTimer, [],
                 s => PowerOffMinutes(s) == minutes, cancellationToken);
+    }
+
+    private static int? SceneValue(DeviceState state) =>
+        state.Options.TryGetValue(EdifierSettings.SceneOption, out var option) ? option.Value.Value : null;
+
+    /// <summary>
+    /// W830NB scene (music / game / spatial). No write was recorded, so the <c>0x09</c> payload mirrors
+    /// the <c>0x08</c> report; confirmed by the W830NB user in issue #18, and still read back on every write.
+    /// A write waits for the voice prompt of the previous change (<see cref="ScenePrompt"/>); an unanswered one
+    /// is sent once more after <see cref="PromptRetryDelay"/>; a refused one is reported as such.
+    /// </summary>
+    private async Task<CommandResult> SetSceneAsync(int scene, CancellationToken ct)
+    {
+        if (!CurrentProfile.Offers(EdifierFeatures.SceneMode)) return NotSupported("Scene mode");
+        if (scene is not (EdifierSettings.SceneMusic or EdifierSettings.SceneGame or EdifierSettings.SceneSpatial)) return NotSupported($"Scene {scene}");
+        try
+        {
+            TimeSpan wait;
+            lock (_gate) wait = _sceneQuietUntil - Now;
+            if (wait > TimeSpan.Zero)
+            {
+                Logger.LogDebug("Scene write waits {Wait} ms for the headset's voice prompt", (int)wait.TotalMilliseconds);
+                await Task.Delay(wait, Context.Time, ct).ConfigureAwait(false);
+            }
+            int notices = Volatile.Read(ref _notices);
+            var result = await WriteSceneAsync(scene, ct).ConfigureAwait(false);
+            if (!result.IsSuccess && result.Status != CommandStatus.Cancelled && Volatile.Read(ref _notices) != notices)
+            {
+                // A notice instead of the echo and the scene unchanged: refused in the current state (spatial audio
+                // through BlueCaster, issue #18). Sending it again would not help.
+                result = new CommandResult(CommandStatus.Rejected, SceneUnavailableDetail);
+                Store.TryUpdate(DeviceId, s => s with { LastError = new DeviceError(SceneUnavailableDetail, CommandStatus.Rejected, Now) });
+                Logger.LogInformation("Command scene-mode -> refused by the headset ({Notice:X2} notice)", EdifierConstants.StateNotice);
+            }
+            else if (result.Status == CommandStatus.Timeout)
+            {
+                // Unanswered: most likely a prompt that started without a report here. Once more after it.
+                await Task.Delay(PromptRetryDelay, Context.Time, ct).ConfigureAwait(false);
+                result = await WriteSceneAsync(scene, ct).ConfigureAwait(false);
+            }
+            if (result.IsSuccess)
+            {
+                lock (_gate) _sceneQuietUntil = Now + ScenePrompt;
+            }
+            return result;
+        }
+        catch (OperationCanceledException)
+        {
+            return new CommandResult(CommandStatus.Cancelled);
+        }
+    }
+
+    private Task<CommandResult> WriteSceneAsync(int scene, CancellationToken ct)
+    {
+        byte extra;
+        lock (_gate) extra = _sceneExtra;
+        return WriteSettingAsync("scene-mode", EdifierConstants.SetGameMode, [(byte)scene, extra], EdifierConstants.QueryGameMode, [],
+            s => SceneValue(s) == scene, ct);
     }
 
     /// <summary>
@@ -479,6 +565,10 @@ public sealed class EdifierDeviceController : BrandControllerBase
                 bool ambient = Spec.Features.HasFlag(EdifierFeatures.AmbientLevel) && p.Length >= 2 && EdifierSettings.AmbientLevel(p[1]) is not null;
                 if (EdifierSettings.DecodeNoise(Spec.Anc, p, ambient || Has(EdifierFeatures.AmbientLevel)) is not { } noise) return false;
                 Confirm(ambient ? EdifierFeatures.Noise | EdifierFeatures.AmbientLevel : EdifierFeatures.Noise);
+                if (noise.Mode == NoiseControlMode.Transparency && EdifierSettings.TryParseAmbientLevelId(noise.LevelId, out int level))
+                {
+                    lock (_gate) _ambientLevel = level;
+                }
                 Store.TryUpdate(DeviceId, s => s.NoiseControl?.Source == StateSource.Optimistic && source == StateSource.DeviceNotification
                     ? s
                     : s with { NoiseControl = Observed.From(noise, now, source), LastUpdateSource = source });
@@ -486,6 +576,20 @@ public sealed class EdifierDeviceController : BrandControllerBase
             case EdifierConstants.QueryGameMode when Spec.Features.HasFlag(EdifierFeatures.GameMode) && p is [var game] && game <= 1:
                 Confirm(EdifierFeatures.GameMode);
                 Store.TryUpdate(DeviceId, s => s with { Toggles = s.Toggles.SetItem(DeviceToggle.GamingMode, Observed.From(game == 1, now, source)), LastUpdateSource = source });
+                return true;
+            case EdifierConstants.QueryGameMode when Spec.Features.HasFlag(EdifierFeatures.SceneMode) && p is [var scene, var extra] && scene <= EdifierSettings.SceneSpatial:
+                lock (_gate)
+                {
+                    _sceneExtra = extra;
+                    // Changed with the headset's button: it is announcing the scene now (see ScenePrompt).
+                    if (source == StateSource.DeviceNotification && SceneValue(Store.Current) is { } shown && shown != scene) _sceneQuietUntil = now + ScenePrompt;
+                }
+                Confirm(EdifierFeatures.SceneMode);
+                // Like other settings, the scene is offered only after a valid device report.
+                if (CurrentProfile.Offers(EdifierFeatures.SceneMode))
+                {
+                    Store.TryUpdate(DeviceId, s => s with { Options = s.Options.SetItem(EdifierSettings.SceneOption, Observed.From(EdifierSettings.SceneModeOption(scene), now, source)), LastUpdateSource = source });
+                }
                 return true;
             case EdifierConstants.QueryInEarSwitch when Spec.Features.HasFlag(EdifierFeatures.InEarSwitch) && p is [var inEar] && inEar <= 1:
                 Confirm(EdifierFeatures.InEarSwitch);

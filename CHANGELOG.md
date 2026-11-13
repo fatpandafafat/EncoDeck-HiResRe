@@ -1,5 +1,23 @@
 # 更新日志（CHANGELOG）
 
+## [1.15.4-hires] - 2026-11-13 · 合并上游 1.15.1：新安装程序与 BlueCaster 3.x / Merged upstream 1.15.1: a new installer and BlueCaster 3.x
+
+- 安装程序改用 [FluentSetup](https://github.com/TIANLI0/FluentSetup) 制作，界面与 Windows 11 一致；安装中途出错或取消时自动还原，不留下半装的文件。
+- 应用内更新时显示安装进度窗口，完成后自动重新打开 EncoDeck；为所有用户安装的副本会先请求管理员权限。
+- 从 1.15.3-hires 及更早版本（Inno Setup 安装包）覆盖安装或应用内更新到本版本时，沿用原来的安装位置（当前用户或所有用户）、桌面快捷方式和“开机自启”设置，设置与设备数据不受影响；旧版的卸载程序在更新时一并清理。
+- 卸载时只弹出一次管理员权限确认（以前最多三次），即可撤销 EncoDeck 用管理员权限做过的改动（编解码日志、蓝牙服务权限、LE Audio 恢复任务）。
+- 实验室的 A2DP Bridge 组件升级到 BlueCaster 3.0.0-beta.3：适配更名后的 BlueCaster 3.x，组件更新不再限定 2.x，可从实验室更新，并由 BlueCaster 自动迁移配对和设置。
+- 耳机面板、首页和设备页支持连接 / 断开这台电脑；断开后 EncoDeck 不再自动重连，重启后仍保持。
+- EDIFIER W830NB 支持降噪与环境声档位、预设音效，场景模式切换不再需要开启实验功能；切换场景时会等待提示音播完再发送下一次，耳机拒绝切换时如实提示。
+- 华为空间音音状态回读后可切换关闭 / 固定 / 头部跟踪；界面图标改用 Fluent UI System Icons，未连接时电量淡化、低电量时标红。
+- The installer is now built with [FluentSetup](https://github.com/TIANLI0/FluentSetup): a Windows 11 style setup that rolls everything back if it fails or is cancelled.
+- In-app updates show the setup's progress window and open EncoDeck again when done; a copy installed for all users asks for administrator permission first.
+- Installing over 1.15.3-hires or earlier (Inno Setup installers), or updating from the app, keeps the install location (current user or all users), the desktop shortcut and the "Start with Windows" setting; the old uninstaller is removed during the update.
+- Uninstalling asks for administrator permission once (previously up to three times) to undo what EncoDeck changed with administrator rights.
+- The Labs page's A2DP Bridge component moves to BlueCaster 3.0.0-beta.3: the renamed BlueCaster 3.x is supported, component updates are no longer limited to 2.x, and BlueCaster migrates pairings and settings at its first start.
+- Connect or disconnect this PC from the tray panel, Home and Devices. After disconnecting, EncoDeck leaves the headphones alone, including after an app restart.
+- EDIFIER W830NB gains noise control, ambient levels and EQ presets; scene switching no longer requires experimental features, waits for the voice prompt before the next switch and reports a refused switch honestly.
+- HUAWEI spatial audio can be switched between Off / Fixed / Head tracking after a valid device report; the icons use Fluent UI System Icons.
 ## [1.15.3-hires] - 2026-11-12 · 修复：播放不再被通话状态检查阻塞 / Fix: playback is no longer blocked by the call-state check
 
 - 面板的实时码率轮询改用新增的 `active-bitrate` 命令。该命令只读注册表与 SCM 状态，不枚举设备、不查询蓝牙射频，因此播放中反复轮询不会再触碰音频流所在的射频。
@@ -82,6 +100,104 @@ This file records the user-visible changes of every EncoDeck version (Keep a Cha
 ### Improved
 
 - Merged upstream 1.15.0-beta.2: the LC3 codec and LE Audio sync, the Windows-side A2DP codec settings, the full EarFun support, the AKG / realme / Edifier additions, the Fluent icons and the factory reset.
+
+## [1.15.1] - 2026-11-13 · 漫步者 W830NB 场景模式修复与新安装程序 / W830NB scene fixes and a new installer
+
+### 修复
+
+- EDIFIER W830NB：连续切换场景模式不再失败。耳机每次切换后会播约 2 秒提示音，期间不理会新的设置；现在 EncoDeck 会等提示音播完再发送下一次切换（用耳机按键切换后也一样），偶尔没有应答时自动重发一次，不再提示“耳机没有响应，设置未改变”（[#18](https://github.com/TIANLI0/EncoDeck/issues/18)）。
+- EDIFIER W830NB：耳机拒绝切换到某个场景模式时（例如通过 BlueCaster 使用时切换空间音效），如实提示“耳机没有切换到这个场景模式”并说明原因，不再误报为没有响应（[#18](https://github.com/TIANLI0/EncoDeck/issues/18)）。
+- 从 1.15.0 及更早版本（Inno Setup 安装包）覆盖安装或应用内更新到本版本时，沿用原来的安装位置（当前用户或所有用户）、桌面快捷方式和“开机自启”设置，设置与设备数据不受影响；旧版的卸载程序（`unins000.exe`）在更新时一并清理，“应用和功能”里只保留一个 EncoDeck。
+
+### 改进
+
+- 安装程序改用 [FluentSetup](https://github.com/TIANLI0/FluentSetup) 制作，界面与 Windows 11 一致；安装中途出错或取消时自动还原，不留下半装的文件。
+- 应用内更新时显示安装进度窗口，完成后自动重新打开 EncoDeck；为所有用户安装的副本会先请求管理员权限。
+- 卸载时只弹出一次管理员权限确认（以前最多三次），即可撤销 EncoDeck 用管理员权限做过的改动（编解码日志、蓝牙服务权限、LE Audio 恢复任务）。
+
+---
+
+### Fixed
+
+- EDIFIER W830NB: switching scenes several times in a row no longer fails. The headphones announce each new scene with a voice prompt of about two seconds and ignore settings meanwhile; EncoDeck now waits for the prompt before the next switch (also after a switch with the headphones' button) and sends an unanswered switch once more, instead of reporting "The earbuds didn't respond" ([#18](https://github.com/TIANLI0/EncoDeck/issues/18)).
+- EDIFIER W830NB: when the headphones refuse a scene (for example spatial audio while they are used through BlueCaster), EncoDeck says so and why, instead of reporting that they did not respond ([#18](https://github.com/TIANLI0/EncoDeck/issues/18)).
+- Installing over 1.15.0 or earlier (Inno Setup installers), or updating from the app, keeps the install location (current user or all users), the desktop shortcut and the "Start with Windows" setting; settings and device data are untouched. The old uninstaller (`unins000.exe`) is removed during the update, so Apps & features lists EncoDeck once.
+
+### Improved
+
+- The installer is now built with [FluentSetup](https://github.com/TIANLI0/FluentSetup): a Windows 11 style setup that rolls everything back if it fails or is cancelled.
+- In-app updates show the setup's progress window and open EncoDeck again when done; a copy installed for all users asks for administrator permission first.
+- Uninstalling asks for administrator permission once (previously up to three times) to undo what EncoDeck changed with administrator rights (codec log, Bluetooth service access, LE Audio restore task).
+
+## [1.15.0] - 2026-11-12 · 多品牌适配与连接控制 / Multi-brand support and connection control
+
+### 新增
+
+- 耳机面板、首页和设备页支持连接 / 断开这台电脑；断开后 EncoDeck 不再自动重连，重启后仍保持，便于其他应用使用耳机。关闭双连时切换到其他设备后，这台电脑不会把耳机连回（[#16](https://github.com/TIANLI0/EncoDeck/issues/16)）。
+- EDIFIER W830NB 支持电量、深度 / 舒适 / 宽频 / 防风降噪、关闭、环境声（通透）−3～+3 档和四种预设音效；主页补齐通透档位入口。音乐 / 游戏 / 空间音效场景切换不再需要开启实验功能，每次切换仍回读确认；耳机按键切换后同步更新界面（[#18](https://github.com/TIANLI0/EncoDeck/issues/18)）。
+- 耳机面板和首页可直接切换 EarFun 的降噪 / 通透子模式；Air Pro 4+ / 5 和 Wave Pro X 的降噪分为耳道智能自适应 / 自适应 / 手动 / 抗风噪，手动模式下可选 1–4 档（[#16](https://github.com/TIANLI0/EncoDeck/issues/16)）。
+
+### 改进
+
+- A2DP Bridge 组件适配更名后的 BlueCaster 3.x，内置版本为 3.0.0-beta.3；兼容已有 A2DPWB 2.x 安装，组件更新不再限定 2.x，可从实验室更新并由 BlueCaster 自动迁移配对和设置。
+- LE Audio 左右声道校准保持的静音流改为“游戏”类音频流，避免游戏开始或停止发声时因流模式切换而重建链路。更新后请重新检查左右对齐；“传输方式”为“自动”时会持续使用低延迟参数，需要稳定对齐请固定为“抗干扰优先”。
+- 界面图标改用 Fluent UI System Icons；耳机面板右上角提供连接 / 断开按钮，点击耳机图片或名称打开主界面；未连接时电量淡化，低电量时标红。
+- Probe 的 `watch` 按型号选择控制服务和协议，支持 W830NB 等非 OPPO 设备逐帧记录控制数据；仅支持 OPPO 的命令不会向其他品牌发送数据。
+
+### 修复
+
+- 华为空间音频状态回读后，音效页提供关闭 / 固定 / 头部跟踪切换；主页入口与设置卡片共用判断，避免点入空页。未能确认的模式在本次连接内隐藏（[#19](https://github.com/TIANLI0/EncoDeck/issues/19)）。
+- 托盘右键菜单只显示耳机支持的降噪模式；不支持降噪时隐藏整个子菜单。
+- 修复 Probe `watch` 对 W830NB 报 `ServiceNotFound`、LHDC 组件接管 A2DP 时的编码显示及首页顶部多余空白；LE Audio 校准在耳机刚连接时继续重试。
+
+### 移除
+
+- 移除实验室中仅 Enco X4 可用的“Intel 左右同步调度”开关。
+
+---
+
+### Added
+
+- Connect or disconnect this PC from the tray panel, Home and Devices. After disconnecting, EncoDeck leaves the headphones alone, including after an app restart. Switching to another host with multipoint disabled no longer pulls the headphones back to this PC ([#16](https://github.com/TIANLI0/EncoDeck/issues/16)).
+- EDIFIER W830NB battery, Deep / Comfort / Broadband / Wind noise cancellation, Off, ambient sound (transparency) levels −3 to +3 and four EQ presets. Home now exposes ambient levels. Music / Game / Spatial sound scenes no longer require experimental features; every write is checked by read-back, and headset button changes update the interface ([#18](https://github.com/TIANLI0/EncoDeck/issues/18)).
+- EarFun ANC and ambient sub-modes on Home and the tray panel. Air Pro 4+ / 5 and Wave Pro X offer Ear adaptive / Adaptive / Manual / Wind reduction, with levels 1–4 under Manual ([#16](https://github.com/TIANLI0/EncoDeck/issues/16)).
+
+### Improved
+
+- Support BlueCaster 3.x, the renamed A2DP Windows Bridge, with built-in version 3.0.0-beta.3. Existing A2DPWB 2.x installations are recognized, updates are no longer limited to 2.x, and BlueCaster migrates pairings and settings on first start.
+- LE Audio left/right calibration holds a game audio stream to avoid link rebuilds when games start or stop playing. Check alignment again after updating. Automatic transport keeps low-latency parameters; choose reliability first for stable alignment.
+- Fluent UI System Icons, a connect/disconnect button in the tray panel, clickable headphone image/name to open the main window, faded disconnected battery indicators and red low-battery indicators.
+- Probe `watch` selects the model's control service and protocol and traces frames for non-OPPO devices including W830NB. OPPO-only commands do not send data to other brands.
+
+### Fixed
+
+- HUAWEI spatial audio settings appear after a valid device report, offering Off / Fixed / Head tracking with read-back confirmation. Home and Sound share the availability check, preventing empty destinations; unconfirmed modes are hidden for the current connection ([#19](https://github.com/TIANLI0/EncoDeck/issues/19)).
+- The tray menu offers only supported noise modes and hides the submenu when noise control is unavailable.
+- W830NB Probe `watch` ServiceNotFound errors, codec display while the LHDC component handles A2DP, extra space at the top of Home, and calibration retries immediately after connection.
+
+### Removed
+
+- The Enco X4-only Intel left/right sync schedule switch in Labs.
+
+## [1.15.0-beta.3] - 2026-11-09 · BlueCaster 适配与 W830NB 降噪 / BlueCaster support and W830NB noise control
+
+### 新增
+
+- EDIFIER W830NB 支持降噪：深度 / 舒适 / 宽频 / 防风 / 关闭，环境声可选 −3～+3 档；支持预设音效（经典 / 流行 / 古典 / 摇滚）；场景模式（音乐 / 游戏 / 空间音效）作为实验功能放在控制页，每次切换都回读确认。用耳机按键切换后，界面随耳机上报同步更新（[#18](https://github.com/TIANLI0/EncoDeck/issues/18)）。
+
+### 改进
+
+- 实验室的 A2DP Bridge 组件适配 [BlueCaster](https://github.com/SeiyaFunaokaJP/BlueCaster)（A2DP Windows Bridge 3.0 起更名）：内置版本更新为 3.0.0-beta.3，组件更新不再限定 2.x，会取官方最新版本（含测试版，不含只推送给主动开启用户的 alpha 版本）。EncoDeck 同时识别 BlueCaster 与仍在使用的 A2DPWB 2.0.x：新旧程序、安装位置、开机启动项、后台管道与互斥体、驱动记录文件夹都能找到，已有的组件可直接在实验室更新，配对和设置由 BlueCaster 首次启动时自动迁移。
+
+---
+
+### Added
+
+- EDIFIER W830NB noise control: Deep / Comfort / Broadband / Wind / Off, with ambient sound levels −3 to +3; EQ presets (Classic / Pop / Classical / Rock); scene modes (Music / Game / Spatial sound) as an experimental feature on the Controls page, each change confirmed by read-back. Changes made with the earbuds' buttons show up as the earbuds report them ([#18](https://github.com/TIANLI0/EncoDeck/issues/18)).
+
+### Improved
+
+- The Labs page's A2DP Bridge component supports [BlueCaster](https://github.com/SeiyaFunaokaJP/BlueCaster), the new name of A2DP Windows Bridge from 3.0: the built-in version is now 3.0.0-beta.3, and component updates are no longer limited to 2.x but take the newest official build (betas included, not the alphas upstream offers only on request). EncoDeck recognizes both BlueCaster and an A2DPWB 2.0.x still in use: old and new programs, install locations, startup entries, background pipe and mutex, and driver record folders are all found; an existing component updates from the Labs page, and BlueCaster moves its pairings and settings over at its first start.
 
 ## [1.15.0-beta.2] - 2026-11-06 · 华为空间音频与 EarFun 降噪档位 / HUAWEI spatial audio and EarFun noise cancelling levels
 

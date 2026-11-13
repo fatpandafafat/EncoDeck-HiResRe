@@ -3,21 +3,21 @@
   "components": [
     {
       "id": "lhdc",
-      "version": "0.8.8-r9",
-      "tag": "lhdc-v0.8.8-r9",
+      "version": "0.8.8-r10",
+      "tag": "lhdc-v0.8.8-r10",
       "interface": 1,
       "minApp": "1.11.0",
       "source": {
         "repository": "https://github.com/fatpandafafat/LHDC-Win",
-        "commit": "78d87707e0331f2accc06ebbe1431358ed2fc9d5",
+        "commit": "103f1688d48788bcb1e7a20f783e11cfdd994d61",
         "release": "0.8.8"
       },
       "packages": [
         {
           "architecture": "x64",
-          "file": "EncoDeck-LHDC-0.8.8-r9-win-x64.zip",
-          "size": 124379287,
-          "sha256": "2ade40a3e49943cd3eae8fcd579019694d843f6190915ae31abe81d7510fd703"
+          "file": "EncoDeck-LHDC-0.8.8-r10-win-x64.zip",
+          "size": 124380599,
+          "sha256": "3b789fefcb3e7b6d716bf47959b212bb2227657d9c66c7e86d2263c0322a0113"
         }
       ]
     },

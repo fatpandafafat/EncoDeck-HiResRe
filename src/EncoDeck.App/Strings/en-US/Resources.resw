@@ -604,6 +604,8 @@
   <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>Before turning Hi-Res off, apply LHDC settings of at most 48 kHz and 400 kbps.</value></data>
   <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>Highest bitrate the driver negotiated {0} kbps</value></data>
   <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>Hi-Res is on, but the driver still holds the old capabilities</value></data>
+  <data name="Lhdc_Ceiling" xml:space="preserve"><value>ceiling {0} kbps</value></data>
+  <data name="Lhdc_Current" xml:space="preserve"><value>current {0} kbps</value></data>
   <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>The driver has not negotiated the earbuds' capabilities yet</value></data>
   <data name="Lhdc_Negotiating" xml:space="preserve"><value>Asking the driver to negotiate the earbuds' capabilities again…</value></data>
   <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>Device not found</value></data>

@@ -53,6 +53,9 @@ public sealed partial class LhdcSettings : UserControl
     private string _observedHead = "", _observedTail = "";
     // The bitrate the LHDC service is really playing, as it publishes it.
     private int _activeKbps;
+    // The bitrate ceiling the service applies, as it publishes it: the upper limit with the
+    // adaptive control on, the fixed tier with it off. Zero when the service publishes none.
+    private int _ceilingKbps;
     private DispatcherQueueTimer? _liveTimer;
     private bool _liveQuery;
 
@@ -183,6 +186,7 @@ public sealed partial class LhdcSettings : UserControl
         _observedHead = "";
         _observedTail = "";
         _activeKbps = 0;
+        _ceilingKbps = 0;
         HiResRow.Visibility = Visibility.Collapsed;
         _capabilities = "";
         _mediaMtu = 0;
@@ -213,6 +217,10 @@ public sealed partial class LhdcSettings : UserControl
         string mode = service == "BthA2dp" ? Loc.Get("Lhdc_WindowsMode")
             : service == "lhdc-transport" && audio["running"]?.GetValue<bool>() == true ? "LHDC V5" : Loc.Get("Lhdc_UnknownMode");
         int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
+        // The service publishes the ceiling it applies next to the tier it plays. With the
+        // adaptive control on the tier follows the connection and stays below the ceiling.
+        int? ceiling = Number(audio["ceiling_kbps"]);
+        if (ceiling is null or 0) ceiling = LhdcBackend.InstalledCeiling();
         await ReadCapabilitiesAsync(device, audio);
 
         if (heyMelody)
@@ -269,6 +277,7 @@ public sealed partial class LhdcSettings : UserControl
         if (_capabilitiesStale && !_capabilitiesMissing) _observedTail += " · " + Loc.Get("Lhdc_NegotiatedStale");
         if (!found) _observedTail += " · " + Loc.Get("Lhdc_DeviceMissing");
         _activeKbps = active;
+        _ceilingKbps = ceiling is int limit && limit > 0 ? limit : 0;
         RenderObserved();
     }
 
@@ -279,7 +288,16 @@ public sealed partial class LhdcSettings : UserControl
     private void RenderObserved()
     {
         if (_observedHead.Length == 0) return;
-        Observed.Text = _observedHead + (_activeKbps > 0 ? $" · {_activeKbps} kbps" : "") + _observedTail;
+        // The ceiling the service applies and the tier it really plays are two values: with
+        // the adaptive control on the tier follows the connection and stays below the
+        // ceiling, so both are named when they differ. A ceiling that matches the tier adds
+        // nothing, and a service that publishes none keeps the plain tier.
+        string bitrate = _activeKbps > 0
+            ? _ceilingKbps > 0 && _ceilingKbps != _activeKbps
+                ? " · " + Loc.Format("Lhdc_Ceiling", _ceilingKbps) + " · " + Loc.Format("Lhdc_Current", _activeKbps)
+                : $" · {_activeKbps} kbps"
+            : "";
+        Observed.Text = _observedHead + bitrate + _observedTail;
     }
 
     /// <summary>
@@ -301,8 +319,13 @@ public sealed partial class LhdcSettings : UserControl
         {
             var audio = await LhdcCompanion.Backend.QueryAsync(device.Instance, "active-bitrate");
             int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
-            if (active == _activeKbps) return;
+            // The service publishes the ceiling it applies in the registry as well, so the
+            // observed line follows it while the earbuds play.
+            int? ceiling = LhdcBackend.InstalledCeiling();
+            int limit = ceiling is int value && value > 0 ? value : 0;
+            if (active == _activeKbps && limit == _ceilingKbps) return;
             _activeKbps = active;
+            _ceilingKbps = limit;
             RenderObserved();
         }
         catch (Exception ex) when (ex is not OutOfMemoryException) { }
@@ -452,6 +475,17 @@ public sealed partial class LhdcSettings : UserControl
     /// <summary>A string field of a backend result; null when it is missing or not a string.</summary>
     private static string? Text(JsonNode? node, string key) =>
         node is JsonObject obj && obj[key] is JsonValue value && value.TryGetValue(out string? text) ? text : null;
+
+    /// <summary>A numeric field of a backend result; null when it is missing or not a number.</summary>
+    private static int? Number(JsonNode? node)
+    {
+        if (node is not JsonValue value) return null;
+        try { return value.GetValue<int>(); }
+        catch (Exception ex) when (ex is InvalidOperationException or FormatException) { }
+        try { return (int)value.GetValue<double>(); }
+        catch (Exception ex) when (ex is InvalidOperationException or FormatException) { }
+        return null;
+    }
 
     private async void OnDeviceChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -661,8 +695,10 @@ public sealed partial class LhdcSettings : UserControl
         if (!await UsesLhdcTransportAsync(device)) return false;
         try { LhdcBackend.ApplyCodecProfile(profile); }
         catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
-        // The service picks the new bitrate up within a few seconds: give it a moment and check
-        // what it plays, so a change that did not take effect is not reported as a success.
+        // The service re-reads the profile every second, so the new ceiling shows up within
+        // a moment. The tier the service plays is not the proof on its own: with the adaptive
+        // control on it plays a lower tier than the ceiling it was given, so the tier only
+        // tells whether the change was adopted when the ceiling matches it.
         DateTime deadline = DateTime.UtcNow.AddSeconds(6);
         while (DateTime.UtcNow < deadline)
         {
@@ -670,9 +706,22 @@ public sealed partial class LhdcSettings : UserControl
             try { audio = await backend.QueryAsync(device.Instance, "audio-status"); }
             catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
             int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
-            // A rate of zero means the service is not playing, so there is nothing to observe yet:
-            // the profile it was given is the one the next stream starts with.
-            if (active == profile.Kbps || active == 0) return true;
+            // The ceiling the service publishes: the status query carries it in the newer
+            // component builds, the registry holds it in every build that has one.
+            int? ceiling = Number(audio["ceiling_kbps"]);
+            int? published = LhdcBackend.InstalledCeiling();
+            // The ceiling is the value the service was given: the upper limit with the
+            // adaptive control on, the fixed tier with it off. Both forms fit the ceiling.
+            if (ceiling is int limit && limit == profile.Kbps) return true;
+            if (published is int reported && reported == profile.Kbps) return true;
+            // A fixed tier has to be the tier the service plays.
+            if (!profile.Adaptive && active == profile.Kbps) return true;
+            // With the adaptive control on the service may play a lower tier than the
+            // ceiling it was given, so a tier at or below the new ceiling is enough.
+            if (profile.Adaptive && active > 0 && active <= profile.Kbps) return true;
+            // A service that is running but not playing has nothing to observe yet: the
+            // profile it was given is the one the next stream starts with.
+            if (active == 0 && (ceiling is null or 0) && (published is null or 0)) return true;
         }
         return false;
     }

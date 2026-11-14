@@ -604,6 +604,8 @@
   <data name="Lhdc_HiResLowerFirst" xml:space="preserve"><value>关闭 Hi-Res 前，请先应用不高于 48 kHz / 400 kbps 的 LHDC 参数。</value></data>
   <data name="Lhdc_NegotiatedLimit" xml:space="preserve"><value>驱动当前协商到的最高码率 {0} kbps</value></data>
   <data name="Lhdc_NegotiatedStale" xml:space="preserve"><value>耳机 Hi-Res 已开启，但驱动缓存的还是旧能力</value></data>
+  <data name="Lhdc_Ceiling" xml:space="preserve"><value>上限 {0} kbps</value></data>
+  <data name="Lhdc_Current" xml:space="preserve"><value>当前 {0} kbps</value></data>
   <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>驱动尚未协商到耳机能力</value></data>
   <data name="Lhdc_Negotiating" xml:space="preserve"><value>正在让驱动重新协商耳机能力…</value></data>
   <data name="Lhdc_DeviceMissing" xml:space="preserve"><value>未找到该设备</value></data>

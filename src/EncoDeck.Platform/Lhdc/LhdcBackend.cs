@@ -198,6 +198,30 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
     }
 
     /// <summary>
+    /// The bitrate ceiling the LHDC service currently applies, as it publishes it in the
+    /// registry. Null when the service does not publish one (a component build without it) or
+    /// when LHDC is not installed; zero means the service is idle and applies no ceiling.
+    /// </summary>
+    /// <remarks>
+    /// The ceiling is the upper limit the service was given: with the adaptive control on it
+    /// is the limit itself, with it off it is the fixed tier. It is not the tier the service
+    /// really plays, which is lower while the connection cannot carry the limit.
+    /// </remarks>
+    public static int? InstalledCeiling()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\LHDC-Win", writable: false);
+            if (key?.GetValue("ActiveCeilingKbps") is not int value) return null;
+            return value;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Writes the profile into the registry the LHDC service reads it from. The service re-reads
     /// the profile every second, so a bitrate-only change takes effect in the running session
     /// without a deployment and without an elevated process.

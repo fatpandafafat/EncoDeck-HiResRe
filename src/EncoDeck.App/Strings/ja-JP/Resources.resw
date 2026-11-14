@@ -576,6 +576,8 @@
   <data name="Lhdc_LiveFormatTitle.Text" xml:space="preserve"><value>LHDC ストリーム</value></data>
   <data name="Lhdc_HiResNotNegotiated" xml:space="preserve"><value>イヤホンは接続されていますが、ドライバーはまだ能力をネゴシエートしていません。LHDC のセッションが 1 度動くとネゴシエートされます。</value></data>
   <data name="Lhdc_CapabilitiesNotNegotiated" xml:space="preserve"><value>ドライバーは未だイヤホンの能力をネゴシエートしていません</value></data>
+  <data name="Lhdc_Ceiling" xml:space="preserve"><value>上限 {0} kbps</value></data>
+  <data name="Lhdc_Current" xml:space="preserve"><value>現在 {0} kbps</value></data>
   <data name="Lhdc_Device" xml:space="preserve"><value>オーディオデバイス</value></data>
   <data name="Lhdc_StandaloneLink.Content" xml:space="preserve"><value>Store 版以外をダウンロード</value></data>
   <data name="Lhdc_StoreDisabled" xml:space="preserve"><value>Store 版では LHDC を利用できません</value></data>

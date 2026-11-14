@@ -1,5 +1,17 @@
 # 更新日志（CHANGELOG）
 
+## [1.15.6-hires] - 2026-11-14 · 自适应不再一有波动就掉到 500、面板分开展示上限与当前档位 / The adaptive control no longer drops straight to 500, and the panel shows the ceiling and the tier apart
+
+- **LHDC 组件升级到 0.8.8-r14**。自适应码率的下降阶梯以前只有编码器码率表里的条目，上限 800 时阶梯是 400 / 500 / 800，中间没有台阶，于是任何一次无线波动都直接掉到 500，而用户选的是 800。现在阶梯由**编码器能产出的每一个速率**搭成（400 / 500 / 600 / 700 / 800 / 900 / 1000），一次压力事件退一格、紧急事件退两格，不再一步摔到阶梯底部；播放开始和播放中改档都从**用户选的那个速率**起步，不再从 500 慢慢爬。掉档后的重试等待也从 60 秒缩到 15 秒。
+- **面板分开展示"上限"与"当前档位"**。自适应把上限降下来时，能同时看到「上限 800 kbps · 当前 500 kbps」，而不是只看到一个看不出所以然的 500。
+- **自适应开启时也能秒级切码率**。此前面板确认"新码率已生效"的步骤只看服务正在播的档位，自适应开启时服务会播比目标低的档位，确认因此永远失败，于是每次点「应用」都回落到完整部署（停服务、改配置、重绑驱动、重新协商，约 30 秒）。现在确认依次看服务发布的上限、注册表里的上限、固定档位的当前档位与自适应下的当前档位，命中就直接生效。
+
+---
+
+- The LHDC component moves to 0.8.8-r14. The adaptive ladder used to hold only the entries of the encoder's own bitrate table, so with 800 as the ceiling it was 400 / 500 / 800 with no step in between: any wireless fluctuation dropped it straight to 500 while the user had chosen 800. The ladder is now built from **every rate the encoder can produce** (400 / 500 / 600 / 700 / 800 / 900 / 1000); a pressure event steps down one tier, an urgent event two, and both the start of a stream and a change during playback begin at **the rate the user chose** instead of climbing up from 500. The retry wait after a drop is 15 seconds instead of 60.
+- The panel shows the ceiling and the tier apart. When the adaptive control lowers the ceiling, it now reads "ceiling 800 kbps · current 500 kbps" instead of a bare 500 that says nothing about why.
+- Switching the bitrate takes effect immediately with the adaptive control on. The step that confirmed the new bitrate only looked at the tier the service was playing, and with the adaptive control on the service plays a tier below the target, so the confirmation always failed and every "Apply" fell back to the full deployment (stop the service, rewrite the profile, rebind the driver, renegotiate, about 30 seconds). The confirmation now looks at the ceiling the service publishes, the ceiling in the registry, the current tier of a fixed rate and the current tier under the adaptive control, and takes effect at once when one of them matches.
+
 ## [1.15.5-hires] - 2026-11-14 · LHDC 面板显示真实配置、码率秒级切换 / Show the LHDC profile in use and switch the bitrate without a deployment
 
 - **LHDC 面板不再每次都显示默认的 400 kbps**。采样率、位深、码率三个选择框以前是用写死的默认值填的，卡片从头到尾没有读过注册表，所以它显示的速率和 LHDC 服务真正在播的速率对不上；此时点「应用」还会把 400 kbps 写回注册表，把正在跑的档位降下去。现在面板改为回填已安装的配置，用户自己改过之后就保持用户的选择。

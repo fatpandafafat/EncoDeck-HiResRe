@@ -1,5 +1,15 @@
 # 更新日志（CHANGELOG）
 
+## [1.15.7-hires] - 2026-11-14 · 自适应不再一步掉到 400、十几秒回到所选码率 / The adaptive control no longer drops straight to 400, and it is back at the chosen rate within seconds
+
+- **LHDC 组件升级到 0.8.8-r15**。自适应此前一次拥塞事件降**两格**，而拥塞持续时每 100 毫秒就能再触发一次，于是上限 1000 时一次卡顿就 1000 → 800 → 600 → 400 掉到底（用户选的是 1000，落到 400 是 2.5 倍的码率塌陷），而且掉档后要先等 30 秒才允许回升、每升一档还要再稳定 15 秒，回到 1000 要 105 秒。现在**一次事件只降一格**，**地板跟着所选速率走**（选 1000 最低到 700，选 800 最低到 600），**压力缓解后每 3 秒升一档**，失败档位的退避从 15 秒缩到 6 秒、上限从 15 分钟降到 60 秒：700 回到 1000 约 12 秒，600 回到 800 约 9 秒。
+- 面板显示上限与当前档位的方式不变：自适应把上限降下来时能同时看到「上限 800 kbps · 当前 500 kbps」。
+
+---
+
+- The LHDC component moves to 0.8.8-r15. The adaptive control used to lower **two levels** per congestion event, and while the congestion lasted every 100 ms could trigger another one, so with a ceiling of 1000 a single stall took 1000 → 800 → 600 → 400 although the user had chosen 1000: a 2.5 times collapse of the bitrate. After the drop it then waited 30 seconds before any rise and 15 more seconds per level, so climbing back to 1000 took 105 seconds. A single event now lowers **one level**, the floor **follows the rate the user chose** (1000 never falls below 700, 800 never below 600), the ladder rises **one level every three seconds** once the pressure is gone, and the delay of a failed level starts at 6 seconds instead of 15 with a cap of 60 seconds instead of 15 minutes: about 12 seconds from 700 back to 1000, about 9 seconds from 600 back to 800.
+- The panel keeps showing the ceiling and the tier apart: when the adaptive control lowers the ceiling, it reads "ceiling 800 kbps · current 500 kbps".
+
 ## [1.15.6-hires] - 2026-11-14 · 自适应不再一有波动就掉到 500、面板分开展示上限与当前档位 / The adaptive control no longer drops straight to 500, and the panel shows the ceiling and the tier apart
 
 - **LHDC 组件升级到 0.8.8-r14**。自适应码率的下降阶梯以前只有编码器码率表里的条目，上限 800 时阶梯是 400 / 500 / 800，中间没有台阶，于是任何一次无线波动都直接掉到 500，而用户选的是 800。现在阶梯由**编码器能产出的每一个速率**搭成（400 / 500 / 600 / 700 / 800 / 900 / 1000），一次压力事件退一格、紧急事件退两格，不再一步摔到阶梯底部；播放开始和播放中改档都从**用户选的那个速率**起步，不再从 500 慢慢爬。掉档后的重试等待也从 60 秒缩到 15 秒。

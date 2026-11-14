@@ -20,6 +20,10 @@ public sealed partial class LhdcSettings : UserControl
     // What the user asked for, kept across the capability refreshes that rebuild the lists.
     private int _rate = 48000, _bits = 24, _preferredCanonical = 400;
 
+    // True once the user has picked a format of their own. The installed profile is only the
+    // starting point then, so a later refresh must not take the choice back.
+    private bool _userEdited;
+
     // The capabilities the LHDC service negotiated with the earbud, as it published them.
     private string _capabilities = "";
     private int _mediaMtu, _maxKbps;
@@ -55,6 +59,11 @@ public sealed partial class LhdcSettings : UserControl
     public LhdcSettings()
     {
         InitializeComponent();
+        // The depth and the adaptive switch have no handler in the markup: they are wired up
+        // here, so a change the user makes is known to the card.
+        Depth.SelectionChanged += OnDepthChanged;
+        Adaptive.Checked += OnAdaptiveChanged;
+        Adaptive.Unchecked += OnAdaptiveChanged;
         Loaded += async (_, _) =>
         {
             // The Hi-Res switch of the earbud EncoDeck drives itself is read over EncoDeck's own
@@ -73,6 +82,7 @@ public sealed partial class LhdcSettings : UserControl
             Apply.Content = Loc.Get("Lhdc_Apply");
             Restore.Content = Loc.Get("Lhdc_Restore");
             Refresh.Content = Loc.Get("Lhdc_Refresh");
+            ApplyInstalledProfile();
             RebuildChoices();
             Status.Text = StatusText();
             Sync();
@@ -183,6 +193,7 @@ public sealed partial class LhdcSettings : UserControl
         _hiResEnabled = null;
         _hiResUnsupported = false;
         _capabilitiesMissing = false;
+        ApplyInstalledProfile();
         if (Devices.SelectedItem is not LhdcDevice device)
         {
             Observed.Text = Loc.Get("Lhdc_SelectDevice");
@@ -346,6 +357,26 @@ public sealed partial class LhdcSettings : UserControl
     }
 
     /// <summary>
+    /// Fills the format choices with the profile the LHDC service really runs with, so the card
+    /// shows what is in effect instead of a fixed default. A choice the user already made is
+    /// kept: the installed profile is only the starting point.
+    /// </summary>
+    private void ApplyInstalledProfile()
+    {
+        if (_userEdited) return;
+        var installed = LhdcBackend.InstalledProfile();
+        if (installed is null) return;
+        _rate = installed.SampleRate;
+        _bits = installed.Bits;
+        // The bitrate list works on canonical values: 44.1 kHz spells 240 and 480 where the other
+        // rates use 256 and 500.
+        _preferredCanonical = LhdcBitrates.ToCanonical(installed.SampleRate, installed.Kbps);
+        _updating = true;
+        try { Adaptive.IsChecked = installed.Adaptive; }
+        finally { _updating = false; }
+    }
+
+    /// <summary>
     /// Rebuilds the format lists from what the earbud advertises. The lists are the earbud's own
     /// capability table, so a bitrate the earbud will not accept is never offered.
     /// </summary>
@@ -442,6 +473,7 @@ public sealed partial class LhdcSettings : UserControl
         int canonical = LhdcBitrates.ToCanonical(_rate, (Bitrate.SelectedItem as Choice)?.Value ?? 400);
         _rate = choice.Value;
         _preferredCanonical = canonical;
+        _userEdited = true;
         RebuildChoices();
     }
 
@@ -449,6 +481,20 @@ public sealed partial class LhdcSettings : UserControl
     {
         if (_updating) return;
         if (Bitrate.SelectedItem is Choice choice) _preferredCanonical = LhdcBitrates.ToCanonical(_rate, choice.Value);
+        _userEdited = true;
+    }
+
+    private void OnDepthChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updating) return;
+        if (Depth.SelectedItem is Choice choice) _bits = choice.Value;
+        _userEdited = true;
+    }
+
+    private void OnAdaptiveChanged(object sender, RoutedEventArgs e)
+    {
+        if (_updating) return;
+        _userEdited = true;
     }
 
     /// <summary>
@@ -524,11 +570,24 @@ public sealed partial class LhdcSettings : UserControl
     private async Task ChangeMode(bool lhdc) => await Operate(async () =>
     {
         if (Devices.SelectedItem is not LhdcDevice device) return;
-        int rate = (Rate.SelectedItem as Choice)?.Value ?? 48000;
-        int kbps = (Bitrate.SelectedItem as Choice)?.Value ?? 400;
-        var profile = new LhdcProfile(rate, (Depth.SelectedItem as Choice)?.Value ?? 24, kbps, Adaptive.IsChecked == true);
+        // The installed profile is the better guess than a fixed default: an empty list must not
+        // quietly turn a running profile back into 400 kbps.
+        var installed = LhdcBackend.InstalledProfile();
+        int rate = (Rate.SelectedItem as Choice)?.Value ?? installed?.SampleRate ?? 48000;
+        int bits = (Depth.SelectedItem as Choice)?.Value ?? installed?.Bits ?? 24;
+        int kbps = (Bitrate.SelectedItem as Choice)?.Value ?? installed?.Kbps ?? 400;
+        var profile = new LhdcProfile(rate, bits, kbps, Adaptive.IsChecked == true);
         Status.Text = Loc.Get("Lhdc_Applying");
         var backend = LhdcCompanion.Backend;
+        // A bitrate-only change does not need a deployment: the service re-reads the profile from
+        // the registry every second and switches over in the session that is running.
+        if (lhdc && await TryApplyInPlaceAsync(device, profile, installed))
+        {
+            _capabilitiesStale = false;
+            CardNotice.Show(Notice, InfoBarSeverity.Success, Loc.Get("Lhdc_Applied"));
+            await ReadStatus();
+            return;
+        }
         // Local format validation first; the deployment probes the selected earbud's actual capabilities.
         if (lhdc)
         {
@@ -574,6 +633,66 @@ public sealed partial class LhdcSettings : UserControl
         CardNotice.Show(Notice, InfoBarSeverity.Success, Loc.Get("Lhdc_Applied"));
         await ReadStatus();
     });
+
+    /// <summary>
+    /// Applies a bitrate-only change without a deployment. The LHDC service re-reads the profile
+    /// from the registry every second, so writing the profile is enough as long as the sample rate
+    /// and the bit depth stay the same. Returns false when the change has to go through a
+    /// deployment instead; the caller then does that without telling the user anything.
+    /// </summary>
+    private async Task<bool> TryApplyInPlaceAsync(LhdcDevice device, LhdcProfile profile, LhdcInstalledProfile? installed)
+    {
+        if (installed is null) return false;
+        // Another sample rate or another bit depth needs the audio sub-device to be restarted and
+        // the capabilities to be negotiated again, so it always needs a deployment.
+        if (installed.SampleRate != profile.SampleRate || installed.Bits != profile.Bits) return false;
+        var backend = LhdcCompanion.Backend;
+        JsonObject audio;
+        try { audio = await backend.QueryAsync(device.Instance, "audio-status"); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
+        // The service has to be running for it to pick the new profile up.
+        if (audio["running"]?.GetValue<bool>() != true) return false;
+        // The service reports whether the current user may write the profile. A service that does
+        // not say so is taken to refuse the write, and the deployment does it instead.
+        if (audio["profile_editable"]?.GetValue<bool>() != true) return false;
+        // The earphone has to be on the LHDC transport already. A pair that still runs on the
+        // Windows A2DP driver is asking for a mode change, and writing the profile would leave it
+        // on that driver.
+        if (!await UsesLhdcTransportAsync(device)) return false;
+        try { LhdcBackend.ApplyCodecProfile(profile); }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
+        // The service picks the new bitrate up within a few seconds: give it a moment and check
+        // what it plays, so a change that did not take effect is not reported as a success.
+        DateTime deadline = DateTime.UtcNow.AddSeconds(6);
+        while (DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(1500);
+            try { audio = await backend.QueryAsync(device.Instance, "audio-status"); }
+            catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
+            int active = audio["active_kbps"]?.GetValue<int>() ?? 0;
+            // A rate of zero means the service is not playing, so there is nothing to observe yet:
+            // the profile it was given is the one the next stream starts with.
+            if (active == profile.Kbps || active == 0) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Whether the earphone is bound to the LHDC transport driver. The audio service reports the
+    /// rate it plays, but not which driver the earphone is on.
+    /// </summary>
+    private async Task<bool> UsesLhdcTransportAsync(LhdcDevice device)
+    {
+        try
+        {
+            var backend = LhdcCompanion.Backend;
+            var inventory = await backend.QueryAsync(device.Instance, "inspect");
+            var entry = (inventory["devices"] as JsonArray ?? []).FirstOrDefault(d =>
+                string.Equals(Text(d, "instance_id"), device.Instance, StringComparison.OrdinalIgnoreCase));
+            return string.Equals(Text(entry, "service"), "lhdc-transport", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException) { return false; }
+    }
 
     private async void OnCheckUpdates(object sender, RoutedEventArgs e) => await Operate(async () =>
     {

@@ -19,12 +19,13 @@ public sealed record LhdcProfile(int SampleRate = 48000, int Bits = 24, int Kbps
     /// The bitrates the encoder has a table entry for at 44.1 kHz. The encoder's table is per
     /// sample rate: 44.1 kHz uses 240 and 480 where the other rates use 256 and 500, so a
     /// bitrate without an entry for the chosen rate is rejected here rather than failing inside
-    /// the driver later on.
+    /// the driver later on. The 600, 700 and 800 kbps entries come from the component build that
+    /// names the target bitrate directly instead of using an encoder table entry.
     /// </summary>
-    private static readonly int[] Bitrates44100 = [64, 160, 192, 240, 320, 400, 480, 900, 1000];
+    private static readonly int[] Bitrates44100 = [64, 160, 192, 240, 320, 400, 480, 600, 700, 800, 900, 1000];
 
     /// <summary>The bitrates the encoder has a table entry for at every other sample rate.</summary>
-    private static readonly int[] BitratesOther = [64, 160, 192, 256, 320, 400, 500, 900, 1000];
+    private static readonly int[] BitratesOther = [64, 160, 192, 256, 320, 400, 500, 600, 700, 800, 900, 1000];
 
     /// <summary>Whether the encoder accepts this bitrate at this sample rate.</summary>
     public static bool AllowsBitrate(int sampleRate, int kbps) =>
@@ -54,7 +55,7 @@ public sealed record LhdcDeploymentProgress(string Stage, string Detail, TimeSpa
 /// </summary>
 public static class LhdcBitrates
 {
-    public static readonly int[] Canonical = [64, 160, 192, 256, 320, 400, 500, 900, 1000];
+    public static readonly int[] Canonical = [64, 160, 192, 256, 320, 400, 500, 600, 700, 800, 900, 1000];
 
     public static int ToCanonical(int sampleRate, int kbps) => sampleRate == 44100
         ? kbps switch { 240 => 256, 480 => 500, _ => kbps }
@@ -194,6 +195,36 @@ public sealed class LhdcBackend(string packageRoot, string resultsDirectory)
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Writes the profile into the registry the LHDC service reads it from. The service re-reads
+    /// the profile every second, so a bitrate-only change takes effect in the running session
+    /// without a deployment and without an elevated process.
+    /// </summary>
+    /// <remarks>
+    /// The key grants normal users data-value writes only. The Windows API is called directly with
+    /// the same access mask the upstream control panel uses: the managed registry API asks for
+    /// more than the key allows and is refused even though the value write itself is permitted.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">The profile could not be written.</exception>
+    public static void ApplyCodecProfile(LhdcProfile profile)
+    {
+        // The profile is three little-endian 32 bit numbers: sample rate, bit depth and bitrate.
+        byte[] value = new byte[12];
+        BitConverter.TryWriteBytes(value.AsSpan(0), profile.SampleRate);
+        BitConverter.TryWriteBytes(value.AsSpan(4), profile.Bits);
+        BitConverter.TryWriteBytes(value.AsSpan(8), profile.Kbps);
+        if (RegOpenKeyExW(Registry.LocalMachine.Handle.DangerousGetHandle(), @"SOFTWARE\LHDC-Win", 0,
+                KeySetValue, out IntPtr key) != 0)
+            throw new InvalidOperationException("LHDC is not installed.");
+        try
+        {
+            if (RegSetValueExW(key, "Profile", 0, RegistryBinary, value, (uint)value.Length) != 0 ||
+                RegSetValueExW(key, "AdaptiveBitrate", 0, RegistryDword, BitConverter.GetBytes(profile.Adaptive ? 1 : 0), 4) != 0)
+                throw new InvalidOperationException("The LHDC profile could not be written.");
+        }
+        finally { RegCloseKey(key); }
     }
 
     internal static string ModeCommand(string root, string instance, bool lhdc, LhdcProfile profile, string resultFile)

@@ -38,9 +38,10 @@ public sealed record BridgeInstallation(string Directory, BridgeOrigin Origin, s
 
 /// <summary>
 /// BlueCaster (github.com/SeiyaFunaokaJP/BlueCaster, called A2DP Windows Bridge up to 2.0.x): A2DP from a dedicated
-/// USB Bluetooth adapter under WinUSB, with its own user-mode Bluetooth stack. EncoDeck downloads the official portable
-/// build from the project's own releases (the newest one, betas included) and starts, watches and controls the core;
-/// it never builds or patches it. Copies of 2.0.x (installed, running, or managed until their update) keep working.
+/// USB Bluetooth adapter under WinUSB, with its own user-mode Bluetooth stack. EncoDeck can run the official installer
+/// from the project's own releases (the newest one, betas included), then only finds, starts and connects to the core;
+/// BlueCaster updates and uninstalls itself, and manages adapters and earbuds in its own window. EncoDeck never builds
+/// or patches it. Portable copies EncoDeck downloaded before, and copies of 2.0.x, keep working.
 /// </summary>
 public static class A2dpBridgeComponent
 {
@@ -57,8 +58,11 @@ public static class A2dpBridgeComponent
 
     private static readonly BridgeNames[] Generations = [Current, Legacy];
 
-    /// <summary>Repositories of official builds: the current name, then the name up to 2.0.x (GitHub redirects it).</summary>
-    private static readonly string[] Repositories = ["github.com/SeiyaFunaokaJP/BlueCaster", "github.com/SeiyaFunaokaJP/A2DP-Windows-Bridge"];
+    /// <summary>
+    /// Where BlueCaster's official releases are. Only the place is known to this app: which release is the newest, and
+    /// its installer's file, size and digest, are read from there when the user installs it.
+    /// </summary>
+    public const string Repository = "https://github.com/SeiyaFunaokaJP/BlueCaster";
 
     /// <summary>BlueCaster's Inno Setup (3.0 and later): its AppId, and its default folder under %LOCALAPPDATA%.</summary>
     private const string ProductName = "BlueCaster";
@@ -72,37 +76,32 @@ public static class A2dpBridgeComponent
 
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
-    public static ComponentLayout Layout { get; } = new()
+    /// <summary>
+    /// A portable copy that EncoDeck up to 1.15 downloaded into <paramref name="root"/> (named by its <c>current.json</c>).
+    /// It is still found and started, never updated or removed; its version is read from the core itself.
+    /// </summary>
+    public static BridgeInstallation? FindDownloaded(string root)
     {
-        HasFiles = directory => NamesIn(directory) is { } names && names.Files.All(f => File.Exists(Path.Combine(directory, f))),
-        Validate = Validate,
-    };
-
-    public static ComponentInstaller CreateInstaller(HttpClient http, string root, ComponentRelease? release = null)
-    {
-        release ??= ComponentCatalog.A2dpBridge;
-        return new ComponentInstaller(http, root, release, release.CurrentPackage, Layout);
+        try
+        {
+            string pointer = Path.Combine(root, "current.json");
+            if (!File.Exists(pointer) || System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(pointer)) is not System.Text.Json.Nodes.JsonObject node) return null;
+            string? folder = node["folder"]?.GetValue<string>(), packageRoot = node["root"]?.GetValue<string>() ?? "";
+            if (!IsFolderName(folder) || (packageRoot.Length > 0 && !IsFolderName(packageRoot))) return null;
+            string directory = Path.Combine(root, folder!, packageRoot);
+            return IsBridgeFolder(directory) ? new BridgeInstallation(directory, BridgeOrigin.Managed, FileVersion(Path.Combine(directory, NamesIn(directory)!.Core))) : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException or FormatException) { return null; }
     }
+
+    private static bool IsFolderName(string? name) => name is { Length: > 0 and <= 160 } && name == Path.GetFileName(name)
+        && name.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && name is not ("." or "..");
 
     /// <summary>The generation whose core is in <paramref name="directory"/>, if any.</summary>
     public static BridgeNames? NamesIn(string directory)
     {
         try { return Generations.FirstOrDefault(n => File.Exists(Path.Combine(directory, n.Core))); }
         catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException) { return null; }
-    }
-
-    /// <summary>
-    /// The official build's source note (licenses/README.txt; SOURCE.txt up to 2.0.x) names the repository and, at
-    /// install time, must name the pinned commit.
-    /// </summary>
-    internal static void Validate(string directory, string version, string? pinnedCommit)
-    {
-        var names = NamesIn(directory) ?? throw new InvalidDataException("Not a BlueCaster build.");
-        string source = File.ReadAllText(Path.Combine(directory, names.SourceInfo));
-        if (!Repositories.Any(r => source.Contains(r, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidDataException("Not a BlueCaster build.");
-        if (pinnedCommit is not null && !source.Contains(pinnedCommit, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("The BlueCaster package is not the pinned upstream build.");
     }
 
     /// <summary>
@@ -230,71 +229,29 @@ public static class A2dpBridgeComponent
         return environment;
     }
 
-    /// <summary>
-    /// Where the core keeps the previous driver of each adapter it assigned WinUSB to: <c>adapters\driver</c> of its
-    /// settings folder, <c>driver</c> up to 2.0.x, and %APPDATA%\A2DPWB\driver until BlueCaster has taken that folder
-    /// over. The first of them with records, as BlueCaster's uninstaller picks it.
-    /// </summary>
-    public static string DriverRecordsDirectory(string? settingsDirectory = null)
-    {
-        string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        string settings = string.IsNullOrEmpty(settingsDirectory) ? Path.Combine(appData, ProductName) : settingsDirectory;
-        string[] candidates = [Path.Combine(settings, "adapters", "driver"), Path.Combine(settings, "driver"), Path.Combine(appData, "A2DPWB", "driver")];
-        return candidates.FirstOrDefault(d => DriverRecordCount(d) > 0) ?? candidates[0];
-    }
+    /// <summary>The architecture tag of BlueCaster's installer for this PC ("win64", "arm64").</summary>
+    public static string SetupArchitecture =>
+        System.Runtime.InteropServices.RuntimeInformation.OSArchitecture == System.Runtime.InteropServices.Architecture.Arm64 ? "arm64" : "win64";
 
-    /// <summary>Adapters the core took from Windows and has not given back (one record each).</summary>
-    public static int DriverRecordCount(string recordsDirectory)
-    {
-        try { return Directory.Exists(recordsDirectory) ? Directory.EnumerateFiles(recordsDirectory, "*.json").Count() : 0; }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return 0; }
-    }
+    /// <summary>Downloads BlueCaster's own installer to <paramref name="path"/>, held to the size and digest GitHub reports.</summary>
+    public static Task DownloadSetupAsync(HttpClient http, UpstreamSetup setup, string path,
+        IProgress<EncoDeck.Platform.Updates.UpdateDownloadProgress>? progress, CancellationToken ct) =>
+        ComponentInstaller.DownloadAsync(http, [setup.Url], path, setup.Size, setup.Sha256, progress, ct);
 
     /// <summary>
-    /// Gives every recorded adapter back to Windows with one administrator prompt, as BlueCaster's uninstaller does:
-    /// <c>bluecaster-driver.exe restore --records &lt;dir&gt;</c>. Returns the helper's exit code (0: all restored);
-    /// a declined prompt throws <see cref="OperationCanceledException"/>.
+    /// Runs BlueCaster's own installer unattended (a per-user installation, with its progress window) and returns its
+    /// exit code. The installed BlueCaster then updates and uninstalls itself; EncoDeck only finds and starts it.
     /// </summary>
-    public static async Task<int> RestoreRecordedDriversAsync(BridgeInstallation installation, string recordsDirectory, CancellationToken ct = default)
+    public static async Task<int> RunSetupAsync(string path)
     {
-        string result = Path.Combine(Path.GetTempPath(), $"encodeck-bluecaster-restore-{Guid.NewGuid():N}.json");
-        if (recordsDirectory.Contains('"') || result.Contains('"')) throw new ArgumentException("Unexpected quote in a path.", nameof(recordsDirectory));
-        // Elevation needs ShellExecute, which takes one argument string; folder paths never contain quotes.
-        var start = new ProcessStartInfo(installation.DriverPath, $"restore --records \"{recordsDirectory.TrimEnd('\\')}\" --out \"{result}\"")
+        using var process = Process.Start(new ProcessStartInfo(path, "/SILENT /SUPPRESSMSGBOXES /NORESTART")
         {
             UseShellExecute = true,
-            Verb = "runas",
-            WindowStyle = ProcessWindowStyle.Hidden,
-            WorkingDirectory = installation.Directory,
-        };
-        try
-        {
-            using var process = Process.Start(start) ?? throw new IOException($"Cannot start {installation.Names.Driver}.");
-            await process.WaitForExitAsync(ct).ConfigureAwait(false);
-            return process.ExitCode;
-        }
-        catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223) { throw new OperationCanceledException("The administrator prompt was declined.", ex); }
-        finally
-        {
-            try { File.Delete(result); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
-        }
-    }
-
-    /// <summary>Removes the "start with Windows" entries that name a copy under <paramref name="root"/> (one about to be deleted).</summary>
-    public static void RemoveStartupEntryUnder(string root)
-    {
-        try
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (key is null) return;
-            string prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-            foreach (string value in RunValues)
-            {
-                if (key.GetValue(value) is not string command || ProgramOf(command) is not { } program) continue;
-                if (Path.GetFullPath(program).StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) key.DeleteValue(value, throwOnMissingValue: false);
-            }
-        }
-        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException or ArgumentException) { }
+            WorkingDirectory = Path.GetDirectoryName(path)!,
+        }) ?? throw new IOException("Cannot start the BlueCaster installer.");
+        // Never cut an installation short: it is waited for even when the card closes.
+        await process.WaitForExitAsync().ConfigureAwait(false);
+        return process.ExitCode;
     }
 
     /// <summary>BlueCaster's own window (first-run setup, adapter, firmware, pairing and diagnostics).</summary>

@@ -392,7 +392,7 @@ public sealed partial class DeviceViewModel : ObservableObject
         }
     }
 
-    private static string DescribeFailure(CommandResult result) => (result.Status, result.Detail) switch
+    private string DescribeFailure(CommandResult result) => (result.Status, result.Detail) switch
     {
         // Reasons the official client reports with its own message.
         (CommandStatus.Rejected, OppoDeviceController.WearRequiredDetail) => Loc.Get("Error_WearRequired"),
@@ -410,6 +410,7 @@ public sealed partial class DeviceViewModel : ObservableObject
         (CommandStatus.TransportError, _) => Loc.Get("Error_Transport"),
         (CommandStatus.Rejected, _) => Loc.Get("Error_Rejected"),
         (CommandStatus.Unsupported, _) => Loc.Get("Error_Unsupported"),
+        (CommandStatus.NotConnected, _) when _store.Current.LinkRestarting => Loc.Get("Error_Reconnecting"),
         (CommandStatus.NotConnected, _) => Loc.Get("Error_NotConnected"),
         _ => result.ToString(),
     };
@@ -453,6 +454,10 @@ public sealed partial class DeviceViewModel : ObservableObject
         IsReady = state.Connection == DeviceConnectionState.ControlReady;
         IsBusyConnecting = IsChangingConnection || state.Connection is DeviceConnectionState.ControlConnecting or DeviceConnectionState.Reconnecting or DeviceConnectionState.AudioConnected;
         IsControlUnavailable = state.Connection == DeviceConnectionState.ControlUnavailable;
+        // A dropped link leaves its "no response" error behind; it is stale once the session is back.
+        if (HasError && state.Connection == DeviceConnectionState.ControlReady
+            && ErrorMessage == Loc.Get(state.LinkRestarting ? "Error_Reconnecting" : "Error_NotConnected"))
+            DismissError();
         IsLinkDown = state.Connection is DeviceConnectionState.PairedNotConnected or DeviceConnectionState.Disconnected or DeviceConnectionState.DisconnectedByUser;
         IsLeAudio = state.IsLeAudio && !IsLinkDown;
         // BlueCaster streams to these earbuds over its own adapter: Windows (and so the control
@@ -473,7 +478,8 @@ public sealed partial class DeviceViewModel : ObservableObject
             IsLeAudio = false;
         }
         IsClassicAudio = !IsLeAudio && !IsLinkDown && !IsBridgeOnly && state.Connection.IsLinkUp();
-        bool windowsBluetooth = state.Device is { Transport: DeviceTransport.Bluetooth } && !IsBridgeOnly;
+        // Earbuds BlueCaster carries (audio, or control through it too) are connected and disconnected in BlueCaster.
+        bool windowsBluetooth = state.Device is { Transport: DeviceTransport.Bluetooth } && !IsBridgeOnly && !state.LinkViaBridge;
         CanDisconnect = windowsBluetooth && state.Connection.IsLinkUp();
         CanConnect = windowsBluetooth && IsLinkDown;
         BatteryOpacity = IsLinkDown ? 0.35 : 1;
@@ -664,6 +670,15 @@ public sealed partial class DeviceViewModel : ObservableObject
             AddToggle(profile, DeviceToggle.Ldac, earfun.Model.Has("dual") ? "Toggle_Ldac_EarFun_Description" : null);
             AddToggle(profile, DeviceToggle.AptXAdaptive);
             AddToggle(profile, DeviceToggle.AptXLossless);
+        }
+        if (profile is EncoDeck.Protocol.Brands.Wingcloud.WingcloudX5sProProfile wingcloud)
+        {
+            // Switching LDAC restarts the earbuds' radio, and it excludes the surround effect.
+            if (wingcloud.Capabilities.IsAvailable(DeviceCapability.SpatialAudio, false))
+            {
+                AddToggle(profile, DeviceToggle.Ldac, "Toggle_Ldac_Wingcloud_Description");
+                AddToggle(profile, DeviceToggle.SpatialAudio);
+            }
         }
 
         bool Has(NoiseControlMode mode) => profile.NoiseControlOptions.Any(o => o.Mode == mode && IsAllowed(o.Support));

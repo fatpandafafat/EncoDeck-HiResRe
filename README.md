@@ -23,7 +23,7 @@
 
 EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用的耳机设置搬到了电脑上：查看左右耳和充电盒电量、切换降噪、调整 EQ 和空间音频，以及管理耳机触控等功能。平时可以只留一个托盘图标，不需要一直开着主窗口。
 
-目前以 **OPPO / 一加** 耳机为主要适配对象，也支持部分 **realme / DIZO、vivo / iQOO、华为、荣耀、小米 / Redmi、索尼、AKG、森海塞尔、漫步者、水月雨 MOONDROP、三星、Google、Bose、Nothing / CMF** 耳机及 USB 2.4G 游戏耳机。不同型号可用的设置不一样；**目前主要使用 OPPO Enco X4 进行真机验证**，其他型号主要依据协议和型号配置实现，欢迎反馈测试结果。
+目前以 **OPPO / 一加** 耳机为主要适配对象，也支持部分 **realme / DIZO、vivo / iQOO、华为、荣耀、小米 / Redmi、索尼、AKG、森海塞尔、漫步者、水月雨 MOONDROP、三星、Google、Bose、Nothing / CMF** 耳机及 USB 2.4G 游戏耳机。不同型号可用的设置不一样；**目前主要使用 OPPO Enco X4 进行真机验证**，HONOR CHOICE Earbuds X5s Pro 也已完成真机验证，其他型号主要依据协议和型号配置实现，欢迎反馈测试结果。
 
 ## 界面
 
@@ -115,7 +115,7 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 | **漫步者** | W820NB、W200BT / W200BT Plus、W860NB PRO、W830NB、花再 Evo Pro、FitBuds Turbo、FitClip Ultra、X5 Pro；Atom / Lolli 系列 28 个型号的识别、SPP / BLE 与双耳 / 盒电量；降噪 / 环境声、游戏模式、按键控制、音效与定时关机按型号和回读开放 | 协议实现，未真机验证；[范围说明](docs/COMPATIBILITY.md#漫步者) |
 | **水月雨 MOONDROP** | 18 个型号档案及通用识别（非完整型号支持）；GAIA BLE / RFCOMM、电量、按型号降噪 / 抗风噪、增益；能力发现后开放 LED、提示音开关 / 音量、双耳 TOUCHV2、LHDC / 双设备互斥、出厂 EQ 预设与用户 PEQ；实验性加入 LDAC / LC3、入耳检测、空间音频 / 头部跟踪、动态低音、左右声道交换 | EDGE 固件 1.3.0 已在 Windows 真机验证 RFCOMM 控制连接与基础状态读取；EDGE、太空漫游2 的 EQ 读写有社区真机记录；新增设置及其他型号仍以协议移植与模拟验证为主；推断及新增功能须实验性启用 |
 | **EarFun / ATVEL** | 23 条 GAIA / EF 型号记录，含 Air Pro 4+；电量、固件，按型号提供降噪、游戏模式、双设备与设备列表、入耳检测、提示音、查找、触控与触控锁、通话麦克风、LDAC／aptX 开关、自定义 EQ 与预设、恢复出厂；13 条精确产品图 | 协议移植与模拟设备测试，设置写入均读回确认（EQ 无回读，显示上次发送的曲线），待更多真机反馈；[范围说明](docs/COMPATIBILITY.md#earfun--atvel) |
-| **荣耀** | 9 款（含 HONOR CHOICE X5 / X5 Pro）；电量、降噪 / 通透及档位、佩戴检测、双设备连接、耳机返回预设后的 EQ（按型号） | 协议实现，未真机验证 |
+| **荣耀** | 10 款（含 HONOR CHOICE X5 / X5 Pro / X5s Pro）；电量、降噪 / 通透及档位、佩戴检测、双设备连接、耳机返回预设后的 EQ（按型号）；X5s Pro 另有 LDAC 与空间环绕声开关、长按降噪循环、双击 / 三击手势 | HONOR CHOICE X5s Pro 固件 1.1.64.2 已真机验证；其余型号协议实现，未真机验证 |
 | **森海塞尔** | 13 款电量与固件；MOMENTUM 4 / 5、ACCENTUM 系列、HDB 630 按型号提供降噪 / 自适应 / 通透、抗风噪、Smart Pause、用户 EQ 与已配对设备列表；MOMENTUM TW 4 降噪、抗风噪、佩戴检测、低延迟与触控自定义 | 协议实现与模拟设备测试，部分功能有社区真机记录，EncoDeck 未真机验证 |
 | **三星** | Galaxy Buds2、Buds2 Pro、Buds4 Pro：左右耳与充电盒电量、关闭 / 降噪 / 通透、预设 EQ；Buds4 Pro 自适应模式与降噪强度，Buds2 / Buds2 Pro 触控锁定 | 协议移植，未真机验证 |
 | **Google** | Pixel Buds Pro、Pixel Buds Pro 2：电量与充电、关闭 / 降噪 / 通透、预设 EQ、固件版本 | 协议移植，未真机验证 |
@@ -147,11 +147,11 @@ EncoDeck 是用 **WinUI 3** 编写的 Windows 耳机控制工具。它把常用�
 
 ### A2DP Bridge（可选 / 实验性）
 
-非商店版可在“实验室”页面下载并管理 [BlueCaster](https://github.com/SeiyaFunaokaJP/BlueCaster)（原 A2DP Windows Bridge）：它接管一个**独立的 USB 蓝牙适配器**，以 LDAC、LHDC V5、aptX HD 等编码向耳机发送声音，不需要测试签名驱动。EncoDeck 负责下载（上游官方构建的原样副本）、启动后台、连接与断开、音量和适配器驱动管理，并在首页识别通过它连接的耳机。
+[BlueCaster](https://github.com/SeiyaFunaokaJP/BlueCaster)（原 A2DP Windows Bridge）接管一个**独立的 USB 蓝牙适配器**，以 LDAC、LHDC V5、aptX HD 等编码向耳机发送声音，不需要测试签名驱动。EncoDeck 只负责连接它：非商店版可在“实验室”页面一键运行其官方安装程序、启动后台；BlueCaster 连上耳机后，EncoDeck 自动切换到这副耳机并经它控制。更新、卸载、适配器驱动、耳机连接和音量都由 BlueCaster 自己管理。
 
-需要第二个 USB 蓝牙适配器；只经 Bridge 连接时 Windows 看不到耳机，电量与耳机设置不可用（支持双设备连接的耳机可同时连接电脑蓝牙）。商店版只连接你自行安装并启动的 BlueCaster。详见 [A2DP Bridge 说明](docs/A2DP_BRIDGE.md)。
+需要第二个 USB 蓝牙适配器；只经 Bridge 连接时 Windows 看不到耳机，EncoDeck 通过 BlueCaster 打开控制通道读取电量、更改耳机设置（支持双设备连接的耳机也可同时连接电脑蓝牙）。商店版只连接你自行安装并启动的 BlueCaster。详见 [A2DP Bridge 说明](docs/A2DP_BRIDGE.md)。
 
-LHDC 与 A2DP Bridge 组件都有各自独立的 Release，更新 EncoDeck 不会重新下载它们；组件可以在实验室页单独检查更新、更新和卸载，下载内容按大小与 SHA-256 校验。
+LHDC 组件有独立的 Release，更新 EncoDeck 不会重新下载它；可以在实验室页单独检查更新、更新和卸载，下载内容按大小与 SHA-256 校验。BlueCaster 安装后由它自己更新和卸载。
 
 ## 编译
 

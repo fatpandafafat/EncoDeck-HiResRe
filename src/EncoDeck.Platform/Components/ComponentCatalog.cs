@@ -120,7 +120,6 @@ public static class ComponentCatalog
     public const string AppRepository = "fatpandafafat/EncoDeck-HiResRe";
 
     public const string LhdcId = "lhdc";
-    public const string A2dpBridgeId = "a2dpwb";
 
     /// <summary>The releases API of the repository a component's releases live in.</summary>
     public static Uri ReleasesApi(string repository) =>
@@ -140,8 +139,6 @@ public static class ComponentCatalog
     public static IReadOnlyList<ComponentRelease> Components => All.Value;
 
     public static ComponentRelease Lhdc => Get(LhdcId);
-
-    public static ComponentRelease A2dpBridge => Get(A2dpBridgeId);
 
     public static ComponentRelease Get(string id) => Components.FirstOrDefault(c => c.Id == id)
         ?? throw new KeyNotFoundException($"No component '{id}'.");

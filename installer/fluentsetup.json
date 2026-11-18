@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/TIANLI0/FluentSetup/v1.0.0/shared/schemas/fluentsetup.project.schema.json",
+  "$schema": "https://raw.githubusercontent.com/TIANLI0/FluentSetup/latest/shared/schemas/fluentsetup.project.schema.json",
   "schemaVersion": 1,
   // EncoDeck installer, built with FluentSetup (build\build-installer.ps1 passes -D Version=<version>).
   //
@@ -14,8 +14,11 @@
   // /LOG=... and exits: /SILENT shows the progress window (UAC first for a per-machine install), /RELAUNCH=1 starts
   // "EncoDeck.exe --updated". The release asset must stay EncoDeck-Setup-<version>-win-x64.exe for the updater.
   // Uninstall: undoes what EncoDeck changed with administrator rights (codec log session, BthAvctpSvc access, LE Audio
-  // hook task; one UAC prompt, only if one of them is present) and asks before deleting %LOCALAPPDATA%\EncoDeck.
-  "variables": { "Version": "0.0.0-dev" },
+  // hook task, its settings in HKLM\SOFTWARE\EncoDeck and its folder in %ProgramData%\EncoDeck; one UAC prompt, only if
+  // one of them is present) and asks before deleting %LOCALAPPDATA%\EncoDeck.
+  // Code signing: release builds (CI with the TIANLI0/codesign login) add --sign -D CodesignThumbprint=<Certum
+  // certificate>; FluentSetup then signs the setup and the uninstall.exe it installs. Local builds stay unsigned.
+  "variables": { "Version": "0.0.0-dev", "CodesignThumbprint": "" },
   "app": {
     "id": "EncoDeck",
     "name": "EncoDeck",
@@ -23,6 +26,8 @@
     "version": "$(Version)",
     "description": "Windows 原生的多品牌耳机控制中心 · Native multi-brand earbuds control center",
     "website": "https://github.com/fatpandafafat/EncoDeck-HiResRe",
+    "supportUrl": "https://github.com/fatpandafafat/EncoDeck-HiResRe/issues",
+    "releaseNotesUrl": "https://github.com/fatpandafafat/EncoDeck-HiResRe/releases",
     "icon": "../src/EncoDeck.App/Assets/EncoDeck.ico",
     "mainExecutable": "EncoDeck.exe"
   },
@@ -73,13 +78,22 @@
       "traceSessions": ["EncoDeck-BthA2dp"],
       "scheduledTasks": ["EncoDeck\\LE Audio hook"],
       "serviceAccess": [{ "service": "BthAvctpSvc", "rights": ["LCRPWP", "RPWPLC"] }],
-      "removeData": ["{CommonAppData}\\EncoDeck\\Codec"]
+      // Codec (A2DP codec log) and LeHook (hook copies, state, symbols); LeHook settings the hook reads from HKLM.
+      "removeData": ["{CommonAppData}\\EncoDeck"],
+      "removeRegistryKeys": ["HKLM\\Software\\EncoDeck"]
     }
   },
   "ui": {
     "license": "../LICENSE",
+    "licenseStyle": "inline",
     "localization": "locales",
     "defaultLanguage": "auto"
+  },
+  "signing": {
+    "enabled": false,
+    "provider": "signtool",
+    "certificateThumbprint": "$(CodesignThumbprint)",
+    "timestampUrl": "http://time.certum.pl"
   },
   "output": {
     "directory": "../artifacts/installer",

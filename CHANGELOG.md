@@ -1,5 +1,23 @@
 # 更新日志（CHANGELOG）
 
+本文件记录 EncoDeck 每个版本的用户可见变化，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。每个版本按“新增 / 改进 / 修复 / 移除”分类；自 1.15.0 起，每个版本先列中文，分隔线下是对应的英文。
+
+This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
+
+## [1.16.0] - 2026-11-18 · 荣耀亲选 X5s Pro / HONOR CHOICE Earbuds X5s Pro
+
+### 新增
+
+- HONOR CHOICE Earbuds X5s Pro（`USFY`，Wingcloud 方案）支持电量、降噪（智能 / 轻度 / 中度 / 深度）、通透、预设 EQ、LDAC 开关、空间环绕声开关、长按降噪循环、左右耳双击 / 三击手势和固件信息。协议依据独立安卓项目 [my-x5s-pro](https://github.com/shui-tiao/my-x5s-pro)，已在真机（固件 1.1.64.2）逐项验证。
+- 切换 LDAC 时耳机会重启蓝牙：EncoDeck 直接采信写入值，连接自行恢复后不再提示“耳机没有响应”，残留的提示也会自动消失。
+
+### Added
+
+- Added support for the HONOR CHOICE Earbuds X5s Pro (`USFY`, Wingcloud): battery, noise cancelling (dynamic / cozy / general / ultra), transparency, EQ presets, LDAC and surround sound switches, the squeeze-and-hold noise cycle, double / triple squeeze gestures and firmware information. Protocol facts come from the independent Android project [my-x5s-pro](https://github.com/shui-tiao/my-x5s-pro) and were verified on hardware (firmware 1.1.64.2).
+- Switching LDAC restarts the earbuds' Bluetooth: EncoDeck trusts the write and reconnects on its own instead of reporting "The earbuds didn't respond", and clears that stale message.
+
+---
+
 ## [1.15.7-hires] - 2026-11-14 · 自适应不再一步掉到 400、十几秒回到所选码率 / The adaptive control no longer drops straight to 400, and it is back at the chosen rate within seconds
 
 - **LHDC 组件升级到 0.8.8-r15**。自适应此前一次拥塞事件降**两格**，而拥塞持续时每 100 毫秒就能再触发一次，于是上限 1000 时一次卡顿就 1000 → 800 → 600 → 400 掉到底（用户选的是 1000，落到 400 是 2.5 倍的码率塌陷），而且掉档后要先等 30 秒才允许回升、每升一档还要再稳定 15 秒，回到 1000 要 105 秒。现在**一次事件只降一格**，**地板跟着所选速率走**（选 1000 最低到 700，选 800 最低到 600），**压力缓解后每 3 秒升一档**，失败档位的退避从 15 秒缩到 6 秒、上限从 15 分钟降到 60 秒：700 回到 1000 约 12 秒，600 回到 800 约 9 秒。
@@ -47,6 +65,7 @@
 - Connect or disconnect this PC from the tray panel, Home and Devices. After disconnecting, EncoDeck leaves the headphones alone, including after an app restart.
 - EDIFIER W830NB gains noise control, ambient levels and EQ presets; scene switching no longer requires experimental features, waits for the voice prompt before the next switch and reports a refused switch honestly.
 - HUAWEI spatial audio can be switched between Off / Fixed / Head tracking after a valid device report; the icons use Fluent UI System Icons.
+
 ## [1.15.3-hires] - 2026-11-12 · 修复：播放不再被通话状态检查阻塞 / Fix: playback is no longer blocked by the call-state check
 
 - 面板的实时码率轮询改用新增的 `active-bitrate` 命令。该命令只读注册表与 SCM 状态，不枚举设备、不查询蓝牙射频，因此播放中反复轮询不会再触碰音频流所在的射频。
@@ -59,6 +78,32 @@
 本文件记录 EncoDeck 每个版本的用户可见变化，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。每个版本按“新增 / 改进 / 修复 / 移除”分类；自 1.15.0 起，每个版本先列中文，分隔线下是对应的英文。
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
+
+## [1.15.2] - 2026-11-18 · 已签名的安装包，W830NB 与 BlueCaster 修复 / Signed installer, W830NB and BlueCaster fixes
+
+### 修复
+
+- EDIFIER W830NB：切换降噪模式和音效时也会等耳机的提示音播完再发送下一次设置，连续切换不再失败；同时修改的几项设置依次发送，没有应答时自动重发一次（[#18](https://github.com/TIANLI0/EncoDeck/issues/18)）。
+- 在 EncoDeck 里断开的耳机由 BlueCaster 播放时，EncoDeck 会通过 BlueCaster 接管控制（降噪、音效等），播放停止后回到“已在 EncoDeck 中断开”；不会改动 Windows 的蓝牙连接（[#16](https://github.com/TIANLI0/EncoDeck/issues/16)）。
+
+### 改进
+
+- 安装包、卸载程序和 EncoDeck 自己的程序文件带有 Authenticode 数字签名和时间戳，Windows 不再显示“未知发布者”。
+- 安装程序的第一页和安装完成页提供“发行说明”和“帮助与支持”链接，许可条款改为在第一页内联确认，安装少一步；“应用和功能”里也能找到这两个链接。
+- 卸载时一并清理 LE Audio 设置留下的系统级数据。
+
+---
+
+### Fixed
+
+- EDIFIER W830NB: changing the noise mode or the sound effect also waits for the headphones' voice prompt before the next setting, so switching several times in a row no longer fails; settings changed together are sent one after another, and an unanswered one is sent once more ([#18](https://github.com/TIANLI0/EncoDeck/issues/18)).
+- Headphones disconnected in EncoDeck that play through BlueCaster are now controlled through BlueCaster (noise mode, sound effects, …) while it plays, and return to "Disconnected in EncoDeck" when it stops; the Windows Bluetooth connection is left alone ([#16](https://github.com/TIANLI0/EncoDeck/issues/16)).
+
+### Improved
+
+- The installer, the uninstaller and EncoDeck's own program files carry an Authenticode signature with a timestamp, so Windows no longer shows "Unknown publisher".
+- The installer's first and last pages link to the release notes and to help and support, and the license is accepted inline on the first page, one step less; Settings > Apps shows both links too.
+- Uninstalling also removes the system-wide data left by the LE Audio settings.
 
 ## [1.15.2-hires] - 2026-11-11 · 修复：开启 Hi-Res 的耳机不再安装失败，并实时显示当前码率 / Fix: Hi-Res earbuds install again, and the current bitrate is shown live
 
@@ -81,54 +126,6 @@ This file records the user-visible changes of every EncoDeck version (Keep a Cha
 ### Improved
 
 - The LHDC card shows the bitrate that is really being played: the service publishes it when the stream starts and whenever the adaptive control changes it, and the card refreshes it while the card is open.
-
-## [1.15.1-hires] - 2026-11-11 · 修复：切换播放格式不再要求手动重启电脑 / Fix: switching the playback format no longer asks for a reboot
-
-### 修复
-
-- 切换 LHDC 播放格式时，若 Windows 推迟了音频子设备的重启（3010），改为就地重装该子设备的驱动绑定并自行核验格式是否生效，不再要求手动重启电脑。
-- LHDC 组件升级到 0.8.8-r4：当包内驱动与设备当前绑定的驱动一致时不再重复发布驱动包，正在加载的驱动文件不会被替换成又一次待重启的升级。
-
-### 改进
-
-- A2DP 桥接组件随上游仓库改名（A2DP-Windows-Bridge → BlueCaster）更新镜像地址，组件下载继续可用。
-
----
-
-### Fixed
-
-- When switching the LHDC playback format, a deferred audio child restart (3010) now reinstalls that child's driver binding in place and verifies the format itself, instead of asking for a manual reboot.
-- The LHDC component moves to 0.8.8-r4: when the packaged driver matches the one the device is bound to, the package is no longer staged again, so the loaded driver file is not replaced by another pending restart.
-
-### Improved
-
-- The A2DP bridge component follows the upstream repository rename (A2DP-Windows-Bridge → BlueCaster) and its mirror addresses are updated, so the component keeps downloading.
-
-## [1.15.0-hires] - 2026-11-08 · HiRes 分支：LHDC 高码率与耳机 Hi-Res 开关 / HiRes branch: LHDC high bitrates and the earbud's Hi-Res switch
-
-### 新增
-
-- 实验室的 LHDC 卡片新增耳机 Hi-Res 开关：直接读取耳机自身的 Hi-Res 状态并切换。开关决定耳机向 Windows 宣告的能力，所以它打开后才会出现 400 kbps 以上的选项。
-- 码率列表按耳机实际协商到的能力生成：只列出耳机支持、且单帧能放进媒体负载的格式；耳机不支持的码率不会出现在列表里。
-- LHDC 卡片显示服务当前实际使用的档位（采样率 / 位深 / 码率 / 自适应）。
-- 切换耳机 Hi-Res 后驱动会重新协商能力，码率上限随之更新。
-
-### 改进
-
-- 合并上游 1.15.0-beta.2：LC3 编码与 LE Audio 同步、Windows 侧 A2DP 编解码设置、EarFun 全系支持、AKG / realme / Edifier 扩展、Fluent 图标与工厂重置。
-
----
-
-### Added
-
-- The Labs LHDC card now has the earbud's own Hi-Res switch: it reads the earbud's state over the control channel and toggles it. The switch decides what the earbud advertises to Windows, so the options above 400 kbps only appear while it is on.
-- The bitrate lists are built from the capabilities the earbud actually negotiated: only the formats the earbud accepts, and that fit into the media payload, are offered.
-- The LHDC card shows the profile the service actually runs with (sample rate / depth / bitrate / adaptive).
-- After the earbud's Hi-Res switch changes, the driver negotiates the capabilities again and the bitrate ceiling follows.
-
-### Improved
-
-- Merged upstream 1.15.0-beta.2: the LC3 codec and LE Audio sync, the Windows-side A2DP codec settings, the full EarFun support, the AKG / realme / Edifier additions, the Fluent icons and the factory reset.
 
 ## [1.15.1] - 2026-11-13 · 漫步者 W830NB 场景模式修复与新安装程序 / W830NB scene fixes and a new installer
 
@@ -157,6 +154,28 @@ This file records the user-visible changes of every EncoDeck version (Keep a Cha
 - The installer is now built with [FluentSetup](https://github.com/TIANLI0/FluentSetup): a Windows 11 style setup that rolls everything back if it fails or is cancelled.
 - In-app updates show the setup's progress window and open EncoDeck again when done; a copy installed for all users asks for administrator permission first.
 - Uninstalling asks for administrator permission once (previously up to three times) to undo what EncoDeck changed with administrator rights (codec log, Bluetooth service access, LE Audio restore task).
+
+## [1.15.1-hires] - 2026-11-11 · 修复：切换播放格式不再要求手动重启电脑 / Fix: switching the playback format no longer asks for a reboot
+
+### 修复
+
+- 切换 LHDC 播放格式时，若 Windows 推迟了音频子设备的重启（3010），改为就地重装该子设备的驱动绑定并自行核验格式是否生效，不再要求手动重启电脑。
+- LHDC 组件升级到 0.8.8-r4：当包内驱动与设备当前绑定的驱动一致时不再重复发布驱动包，正在加载的驱动文件不会被替换成又一次待重启的升级。
+
+### 改进
+
+- A2DP 桥接组件随上游仓库改名（A2DP-Windows-Bridge → BlueCaster）更新镜像地址，组件下载继续可用。
+
+---
+
+### Fixed
+
+- When switching the LHDC playback format, a deferred audio child restart (3010) now reinstalls that child's driver binding in place and verifies the format itself, instead of asking for a manual reboot.
+- The LHDC component moves to 0.8.8-r4: when the packaged driver matches the one the device is bound to, the package is no longer staged again, so the loaded driver file is not replaced by another pending restart.
+
+### Improved
+
+- The A2DP bridge component follows the upstream repository rename (A2DP-Windows-Bridge → BlueCaster) and its mirror addresses are updated, so the component keeps downloading.
 
 ## [1.15.0] - 2026-11-12 · 多品牌适配与连接控制 / Multi-brand support and connection control
 
@@ -207,6 +226,32 @@ This file records the user-visible changes of every EncoDeck version (Keep a Cha
 ### Removed
 
 - The Enco X4-only Intel left/right sync schedule switch in Labs.
+
+## [1.15.0-hires] - 2026-11-08 · HiRes 分支：LHDC 高码率与耳机 Hi-Res 开关 / HiRes branch: LHDC high bitrates and the earbud's Hi-Res switch
+
+### 新增
+
+- 实验室的 LHDC 卡片新增耳机 Hi-Res 开关：直接读取耳机自身的 Hi-Res 状态并切换。开关决定耳机向 Windows 宣告的能力，所以它打开后才会出现 400 kbps 以上的选项。
+- 码率列表按耳机实际协商到的能力生成：只列出耳机支持、且单帧能放进媒体负载的格式；耳机不支持的码率不会出现在列表里。
+- LHDC 卡片显示服务当前实际使用的档位（采样率 / 位深 / 码率 / 自适应）。
+- 切换耳机 Hi-Res 后驱动会重新协商能力，码率上限随之更新。
+
+### 改进
+
+- 合并上游 1.15.0-beta.2：LC3 编码与 LE Audio 同步、Windows 侧 A2DP 编解码设置、EarFun 全系支持、AKG / realme / Edifier 扩展、Fluent 图标与工厂重置。
+
+---
+
+### Added
+
+- The Labs LHDC card now has the earbud's own Hi-Res switch: it reads the earbud's state over the control channel and toggles it. The switch decides what the earbud advertises to Windows, so the options above 400 kbps only appear while it is on.
+- The bitrate lists are built from the capabilities the earbud actually negotiated: only the formats the earbud accepts, and that fit into the media payload, are offered.
+- The LHDC card shows the profile the service actually runs with (sample rate / depth / bitrate / adaptive).
+- After the earbud's Hi-Res switch changes, the driver negotiates the capabilities again and the bitrate ceiling follows.
+
+### Improved
+
+- Merged upstream 1.15.0-beta.2: the LC3 codec and LE Audio sync, the Windows-side A2DP codec settings, the full EarFun support, the AKG / realme / Edifier additions, the Fluent icons and the factory reset.
 
 ## [1.15.0-beta.3] - 2026-11-09 · BlueCaster 适配与 W830NB 降噪 / BlueCaster support and W830NB noise control
 
@@ -781,4 +826,5 @@ This file records the user-visible changes of every EncoDeck version (Keep a Cha
 [1.8.0]: https://github.com/TIANLI0/EncoDeck/releases/tag/v1.8.0
 [1.7.0]: https://github.com/TIANLI0/EncoDeck/releases/tag/v1.7.0
 [1.5.0]: https://github.com/TIANLI0/EncoDeck/releases/tag/v1.5.0
+
 [1.4.0]: https://github.com/TIANLI0/EncoDeck/releases/tag/v1.4.0

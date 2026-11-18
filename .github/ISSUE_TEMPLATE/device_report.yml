@@ -4,7 +4,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        兼容性报告对项目最有价值。请先按 [docs/TESTING.md](https://github.com/TIANLI0/EncoDeck/blob/main/docs/TESTING.md) 运行 `EncoDeck.Probe devices / services / query --report report.json`。
+        兼容性报告对项目最有价值。请先按 [docs/TESTING.md](https://github.com/fatpandafafat/EncoDeck-HiResRe/blob/main/docs/TESTING.md) 运行 `EncoDeck.Probe devices / services / query --report report.json`。
         Compatibility reports help the most. Please run `EncoDeck.Probe devices / services / query --report report.json` as described in docs/TESTING.md first.
 
         ⚠️ Probe 默认已脱敏；请勿公开 `--show-sensitive` 的输出或完整蓝牙地址。

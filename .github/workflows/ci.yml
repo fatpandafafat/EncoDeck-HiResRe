@@ -132,8 +132,8 @@ jobs:
         shell: pwsh
         run: |
           # Own code only (app, libraries, LE Audio hook, Probe); .NET / Windows App SDK / NuGet files are not ours.
-          & $env:CODESIGN_SIGN -Root artifacts/EncoDeck-win-x64 -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck' -DescriptionUrl 'https://github.com/TIANLI0/EncoDeck'
-          & $env:CODESIGN_SIGN -Root artifacts/EncoDeck.Probe-win-x64 -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck Probe' -DescriptionUrl 'https://github.com/TIANLI0/EncoDeck'
+          & $env:CODESIGN_SIGN -Root artifacts/EncoDeck-win-x64 -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck' -DescriptionUrl 'https://github.com/fatpandafafat/EncoDeck-HiResRe'
+          & $env:CODESIGN_SIGN -Root artifacts/EncoDeck.Probe-win-x64 -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck Probe' -DescriptionUrl 'https://github.com/fatpandafafat/EncoDeck-HiResRe'
 
       - name: Zip
         shell: pwsh
@@ -266,7 +266,7 @@ jobs:
           # Store release notes are plain text: turn "### 新增" into "【新增】" and keep link text only.
           $notes = $notes -replace '(?m)^### (.+?)\s*$', '【$1】' -replace '\[([^\]]+)\]\([^)]+\)', '$1' -replace '`', ''
           ./build/submit-store.ps1 -Package (Get-ChildItem artifacts/store/*.msixupload | Select-Object -First 1).FullName -ReleaseNotes $notes `
-            -ReleaseNotesUrl "https://github.com/TIANLI0/EncoDeck/releases/tag/v$version" -ReplacePending
+            -ReleaseNotesUrl "https://github.com/fatpandafafat/EncoDeck-HiResRe/releases/tag/v$version" -ReplacePending
 
       - uses: actions/upload-artifact@v4
         if: env.STORE_TENANT_ID != ''

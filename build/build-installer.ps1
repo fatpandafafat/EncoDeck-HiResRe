@@ -78,7 +78,7 @@ if (-not $fluentsetup) { throw "fluentsetup not found. Install FluentSetup (http
 
 $signArgs = @()
 if ($env:CODESIGN_SIGN) {
-    & $env:CODESIGN_SIGN -Root $publish -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck' -DescriptionUrl 'https://github.com/TIANLI0/EncoDeck'
+    & $env:CODESIGN_SIGN -Root $publish -Path 'EncoDeck*.exe', 'EncoDeck*.dll' -Description 'EncoDeck' -DescriptionUrl 'https://github.com/fatpandafafat/EncoDeck-HiResRe'
     $signArgs = @('--sign', '-D', "CodesignThumbprint=$env:CODESIGN_THUMBPRINT")
 }
 

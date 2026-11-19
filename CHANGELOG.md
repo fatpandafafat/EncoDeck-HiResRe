@@ -4,6 +4,46 @@
 
 This file records the user-visible changes of every EncoDeck version (Keep a Changelog, Semantic Versioning). Since 1.15.0 each version lists the Chinese notes first and the English ones below the divider.
 
+## [1.16.0-hires] - 2026-11-19 · 合并上游 1.16.0：荣耀 X5s Pro、签名安装包、BlueCaster 自主管理 / Merged upstream 1.16.0: HONOR X5s Pro, a signed installer and BlueCaster in charge of itself
+
+### 新增
+
+- 荣耀亲选 X5s Pro（`USFY`，Wingcloud 方案）支持电量、降噪（智能 / 轻度 / 中度 / 深度）、通透、预设 EQ、LDAC 开关、空间环绕声开关、长按降噪循环、左右耳双击 / 三击手势和固件信息。
+- 切换 LDAC 时耳机会重启蓝牙：EncoDeck 直接采信写入值，连接自行恢复后不再提示“耳机没有响应”，残留的提示也会自动消失。
+- A2DP Bridge 卡片改为只安装并连接 BlueCaster：适配器、连接配置、编解码与音量都交给 BlueCaster 自己的窗口，EncoDeck 只显示它正在推流的内容。
+
+### 改进
+
+- 安装包、卸载程序和 EncoDeck 自己的程序文件带 Authenticode 数字签名与时间戳，Windows 不再显示“未知发布者”；许可条款改为在安装程序第一页内联确认。
+- EDIFIER W830NB 切换降噪模式和音效时也会等提示音播完再发送，连续切换不再失败；没有应答时自动重发一次。
+- 在 EncoDeck 里断开的耳机由 BlueCaster 播放时，EncoDeck 会通过 BlueCaster 接管控制，播放停止后回到“已在 EncoDeck 中断开”，不会改动 Windows 的蓝牙连接。
+- 卸载时一并清理 LE Audio 设置留下的系统级数据。
+
+### 保持
+
+- LHDC 的耳机 Hi-Res 开关、实时码率显示与自适应换挡策略保持不变，组件仍为 0.8.8-r15。
+
+---
+
+### Added
+
+- Added support for the HONOR CHOICE Earbuds X5s Pro (`USFY`, Wingcloud): battery, noise cancelling (dynamic / cozy / general / ultra), transparency, EQ presets, LDAC and surround sound switches, the squeeze-and-hold noise cycle, double / triple squeeze gestures and firmware information.
+- Switching LDAC restarts the earbuds' Bluetooth: EncoDeck trusts the write and reconnects on its own instead of reporting "The earbuds didn't respond", and clears that stale message.
+- The A2DP Bridge card now only installs and connects BlueCaster: adapters, connection profiles, codecs and volume are managed in BlueCaster's own window, while EncoDeck shows what it streams.
+
+### Improved
+
+- The installer, the uninstaller and EncoDeck's own program files carry an Authenticode signature with a timestamp, so Windows no longer shows "Unknown publisher"; the license is accepted inline on the installer's first page.
+- EDIFIER W830NB: changing the noise mode or the sound effect also waits for the headphones' voice prompt before the next setting, so switching several times in a row no longer fails, and an unanswered setting is sent once more.
+- Headphones disconnected in EncoDeck that play through BlueCaster are now controlled through BlueCaster while it plays, and return to "Disconnected in EncoDeck" when it stops; the Windows Bluetooth connection is left alone.
+- Uninstalling also removes the system-wide data left by the LE Audio settings.
+
+### Kept
+
+- The LHDC earbud Hi-Res switch, the live bitrate and the adaptive ladder stay as they are; the component remains 0.8.8-r15.
+
+---
+
 ## [1.16.0] - 2026-11-18 · 荣耀亲选 X5s Pro / HONOR CHOICE Earbuds X5s Pro
 
 ### 新增
